@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("bounties")
-    .select("bounty")
+    .select("bounty, points")
     .eq("user_id", user_id)
     .maybeSingle();
 

@@ -1,19 +1,111 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
+//import { useEffect } from "react";
 export default function Home() {
   const { data: session } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
   const [points, setPoints] = useState(0);
+  const [displayPoints, setDisplayPoints] = useState(0);
+  const safePoints = Number(displayPoints) || 0;
+  const level = Math.floor(safePoints / 100) + 1;
+  const xpIntoLevel = safePoints % 100;
   const [popup, setPopup] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const level = Math.floor(points / 100) + 1;
-  const xpIntoLevel = points % 100;
   const xpNeeded = 100;
+const prevLevel = useRef(level);
+
+
+
+const addDebugXP = (amount: number) => {
+  const newPoints = points + amount;
+
+  setPoints(newPoints);
+  animateXP(newPoints);
+
+  console.log("🧪 DEBUG XP ADDED:", amount, "NEW TOTAL:", newPoints);
+};
+
+
+  const animateXP = (target: number) => {
+  let start = displayPoints;
+  let diff = target - start;
+
+  if (diff === 0) return;
+
+  const duration = 600; // ms
+  const steps = 30;
+  const increment = diff / steps;
+
+  let current = start;
+  let i = 0;
+
+  const interval = setInterval(() => {
+    i++;
+    current += increment;
+
+    if (i >= steps) {
+      current = target;
+      clearInterval(interval);
+    }
+
+    setDisplayPoints(Math.floor(current));
+  }, duration / steps);
+  };
+  const loadUser = async (userId: string) => {
+  const res = await fetch(`/api/bounty?user_id=${userId}`);
+  const result = await res.json();
+
+
+  if (result.data) {
+    setBounty(result.data.bounty ?? 0);
+    const newPoints = Number(result.data.points ?? 0);
+    setPoints(newPoints);
+    animateXP(newPoints);
+  }
+};
+
+useEffect(() => {
+  console.log("📊 STATE SNAPSHOT:", {
+    points,
+    displayPoints,
+    level,
+    xpIntoLevel,
+  });
+}, [points, displayPoints, level]);
+
+useEffect(() => {
+  if (!session?.user?.id) return;
+
+  const loadLeaderboard = async () => {
+    const res = await fetch("/api/leaderboard");
+    const data = await res.json();
+    setLeaderboard(data.data || []);
+  };
+
+  loadLeaderboard();
+
+  const interval = setInterval(loadLeaderboard, 10000);
+
+  return () => clearInterval(interval);
+}, [session?.user?.id]);
+
+useEffect(() => {
+  if (!prevLevel.current) {
+    prevLevel.current = level;
+    return;
+  }
+
+  if (level > prevLevel.current) {
+    setPopup("🎉 LEVEL UP!");
+  }
+
+  prevLevel.current = level;
+}, [level]);
+
 useEffect(() => {
   if (!session?.user?.id) return;
 
@@ -22,38 +114,30 @@ useEffect(() => {
   const run = async () => {
     console.log("RUN DAILY FOR:", userId);
 
-    const res = await fetch(`/api/bounty?user_id=${userId}`);
-    const result = await res.json();
-
-    if (result.data?.bounty !== undefined) {
-      setBounty(result.data.bounty);
-    }
+    await loadUser(userId);
 
     const daily = await fetch("/api/daily", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ user_id: userId }),
     });
-console.log("➡️ DAILY STATUS:", daily.status);
+
     const data = await daily.json();
 
     if (data.pointsAdded) {
-      setPoints((p) => p + data.pointsAdded);
-      setPopup(`+${data.pointsAdded} points! 🎉`);
+      setPopup(`+${data.pointsAdded} XP 🎉`);
+      const newPoints = points + data.pointsAdded;
+      setPoints(newPoints);
+      animateXP(newPoints);
     }
-
-    setTimeout(() => setPopup(null), 3000);
 
     if (data.unlocked?.length > 0) {
       data.unlocked.forEach((a: string) => {
-        setTimeout(() => {
-          setPopup(`🏆 Achievement unlocked: ${a}`);
-        }, 800);
-        console.log("DAILY RESPONSE:", data);
+        setTimeout(() => setPopup(`🏆 ${a}`), 500);
       });
     }
   };
-console.log("➡️ CALLING DAILY API");
+
   run();
 }, [session?.user?.id]);
 
@@ -114,12 +198,12 @@ console.log("➡️ CALLING DAILY API");
       <h1>Welcome {session.user?.name}</h1>
 
       <h2>Level {level}</h2>
-      <p>{points} XP</p>
+      <p>{displayPoints} XP</p>
 
 <div style={{ width: 300, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", marginTop: 10 }}>
   <div
     style={{
-      width: `${(xpIntoLevel / xpNeeded) * 100}%`,
+      width: `${((xpIntoLevel || 0) / xpNeeded) * 100}%`,
       height: "100%",
       background: "limegreen",
       transition: "width 0.3s ease"
@@ -165,6 +249,23 @@ console.log("➡️ CALLING DAILY API");
     </div>
   ))}
 </div>
+
+<button
+  onClick={() => addDebugXP(50)}
+  style={{
+    marginTop: "20px",
+    padding: "10px 16px",
+    background: "orange",
+    color: "black",
+    borderRadius: "8px",
+  }}
+>
+  🧪 Add 50 XP (Debug)
+</button>
+
+<button onClick={() => addDebugXP(10)}>+10 XP</button>
+<button onClick={() => addDebugXP(50)}>+50 XP</button>
+<button onClick={() => addDebugXP(120)}>+120 XP (level test)</button>
 
 <button
 onClick={async () => {
