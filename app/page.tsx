@@ -12,60 +12,48 @@ export default function Home() {
   const [popup, setPopup] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const level = Math.floor(points / 100) + 1;
+  const xpIntoLevel = points % 100;
+  const xpNeeded = 100;
 useEffect(() => {
-const loadLeaderboard = async () => {
-  const res = await fetch("/api/leaderboard");
-  const data = await res.json();
-  setLeaderboard(data.data || []);
-};
-
-loadLeaderboard();
-
   if (!session?.user?.id) return;
 
+  const userId = session.user.id;
+
   const run = async () => {
-    // bounty
-const res = await fetch(
-  `/api/bounty?user_id=${session.user.id}`
-);
-console.log("LOOKUP user_id:", session.user.id);
+    console.log("RUN DAILY FOR:", userId);
+
+    const res = await fetch(`/api/bounty?user_id=${userId}`);
     const result = await res.json();
 
     if (result.data?.bounty !== undefined) {
       setBounty(result.data.bounty);
     }
 
-    // daily
     const daily = await fetch("/api/daily", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: session.user.id,
-      }),
+      body: JSON.stringify({ user_id: userId }),
     });
-
+console.log("➡️ DAILY STATUS:", daily.status);
     const data = await daily.json();
 
     if (data.pointsAdded) {
       setPoints((p) => p + data.pointsAdded);
       setPopup(`+${data.pointsAdded} points! 🎉`);
     }
-    setTimeout(() => setPopup(null), 3000);
-const userId = session?.user?.id;
 
-if (!userId) {
-  console.log("Session not ready");
-  return;
-}
+    setTimeout(() => setPopup(null), 3000);
+
     if (data.unlocked?.length > 0) {
       data.unlocked.forEach((a: string) => {
         setTimeout(() => {
           setPopup(`🏆 Achievement unlocked: ${a}`);
         }, 800);
+        console.log("DAILY RESPONSE:", data);
       });
     }
   };
-
+console.log("➡️ CALLING DAILY API");
   run();
 }, [session?.user?.id]);
 
@@ -127,7 +115,21 @@ if (!userId) {
 
       <h2>Level {level}</h2>
       <p>{points} XP</p>
-      <p>Next level in {100 - (points % 100)} XP</p>
+
+<div style={{ width: 300, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", marginTop: 10 }}>
+  <div
+    style={{
+      width: `${(xpIntoLevel / xpNeeded) * 100}%`,
+      height: "100%",
+      background: "limegreen",
+      transition: "width 0.3s ease"
+    }}
+  />
+</div>
+
+<p>
+  {xpIntoLevel} / {xpNeeded} XP
+</p>
 
       <p>Current bounty: ${bounty}</p>
       <input
