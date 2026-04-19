@@ -3,15 +3,18 @@ const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 
 const commands = [
   new SlashCommandBuilder()
+    .setName("ping")
+    .setDescription("Check if bot is alive"),
+
+  new SlashCommandBuilder()
     .setName("daily")
     .setDescription("Claim your daily XP reward"),
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
-
+console.log(process.env.GUILD_ID);
 (async () => {
   try {
-    console.log("⏳ Deploying commands...");
 
     await rest.put(
       Routes.applicationGuildCommands(
