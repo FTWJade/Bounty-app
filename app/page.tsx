@@ -11,6 +11,7 @@ export default function Home() {
   const [points, setPoints] = useState(0);
   const [popup, setPopup] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const level = Math.floor(points / 100) + 1;
 useEffect(() => {
 const loadLeaderboard = async () => {
   const res = await fetch("/api/leaderboard");
@@ -124,8 +125,11 @@ if (!userId) {
 
       <h1>Welcome {session.user?.name}</h1>
 
-      <p>Current bounty: ${bounty}</p>
+      <h2>Level {level}</h2>
+      <p>{points} XP</p>
+      <p>Next level in {100 - (points % 100)} XP</p>
 
+      <p>Current bounty: ${bounty}</p>
       <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
