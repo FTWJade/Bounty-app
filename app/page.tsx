@@ -18,7 +18,8 @@ export default function Home() {
   const xpNeeded = 100;
 const prevLevel = useRef(level);
 const [discordLinked, setDiscordLinked] = useState(false);
-
+const [matchId, setMatchId] = useState("");
+const [createdMatchId, setCreatedMatchId] = useState("");
 
 const addDebugXP = (amount: number) => {
   const newPoints = points + amount;
@@ -210,6 +211,83 @@ if (status === "loading") {
       fontFamily: "Arial"
     }}>
 
+<button
+  style={{ marginTop: 10, padding: 10, background: "blue", color: "white" }}
+  onClick={async () => {
+    const res = await fetch("/api/match/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ user_id: session.user.id }),
+    });
+
+    const json = await res.json();
+
+    console.log("CREATE RESULT:", json);
+
+    if (json.data?.id) {
+      setCreatedMatchId(json.data.id);
+    }
+  }}
+>
+  🎮 Create Match
+</button>
+
+{createdMatchId && (
+  <p style={{ marginTop: 10 }}>
+    Match ID: <b>{createdMatchId}</b>
+  </p>
+)}
+
+<input
+  value={matchId}
+  onChange={(e) => setMatchId(e.target.value)}
+  placeholder="Enter Match ID"
+  style={{ marginTop: 10, padding: 8 }}
+/>
+
+<button
+  style={{ marginTop: 10, padding: 10, background: "purple", color: "white" }}
+onClick={async () => {
+  const res = await fetch("/api/match/join", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      user_id: session.user.id,
+      match_id: matchId,
+    }),
+  });
+
+  const text = await res.text();
+
+  if (!res.ok) {
+    console.log("JOIN ERROR:", text);
+    setPopup(text); // 👈 shows error on screen
+  } else {
+    setPopup("Joined match!");
+  }
+}}
+>
+  Join Match
+</button>
+
+<button
+  style={{ marginTop: 10, padding: 10, background: "green", color: "white" }}
+  onClick={async () => {
+    await fetch("/api/match/finish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: matchId,
+        winner_id: session.user.id,
+      }),
+    });
+
+    console.log("MATCH WON:", matchId);
+  }}
+>
+  Win Match
+</button>
+
 {popup && (
   <div
     style={{
@@ -333,7 +411,6 @@ await fetch("/api/bounty", {
 >
   Save Bounty
 </button>
-// link discord
 {!discordLinked ? (
   <button
     onClick={() => {
