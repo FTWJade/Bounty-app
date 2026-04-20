@@ -333,7 +333,7 @@ await fetch("/api/bounty", {
 >
   Save Bounty
 </button>
-
+// link discord
 {!discordLinked ? (
   <button
     onClick={() => {
@@ -364,6 +364,27 @@ console.log("STATE USER ID:", session.user.id);
   <div style={{ marginTop: "10px", color: "limegreen" }}>
     ✅ Discord connected
   </div>
+)}
+{discordLinked && (
+  <button
+    onClick={async () => {
+      await fetch("/api/discord/unlink", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: session.user.id }),
+      });
+
+      setDiscordLinked(false);
+    }}
+    style={{
+      marginTop: "10px",
+      padding: "10px 16px",
+      background: "red",
+      color: "white",
+    }}
+  >
+    Disconnect Discord
+  </button>
 )}
 
       <button
