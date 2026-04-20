@@ -5,7 +5,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 //import { useEffect } from "react";
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
   const [points, setPoints] = useState(0);
@@ -17,7 +17,7 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
 const prevLevel = useRef(level);
-
+const [discordLinked, setDiscordLinked] = useState(false);
 
 
 const addDebugXP = (amount: number) => {
@@ -67,6 +67,34 @@ const addDebugXP = (amount: number) => {
     animateXP(newPoints);
   }
 };
+
+useEffect(() => {
+  if (!session?.user?.id) return;
+
+const checkDiscord = async () => {
+  const res = await fetch(`/api/bounty?user_id=${session.user.id}`);
+  const json = await res.json();
+
+  const user = json.data;
+
+  const linked = !!user?.discord_id;
+
+  setDiscordLinked(linked);
+
+  console.log("🔗 Discord linked:", linked, user);
+};
+
+  checkDiscord();
+}, [session?.user?.id]);
+
+useEffect(() => {
+  const url = new URL(window.location.href);
+  const discord = url.searchParams.get("discord");
+
+  if (discord === "linked") {
+    setDiscordLinked(true);
+  }
+}, []);
 
 useEffect(() => {
   console.log("📊 STATE SNAPSHOT:", {
@@ -140,6 +168,10 @@ useEffect(() => {
 
   run();
 }, [session?.user?.id]);
+
+if (status === "loading") {
+  return <p>Loading...</p>;
+}
 
   if (!session) {
     return (
@@ -301,6 +333,38 @@ await fetch("/api/bounty", {
 >
   Save Bounty
 </button>
+
+{!discordLinked ? (
+  <button
+    onClick={() => {
+      const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+      if (!clientId) return;
+console.log("STATE USER ID:", session.user.id);
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: "http://localhost:3000/api/discord/callback",
+        response_type: "code",
+        scope: "identify",
+        state: session.user.id,
+      });
+
+      window.location.href =
+        `https://discord.com/oauth2/authorize?${params.toString()}`;
+    }}
+    style={{
+      marginTop: "10px",
+      padding: "10px 16px",
+      background: "#5865F2",
+      color: "white",
+    }}
+  >
+    Link Discord
+  </button>
+) : (
+  <div style={{ marginTop: "10px", color: "limegreen" }}>
+    ✅ Discord connected
+  </div>
+)}
 
       <button
         onClick={() => signOut()}

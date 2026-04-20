@@ -1,3 +1,4 @@
+import { supabase } from "@/lib/supabase";
 import NextAuth, { type NextAuthOptions } from "next-auth";
 import TwitchProvider from "next-auth/providers/twitch";
 
@@ -10,12 +11,21 @@ export const authOptions: NextAuthOptions = {
   ],
 
   callbacks: {
-    async jwt({ token, account }) {
-      if (account) {
-        token.userId = account.providerAccountId;
-      }
-      return token;
-    },
+async jwt({ token, account, profile }) {
+  if (account) {
+    token.userId = account.providerAccountId;
+
+    // 🔥 CREATE USER ROW (safe "first login" setup)
+    await supabase.from("bounties").upsert({
+      user_id: account.providerAccountId,
+      username: profile?.name ?? "unknown",
+      points: 0,
+      bounty: 0,
+    });
+  }
+
+  return token;
+},
 
     async session({ session, token }) {
       if (session.user) {
