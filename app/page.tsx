@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
-export default function Home() {
+export default function ProfilePage() {
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
@@ -413,7 +413,7 @@ onClick={async () => {
 )}
 
       <h1>Welcome {session.user?.name}</h1>
-
+      <h1>Profile</h1>
       <h2>Level {level}</h2>
       <p>{displayPoints} XP</p>
 
