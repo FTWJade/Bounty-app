@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
-//import { useEffect } from "react";
 export default function Home() {
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
@@ -20,9 +19,17 @@ const prevLevel = useRef(level);
 const [discordLinked, setDiscordLinked] = useState(false);
 const [matchId, setMatchId] = useState("");
 const [createdMatchId, setCreatedMatchId] = useState("");
+const [currentMatch, setCurrentMatch] = useState<any>(null);
 
 const addDebugXP = (amount: number) => {
   const newPoints = points + amount;
+
+    const inMatch =
+    currentMatch?.status === "open" ||
+    currentMatch?.status === "active";
+
+    const canVote = currentMatch?.status === "active";
+
 
   setPoints(newPoints);
   animateXP(newPoints);
@@ -68,6 +75,21 @@ const addDebugXP = (amount: number) => {
     animateXP(newPoints);
   }
 };
+
+useEffect(() => {
+  if (!currentMatch?.id) return;
+
+  const interval = setInterval(async () => {
+    const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
+    const data = await res.json();
+
+    if (data.data) {
+      setCurrentMatch(data.data);
+    }
+  }, 3000); // every 3 seconds
+
+  return () => clearInterval(interval);
+}, [currentMatch?.id]);
 
 useEffect(() => {
   if (!session?.user?.id) return;
@@ -201,6 +223,16 @@ if (status === "loading") {
       </main>
     );
   }
+  // simple reusable button style (so they STOP looking like text)
+const btn = {
+  marginTop: "10px",
+  padding: "10px 14px",
+  borderRadius: "8px",
+  border: "none",
+  cursor: "pointer",
+  fontWeight: 600,
+};
+
   return (
     <main style={{
       display: "flex",
@@ -212,7 +244,7 @@ if (status === "loading") {
     }}>
 
 <button
-  style={{ marginTop: 10, padding: 10, background: "blue", color: "white" }}
+  style={{ ...btn, background: "#444", color: "white" }}
   onClick={async () => {
     const res = await fetch("/api/match/create", {
       method: "POST",
@@ -220,12 +252,13 @@ if (status === "loading") {
       body: JSON.stringify({ user_id: session.user.id }),
     });
 
-    const json = await res.json();
+    const result = await res.json();
 
-    console.log("CREATE RESULT:", json);
+    console.log("CREATE RESULT:", result);
 
-    if (json.data?.id) {
-      setCreatedMatchId(json.data.id);
+    if (result.data) {
+      setCurrentMatch(result.data);
+      setMatchId(result.data.id); // auto-fill
     }
   }}
 >
@@ -238,41 +271,38 @@ if (status === "loading") {
   </p>
 )}
 
-<input
-  value={matchId}
-  onChange={(e) => setMatchId(e.target.value)}
-  placeholder="Enter Match ID"
-  style={{ marginTop: 10, padding: 8 }}
-/>
-
 <button
-  style={{ marginTop: 10, padding: 10, background: "purple", color: "white" }}
-onClick={async () => {
-  const res = await fetch("/api/match/join", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      user_id: session.user.id,
-      match_id: matchId,
-    }),
-  });
+  style={{ ...btn, background: "purple", color: "white" }}
+  onClick={async () => {
+    const res = await fetch("/api/match/join", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: session.user.id,
+        match_id: matchId,
+      }),
+    });
 
-  const text = await res.text();
+    const text = await res.text();
 
-  if (!res.ok) {
-    console.log("JOIN ERROR:", text);
-    setPopup(text); // 👈 shows error on screen
-  } else {
-    setPopup("Joined match!");
-  }
-}}
+    if (!res.ok) {
+      setPopup(text);
+    } else {
+      setPopup("Joined match!");
+    }
+  }}
 >
-  Join Match
+  🤝 Join Match
 </button>
 
 <button
-  style={{ marginTop: 10, padding: 10, background: "green", color: "white" }}
+  style={{ ...btn, background: "green", color: "white" }}
   onClick={async () => {
+    if (!matchId) {
+      setPopup("No match selected");
+      return;
+    }
+
     await fetch("/api/match/finish", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -282,11 +312,23 @@ onClick={async () => {
       }),
     });
 
-    console.log("MATCH WON:", matchId);
+    setPopup("🏆 Match finished!");
   }}
 >
-  Win Match
+  🏆 Win Match
 </button>
+
+{currentMatch && (
+  <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
+    <h3>🎮 Match</h3>
+
+    <p>ID: {currentMatch.id}</p>
+    <p>Status: {currentMatch.status}</p>
+
+    <p>Creator: {currentMatch.creator?.username || currentMatch.creator_id}</p>
+    <p>Opponent: {currentMatch.opponent?.username || "Waiting..."}</p>
+  </div>
+)}
 
 {popup && (
   <div
