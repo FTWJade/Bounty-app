@@ -1,49 +1,77 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { calculateMatchRewards } from "@/lib/game/rewards";
 
 export async function POST(req: Request) {
   const { match_id, winner_id } = await req.json();
 
   if (!match_id || !winner_id) {
-    return new Response("Missing fields", { status: 400 });
+    return Response.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const { data: match } = await supabaseAdmin
+  // 1. Get match
+  const { data: match, error } = await supabaseAdmin
     .from("matches")
     .select("*")
     .eq("id", match_id)
     .single();
 
-  if (!match) {
-    return new Response("Match not found", { status: 404 });
+  if (!match || error) {
+    return Response.json({ error: "Match not found" }, { status: 404 });
   }
 
-  // ❌ MUST HAVE 2 PLAYERS
+  if (match.status === "finished") {
+    return Response.json({ error: "Already finished" }, { status: 400 });
+  }
+
   if (!match.opponent_id) {
-    return new Response("Cannot finish match: no opponent", { status: 400 });
+    return Response.json({ error: "No opponent" }, { status: 400 });
   }
 
+  // 2. Determine loser
   const loser_id =
     match.creator_id === winner_id
       ? match.opponent_id
       : match.creator_id;
 
-  // 🏆 winner
+  // 3. Get levels
+  const { data: winner } = await supabaseAdmin
+    .from("bounties")
+    .select("points")
+    .eq("user_id", winner_id)
+    .single();
+
+  const { data: loser } = await supabaseAdmin
+    .from("bounties")
+    .select("points")
+    .eq("user_id", loser_id)
+    .single();
+
+  const winnerLevel = Math.floor((winner?.points ?? 0) / 100) + 1;
+  const loserLevel = Math.floor((loser?.points ?? 0) / 100) + 1;
+
+  // 4. Rewards
+  const rewards = calculateMatchRewards({
+    winnerLevel,
+    loserLevel,
+  });
+
+  // 5. Apply XP + bounty
   await supabaseAdmin.rpc("increment_xp", {
     uid: winner_id,
-    amount: 50,
+    amount: rewards.winnerXP,
   });
 
   await supabaseAdmin.rpc("increment_bounty", {
     uid: winner_id,
-    amount: 10,
+    amount: rewards.bountyGain,
   });
 
-  // 💀 loser
   await supabaseAdmin.rpc("increment_xp", {
     uid: loser_id,
-    amount: 10,
+    amount: rewards.loserXP,
   });
 
+  // 6. Update match (THIS IS THE KEY FIX)
   await supabaseAdmin
     .from("matches")
     .update({
@@ -52,5 +80,8 @@ export async function POST(req: Request) {
     })
     .eq("id", match_id);
 
-  return Response.json({ ok: true });
+  return Response.json({
+    ok: true,
+    rewards,
+  });
 }

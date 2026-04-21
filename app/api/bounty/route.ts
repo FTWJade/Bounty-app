@@ -51,11 +51,11 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const user_id = searchParams.get("user_id");
 
-  const { data, error } = await supabaseAdmin
-    .from("bounties")
-    .select("bounty, points, discord_id") // 👈 ADD THIS
-    .eq("user_id", user_id)
-    .maybeSingle();
+const { data, error } = await supabaseAdmin
+  .from("bounties")
+  .select("bounty, points, username")
+  .eq("user_id", user_id)
+  .maybeSingle();
 
   return NextResponse.json({ data, error });
 }

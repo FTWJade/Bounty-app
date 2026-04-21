@@ -16,10 +16,13 @@ export default function Home() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
 const prevLevel = useRef(level);
-const [discordLinked, setDiscordLinked] = useState(false);
 const [matchId, setMatchId] = useState("");
-const [createdMatchId, setCreatedMatchId] = useState("");
 const [currentMatch, setCurrentMatch] = useState<any>(null);
+const [didCreateMatch, setDidCreateMatch] = useState(false);
+const isMatchVisible =
+  currentMatch &&
+  currentMatch.status !== "finished" &&
+  currentMatch.status !== "expired";
 
 const addDebugXP = (amount: number) => {
   const newPoints = points + amount;
@@ -77,47 +80,42 @@ const addDebugXP = (amount: number) => {
 };
 
 useEffect(() => {
-  if (!currentMatch?.id) return;
+   if (!currentMatch?.id || currentMatch.status === "finished") return;
+
+  let active = true;
 
   const interval = setInterval(async () => {
-    const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
-    const data = await res.json();
+    try {
+      const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
+      if (!res.ok) return;
 
-    if (data.data) {
-      setCurrentMatch(data.data);
+      const data = await res.json();
+
+      if (!active || !data.data) return;
+
+      const match = data.data;
+
+      setCurrentMatch(match);
+      if (match.status === "finished" || match.status === "expired") {
+        clearInterval(interval);
+        active = false;
+
+      setCurrentMatch(null);
+      setMatchId("");
+      setDidCreateMatch(false);
+        console.log("🛑 Match ended → UI cleared");
+      }
+
+    } catch (err) {
+      console.warn("Polling failed:", err);
     }
-  }, 3000); // every 3 seconds
+  }, 3000);
 
-  return () => clearInterval(interval);
+  return () => {
+    active = false;
+    clearInterval(interval);
+  };
 }, [currentMatch?.id]);
-
-useEffect(() => {
-  if (!session?.user?.id) return;
-
-const checkDiscord = async () => {
-  const res = await fetch(`/api/bounty?user_id=${session.user.id}`);
-  const json = await res.json();
-
-  const user = json.data;
-
-  const linked = !!user?.discord_id;
-
-  setDiscordLinked(linked);
-
-  console.log("🔗 Discord linked:", linked, user);
-};
-
-  checkDiscord();
-}, [session?.user?.id]);
-
-useEffect(() => {
-  const url = new URL(window.location.href);
-  const discord = url.searchParams.get("discord");
-
-  if (discord === "linked") {
-    setDiscordLinked(true);
-  }
-}, []);
 
 useEffect(() => {
   console.log("📊 STATE SNAPSHOT:", {
@@ -256,69 +254,91 @@ const btn = {
 
     console.log("CREATE RESULT:", result);
 
-    if (result.data) {
-      setCurrentMatch(result.data);
-      setMatchId(result.data.id); // auto-fill
-    }
+if (result.data) {
+  setCurrentMatch(result.data);
+  setMatchId(result.data.id);
+  setDidCreateMatch(true);
+}
   }}
 >
   🎮 Create Match
 </button>
 
-{createdMatchId && (
+{currentMatch && (
   <p style={{ marginTop: 10 }}>
-    Match ID: <b>{createdMatchId}</b>
+    Match ID: <b>{currentMatch.id}</b>
   </p>
 )}
 
-<button
-  style={{ ...btn, background: "purple", color: "white" }}
-  onClick={async () => {
-    const res = await fetch("/api/match/join", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: session.user.id,
-        match_id: matchId,
-      }),
-    });
+{!didCreateMatch && currentMatch?.status === "open" && (
+  <div style={{ marginTop: 10 }}>
+    <input
+      value={matchId}
+      onChange={(e) => setMatchId(e.target.value)}
+      placeholder="Enter Match ID"
+      style={{
+        padding: "10px",
+        borderRadius: 8,
+        border: "1px solid #ccc",
+      }}
+    />
 
-    const text = await res.text();
+    <button
+      style={{ ...btn, background: "purple", color: "white" }}
+      onClick={async () => {
+        const res = await fetch("/api/match/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: session.user.id,
+            match_id: matchId,
+          }),
+        });
 
-    if (!res.ok) {
-      setPopup(text);
-    } else {
-      setPopup("Joined match!");
-    }
-  }}
->
-  🤝 Join Match
-</button>
+        const text = await res.text();
+
+        if (!res.ok) {
+          setPopup(text);
+        } else {
+          setPopup("Joined match!");
+        }
+      }}
+    >
+      Join Match
+    </button>
+  </div>
+)}
+
 
 <button
   style={{ ...btn, background: "green", color: "white" }}
-  onClick={async () => {
-    if (!matchId) {
-      setPopup("No match selected");
-      return;
-    }
+onClick={async () => {
+  if (!matchId) {
+    setPopup("No match selected");
+    return;
+  }
 
-    await fetch("/api/match/finish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: matchId,
-        winner_id: session.user.id,
-      }),
-    });
+  await fetch("/api/match/finish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: matchId,
+      winner_id: session.user.id,
+    }),
+  });
 
-    setPopup("🏆 Match finished!");
-  }}
+  setPopup("🏆 Match finished!");
+  setCurrentMatch(null);
+  setMatchId("");
+  setDidCreateMatch(false);
+}}
 >
   🏆 Win Match
 </button>
 
-{currentMatch && (
+
+
+{isMatchVisible && (
   <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
     <h3>🎮 Match</h3>
 
@@ -453,58 +473,68 @@ await fetch("/api/bounty", {
 >
   Save Bounty
 </button>
-{!discordLinked ? (
-  <button
-    onClick={() => {
-      const clientId = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
-      if (!clientId) return;
-console.log("STATE USER ID:", session.user.id);
-      const params = new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: "http://localhost:3000/api/discord/callback",
-        response_type: "code",
-        scope: "identify",
-        state: session.user.id,
-      });
 
-      window.location.href =
-        `https://discord.com/oauth2/authorize?${params.toString()}`;
-    }}
-    style={{
-      marginTop: "10px",
-      padding: "10px 16px",
-      background: "#5865F2",
-      color: "white",
-    }}
-  >
-    Link Discord
-  </button>
-) : (
-  <div style={{ marginTop: "10px", color: "limegreen" }}>
-    ✅ Discord connected
-  </div>
-)}
-{discordLinked && (
-  <button
-    onClick={async () => {
-      await fetch("/api/discord/unlink", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: session.user.id }),
-      });
+<button
+  style={{
+    ...btn,
+    background: "orange",
+    color: "black",
+  }}
+onClick={async () => {
+  if (!session?.user?.id) return;
 
-      setDiscordLinked(false);
-    }}
-    style={{
-      marginTop: "10px",
-      padding: "10px 16px",
-      background: "red",
-      color: "white",
-    }}
-  >
-    Disconnect Discord
-  </button>
-)}
+  console.log("🧪 SIMULATING MATCH");
+
+  const matchId = "debug-" + Date.now();
+
+  const createRes = await fetch("/api/debug/create-fake-match", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: matchId,
+      creator_id: session.user.id,
+      opponent_id: "DEBUG_OPPONENT",
+    }),
+  });
+
+  const createData = await createRes.json();
+
+  if (!createData.data) {
+    console.error("❌ match creation failed");
+    return;
+  }
+
+  await new Promise((r) => setTimeout(r, 300));
+
+  const res = await fetch("/api/match/finish", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: matchId,
+      winner_id: session.user.id,
+    }),
+  });
+
+  const text = await res.text();
+  console.log("FINISH RAW:", text);
+
+  try {
+    const data = JSON.parse(text);
+    console.log("FINISH PARSED:", data);
+  } catch (e) {
+    console.error("❌ NOT JSON RESPONSE");
+  }
+
+  // 🔥 THIS IS THE MISSING PART
+  setPopup("🧪 Debug match finished!");
+  setCurrentMatch(null);
+  setMatchId("");
+  setDidCreateMatch(false);
+  await loadUser(session.user.id);
+}}
+>
+  🧪 SIMULATE MATCH WIN (DEBUG)
+</button>
 
       <button
         onClick={() => signOut()}
