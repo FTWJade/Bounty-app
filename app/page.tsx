@@ -413,7 +413,6 @@ onClick={async () => {
 )}
 
       <h1>Welcome {session.user?.name}</h1>
-      <h1>Profile</h1>
       <h2>Level {level}</h2>
       <p>{displayPoints} XP</p>
 
