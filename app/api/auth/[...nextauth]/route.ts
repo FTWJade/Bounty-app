@@ -10,30 +10,33 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
 
-  callbacks: {
-async jwt({ token, account, profile }) {
-  if (account) {
-    token.userId = account.providerAccountId;
-
-    // 🔥 CREATE USER ROW (safe "first login" setup)
-    await supabase.from("bounties").upsert({
-      user_id: account.providerAccountId,
-      username: profile?.name ?? "unknown",
-      points: 0,
-      bounty: 0,
-    });
-  }
-
-  return token;
-},
-
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.userId as string;
-      }
-      return session;
-    },
+callbacks: {
+  async redirect({ url, baseUrl }) {
+    return baseUrl;
   },
+
+  async jwt({ token, account, profile }) {
+    if (account) {
+      token.userId = account.providerAccountId;
+
+      await supabase.from("bounties").upsert({
+        user_id: account.providerAccountId,
+        username: profile?.name ?? "unknown",
+        points: 0,
+        bounty: 0,
+      });
+    }
+
+    return token;
+  },
+
+  async session({ session, token }) {
+    if (session.user) {
+      session.user.id = token.userId as string;
+    }
+    return session;
+  },
+},
 };
 
 const handler = NextAuth(authOptions);
