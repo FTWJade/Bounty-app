@@ -11,9 +11,9 @@ export const authOptions: NextAuthOptions = {
   ],
 
 callbacks: {
-  async redirect({ url, baseUrl }) {
-    return baseUrl;
-  },
+async redirect({ url, baseUrl }) {
+  return baseUrl.startsWith("http") ? baseUrl : "https://bounty.town";
+}
 
   async jwt({ token, account, profile }) {
     if (account) {
