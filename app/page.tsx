@@ -22,23 +22,27 @@ const [didCreateMatch, setDidCreateMatch] = useState(false);
 const isMatchVisible =
   currentMatch &&
   currentMatch.status !== "finished" &&
-  currentMatch.status !== "expired";
-
-const addDebugXP = (amount: number) => {
-  const newPoints = points + amount;
-
-    const inMatch =
-    currentMatch?.status === "open" ||
-    currentMatch?.status === "active";
-
-    const canVote = currentMatch?.status === "active";
-
-
-  setPoints(newPoints);
-  animateXP(newPoints);
-
-  console.log("🧪 DEBUG XP ADDED:", amount, "NEW TOTAL:", newPoints);
+  currentMatch.status !== "expired" &&
+  currentMatch.status !== "cancelled";
+const getUsername = (user: any) => {
+  if (!user) return "Waiting...";
+  if (Array.isArray(user)) return user[0]?.username || "Waiting...";
+  return user.username || "Waiting...";
 };
+
+// const addDebugXP = (amount: number) => {
+//   const newPoints = points + amount;
+
+//     const inMatch =
+//     currentMatch?.status === "open" ||
+//     currentMatch?.status === "active";
+
+
+//   setPoints(newPoints);
+//   animateXP(newPoints);
+
+//   console.log("🧪 DEBUG XP ADDED:", amount, "NEW TOTAL:", newPoints);
+// };
 
 
   const animateXP = (target: number) => {
@@ -96,7 +100,11 @@ useEffect(() => {
       const match = data.data;
 
       setCurrentMatch(match);
-      if (match.status === "finished" || match.status === "expired") {
+      if (
+        match.status === "finished" ||
+        match.status === "expired" ||
+        match.status === "cancelled"
+      ) {
         clearInterval(interval);
         active = false;
 
@@ -241,9 +249,38 @@ const btn = {
       fontFamily: "Arial"
     }}>
 
+      <div
+  style={{
+    position: "absolute",
+    top: 10,
+    left: 10,
+    fontSize: 14,
+  }}
+>
+  <a
+    href="/about"
+    style={{
+      color: "#555",
+      textDecoration: "none",
+    }}
+  >
+    About
+  </a>
+</div>
+
 <button
   style={{ ...btn, background: "#444", color: "white" }}
   onClick={async () => {
+
+    await fetch("/api/bounty", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    user_id: session.user.id,
+    username: session.user.name,
+  }),
+});
+
     const res = await fetch("/api/match/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -255,8 +292,12 @@ const btn = {
     console.log("CREATE RESULT:", result);
 
 if (result.data) {
-  setCurrentMatch(result.data);
-  setMatchId(result.data.id);
+  // 🔥 fetch full match with joins
+  const res = await fetch(`/api/match/get?id=${result.data.id}`);
+  const full = await res.json();
+
+  setCurrentMatch(full.data);
+  setMatchId(full.data.id);
   setDidCreateMatch(true);
 }
   }}
@@ -344,9 +385,13 @@ onClick={async () => {
 
     <p>ID: {currentMatch.id}</p>
     <p>Status: {currentMatch.status}</p>
-
-    <p>Creator: {currentMatch.creator?.username || currentMatch.creator_id}</p>
-    <p>Opponent: {currentMatch.opponent?.username || "Waiting..."}</p>
+<p>
+  Creator:{" "}
+  {currentMatch.creator_id === session.user.id
+    ? session.user.name
+    : getUsername(currentMatch.creator)}
+</p>
+    <p>Opponent: {getUsername(currentMatch.opponent)}</p>
   </div>
 )}
 
@@ -388,7 +433,7 @@ onClick={async () => {
 </p>
 
       <p>Current bounty: ${bounty}</p>
-      <input
+      {/* <input
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder="Set bounty amount"
@@ -396,7 +441,7 @@ onClick={async () => {
           padding: "10px",
           marginTop: "10px"
         }}
-      />
+      /> */}
 
 <div style={{ marginTop: 30, textAlign: "center" }}>
   <h2>🏆 Leaderboard</h2>
@@ -422,24 +467,20 @@ onClick={async () => {
   ))}
 </div>
 
-<button
-  onClick={() => addDebugXP(50)}
-  style={{
-    marginTop: "20px",
-    padding: "10px 16px",
-    background: "orange",
-    color: "black",
-    borderRadius: "8px",
-  }}
->
-  🧪 Add 50 XP (Debug)
-</button>
+  {/* <button
+    onClick={() => addDebugXP(50)}
+    style={{
+      marginTop: "20px",
+      padding: "10px 16px",
+      background: "orange",
+      color: "black",
+      borderRadius: "8px",
+    }}
+  >
+    🧪 Add 50 XP (Debug)
+  </button> */}
 
-<button onClick={() => addDebugXP(10)}>+10 XP</button>
-<button onClick={() => addDebugXP(50)}>+50 XP</button>
-<button onClick={() => addDebugXP(120)}>+120 XP (level test)</button>
-
-<button
+{/* <button
 onClick={async () => {
   console.log("SESSION:", session);
   console.log("USER ID:", session?.user?.id);
@@ -472,69 +513,80 @@ await fetch("/api/bounty", {
   }}
 >
   Save Bounty
-</button>
+</button> */}
 
-<button
-  style={{
-    ...btn,
-    background: "orange",
-    color: "black",
-  }}
-onClick={async () => {
-  if (!session?.user?.id) return;
 
-  console.log("🧪 SIMULATING MATCH");
+    {/* <button
+      style={{
+        ...btn,
+        background: "orange",
+        color: "black",
+      }}
+    onClick={async () => {
+      if (!session?.user?.id) return;
 
-  const matchId = "debug-" + Date.now();
+      console.log("🧪 SIMULATING MATCH");
 
-  const createRes = await fetch("/api/debug/create-fake-match", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      match_id: matchId,
-      creator_id: session.user.id,
-      opponent_id: "DEBUG_OPPONENT",
-    }),
-  });
+      const matchId = "debug-" + Date.now();
 
-  const createData = await createRes.json();
+      const createRes = await fetch("/api/debug/create-fake-match", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: matchId,
+          creator_id: session.user.id,
+          opponent_id: "DEBUG_OPPONENT",
+        }),
+      });
 
-  if (!createData.data) {
-    console.error("❌ match creation failed");
-    return;
-  }
+      const createData = await createRes.json();
 
-  await new Promise((r) => setTimeout(r, 300));
+      if (!createData.data) return;
 
-  const res = await fetch("/api/match/finish", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      match_id: matchId,
-      winner_id: session.user.id,
-    }),
-  });
+      await new Promise((r) => setTimeout(r, 300));
 
-  const text = await res.text();
-  console.log("FINISH RAW:", text);
+      await fetch("/api/match/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: matchId,
+          winner_id: session.user.id,
+        }),
+      });
 
-  try {
-    const data = JSON.parse(text);
-    console.log("FINISH PARSED:", data);
-  } catch (e) {
-    console.error("❌ NOT JSON RESPONSE");
-  }
+      await loadUser(session.user.id);
 
-  // 🔥 THIS IS THE MISSING PART
-  setPopup("🧪 Debug match finished!");
-  setCurrentMatch(null);
-  setMatchId("");
-  setDidCreateMatch(false);
-  await loadUser(session.user.id);
-}}
+      setPopup("🧪 Debug match finished!");
+      setCurrentMatch(null);
+      setMatchId("");
+      setDidCreateMatch(false);
+
+      return;
+    }}
+    >
+      🧪 SIMULATE MATCH WIN (DEBUG)
+    </button> */}
+
+<a
+  href="https://www.buymeacoffee.com/justsojaded"
+  target="_blank"
+  rel="noopener noreferrer"
 >
-  🧪 SIMULATE MATCH WIN (DEBUG)
-</button>
+  <button
+    style={{
+      marginTop: "20px",
+      padding: "10px 16px",
+      background: "#FFDD00",
+      color: "#000",
+      borderRadius: "8px",
+      fontWeight: "bold",
+      border: "none",
+      cursor: "pointer",
+    }}
+  >
+    ☕ Buy me a coffee
+  </button>
+</a>
 
       <button
         onClick={() => signOut()}
