@@ -98,7 +98,10 @@ useEffect(() => {
 
       if (!active) return;
 
-      setVoteCount(data);
+      setVoteCount({
+  a: data?.a ?? data?.data?.a ?? 0,
+  b: data?.b ?? data?.data?.b ?? 0,
+});
     } catch (err) {
       console.warn("Vote polling failed:", err);
     }
@@ -236,14 +239,16 @@ if (status === "loading") {
   if (!session) {
     return (
       <main style={{
-        display: "flex",
-        minHeight: "100vh",
-        justifyContent: "flex-start",
-        alignItems: "center",
-        flexDirection: "column",
-        paddingTop: 20,
-        paddingBottom: 80,
-        fontFamily: "Arial",
+      display: "flex",
+      minHeight: "100vh",
+      justifyContent: "flex-start",
+      alignItems: "stretch",
+      flexDirection: "column",
+      paddingTop: 20,
+      paddingBottom: 80,
+      paddingLeft: 12,
+      paddingRight: 12,
+      fontFamily: "Arial",
       }}>
         <h1>Bounty App</h1>
 
@@ -288,7 +293,7 @@ const filteredLeaderboard = leaderboard
 
 const canVote =
   currentMatch &&
-  currentMatch.status === "active" &&
+  (currentMatch.status === "active" || currentMatch.status === "open") &&
   session.user.id !== currentMatch.creator_id &&
   session.user.id !== currentMatch.opponent_id;
 
@@ -450,7 +455,7 @@ if (result.data) {
   🏆 Win Match
 </button>
 
- // debug button
+{/* debug button */}
     <button
   style={{
     marginTop: 10,
