@@ -512,7 +512,7 @@ if (result.data) {
 </button>
 
 {/* debug button */}
-    <button
+    {/* <button
   style={{
     marginTop: 10,
     padding: "8px 12px",
@@ -548,7 +548,7 @@ setVoteCount({
 }}
 >
   🧪 Add Fake Vote
-</button>
+</button> */}
 
 {isMatchVisible && (
   <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
