@@ -139,7 +139,13 @@ useEffect(() => {
     });
   };
 
-  useEffect(() => {
+  const interval = setInterval(loadVotes, 1000); // faster = more “live”
+  loadVotes(); // initial fetch
+
+  return () => clearInterval(interval);
+}, [currentMatch?.id]);
+
+useEffect(() => {
   if (!currentMatch?.id) return;
 
   const interval = setInterval(async () => {
@@ -149,11 +155,15 @@ useEffect(() => {
     const match = data.data;
     if (!match) return;
 
-    const creatorGone = !match.creator_id;
-    const opponentGone = !match.opponent_id;
+    const creatorLeft =
+      currentMatch?.creator_id &&
+      !match.creator_id;
 
-    // 🚨 CLOSE MATCH IF SOMEONE LEFT
-    if (creatorGone || opponentGone) {
+    const opponentLeft =
+      currentMatch?.opponent_id &&
+      !match.opponent_id;
+
+    if (creatorLeft || opponentLeft) {
       await fetch("/api/match/force-close", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -170,12 +180,6 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [currentMatch?.id]);
 
-
-  const interval = setInterval(loadVotes, 1000); // faster = more “live”
-  loadVotes(); // initial fetch
-
-  return () => clearInterval(interval);
-}, [currentMatch?.id]);
 
 useEffect(() => {
   if (!currentMatch?.id || currentMatch.status === "finished") return;
