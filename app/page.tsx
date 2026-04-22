@@ -86,37 +86,22 @@ const getUsername = (user: any) => {
 useEffect(() => {
   if (!currentMatch?.id) return;
 
-  let active = true;
-
-const loadVotes = async () => {
-  try {
+  const loadVotes = async () => {
     const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-
-    if (!res.ok) {
-      console.warn("Votes fetch failed");
-      return;
-    }
-
     const json = await res.json();
 
-    console.log("🗳 LIVE VOTES:", json);
+    console.log("🗳 POLL:", json);
 
     setVoteCount({
-      a: json.a ?? json.data?.a ?? 0,
-      b: json.b ?? json.data?.b ?? 0,
+      a: json.a ?? 0,
+      b: json.b ?? 0,
     });
-  } catch (err) {
-    console.warn("Vote polling error:", err);
-  }
-};
-
-  loadVotes();
-  const interval = setInterval(loadVotes, 2000);
-
-  return () => {
-    active = false;
-    clearInterval(interval);
   };
+
+  const interval = setInterval(loadVotes, 1000); // faster = more “live”
+  loadVotes(); // initial fetch
+
+  return () => clearInterval(interval);
 }, [currentMatch?.id]);
 
 useEffect(() => {
@@ -496,7 +481,7 @@ for (let i = 0; i < 10; i++) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       match_id: currentMatch.id,
-      user_id: crypto.randomUUID(), // ✅ FIXED
+      user_id: crypto.randomUUID(),
       vote,
     }),
   });
@@ -506,9 +491,17 @@ for (let i = 0; i < 10; i++) {
   const data = await res.json();
 
   console.log("REFRESHED VOTES:", data);
-  setVoteCount({
-  a: data.a ?? 0,
-  b: data.b ?? 0,
+setVoteCount(prev => {
+  const next = {
+    a: data.a ?? 0,
+    b: data.b ?? 0,
+  };
+
+  if (prev.a !== next.a || prev.b !== next.b) {
+    return next;
+  }
+
+  return prev;
 });
 }}
 >
