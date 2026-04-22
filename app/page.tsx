@@ -20,7 +20,7 @@ const [matchId, setMatchId] = useState("");
 const [currentMatch, setCurrentMatch] = useState<any>(null);
 const [didCreateMatch, setDidCreateMatch] = useState(false);
 const isMatchVisible =
-  currentMatch &&
+  currentMatch && 
   currentMatch.status !== "finished" &&
   currentMatch.status !== "expired" &&
   currentMatch.status !== "cancelled";
@@ -311,7 +311,7 @@ if (result.data) {
   </p>
 )}
 
-{!didCreateMatch && currentMatch?.status === "open" && (
+{!currentMatch && (
   <div style={{ marginTop: 10 }}>
     <input
       value={matchId}
