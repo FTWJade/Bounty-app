@@ -472,6 +472,7 @@ onClick={async () => {
   if (!currentMatch?.id) return;
 
   for (let i = 0; i < 10; i++) {
+const vote = i % 2 === 0 ? "A" : "B";
 const res = await fetch("/api/match/vote", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
