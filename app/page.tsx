@@ -100,10 +100,10 @@ useEffect(() => {
         json?.data ??
         json;
 
-      setVoteCount({
-        a: v?.a ?? 0,
-        b: v?.b ?? 0,
-      });
+    setVoteCount((prev) => ({
+      a: v?.a ?? prev.a,
+      b: v?.b ?? prev.b,
+    }));
 
     } catch (err) {
       console.warn("Vote polling failed:", err);
@@ -287,17 +287,31 @@ const myRank = leaderboard.findIndex(
   (u) => u.user_id === session?.user?.id
 ) + 1;
 
+const participantCount =
+  (currentMatch?.creator_id ? 1 : 0) +
+  (currentMatch?.opponent_id ? 1 : 0);
+
+const votingUnlocked =
+  !!currentMatch &&
+  ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
+  participantCount >= 2; // instead of 3
+
+const canVote =
+  votingUnlocked &&
+  session.user.id !== currentMatch.creator_id &&
+  session.user.id !== currentMatch.opponent_id;
+
 const filteredLeaderboard = leaderboard
   .map((user, index) => ({ ...user, realRank: index + 1 }))
   .filter((user) =>
     user.username?.toLowerCase().includes(search.toLowerCase())
   );
+  
 
-const canVote =
-  currentMatch &&
-  ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
-  session.user.id !== currentMatch.creator_id &&
-  session.user.id !== currentMatch.opponent_id;
+  const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
+const hasVoteActivity = totalVotes > 0;
+
+
 
   return (
     <main style={{
@@ -469,19 +483,24 @@ if (result.data) {
 onClick={() => {
   if (!currentMatch?.id) return;
 
-  for (let i = 0; i < 10; i++) {
-    const fakeVote = Math.random() > 0.5 ? "A" : "B";
+for (let i = 0; i < 10; i++) {
+  const fakeVote = Math.random() > 0.5 ? "A" : "B";
 
-    fetch("/api/match/vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: currentMatch.id,
-        user_id: "debug-" + Math.random(),
-        vote: fakeVote,
-      }),
-    });
-  }
+  setVoteCount((prev) => ({
+    a: prev.a + (fakeVote === "A" ? 1 : 0),
+    b: prev.b + (fakeVote === "B" ? 1 : 0),
+  }));
+
+  fetch("/api/match/vote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: currentMatch.id,
+      user_id: "debug-" + Math.random(),
+      vote: fakeVote,
+    }),
+  });
+}
 }}
 >
   🧪 Add Fake Vote
@@ -502,9 +521,7 @@ onClick={() => {
     <p>Opponent: {getUsername(currentMatch.opponent)}</p>
 
     
-{canVote && (
-  <div style={{ marginTop: 10 }}>
-    <h3>🗳 Vote</h3>
+{canVote && hasVoteActivity  && (
 <div style={{ marginTop: 15 }}>
   <h3>🗳 Live Votes</h3>
 
@@ -512,6 +529,8 @@ onClick={() => {
     <p>🔵 A: {voteCount.a}</p>
     <p>🔴 B: {voteCount.b}</p>
   </div>
+  <div style={{ marginTop: 10 }}>
+    <h3>🗳 Vote</h3>
 
   <div
     style={{
