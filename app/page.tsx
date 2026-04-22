@@ -340,8 +340,15 @@ if (result.data) {
 
         if (!res.ok) {
           setPopup(text);
+          
         } else {
           setPopup("Joined match!");
+        }
+        const updated = await fetch(`/api/match/get?id=${matchId}`);
+        const data = await updated.json();
+
+        if (data.data) {
+          setCurrentMatch(data.data);
         }
       }}
     >
@@ -351,15 +358,13 @@ if (result.data) {
 )}
 
 
-<button
-  style={{ ...btn, background: "green", color: "white" }}
 onClick={async () => {
   if (!matchId) {
     setPopup("No match selected");
     return;
   }
 
-  await fetch("/api/match/finish", {
+  const res = await fetch("/api/match/finish", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -368,14 +373,23 @@ onClick={async () => {
     }),
   });
 
+  if (!res.ok) {
+    setPopup("Failed to finish match");
+    return;
+  }
+
+  // 🔥 refresh everything
+  await loadUser(session.user.id);
+
+  const updatedLeaderboard = await fetch("/api/leaderboard");
+  const data = await updatedLeaderboard.json();
+  setLeaderboard(data.data || []);
+
   setPopup("🏆 Match finished!");
   setCurrentMatch(null);
   setMatchId("");
   setDidCreateMatch(false);
 }}
->
-  🏆 Win Match
-</button>
 
 
 
