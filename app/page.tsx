@@ -3,6 +3,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
+
+type MatchStatus =
+  | "open"
+  | "active"
+  | "lobby"
+  | "waiting"
+  | "finished"
+  | "expired"
+  | "cancelled";
+
+type Match = {
+  id: string;
+  status: MatchStatus;
+  creator_id?: string;
+  opponent_id?: string;
+  creator?: any;
+  opponent?: any;
+};
 export default function Home() {
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
@@ -17,23 +35,30 @@ export default function Home() {
   const xpNeeded = 100;
 const prevLevel = useRef(level);
 const [matchId, setMatchId] = useState("");
-const [currentMatch, setCurrentMatch] = useState<any>(null);
+const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
 const [search, setSearch] = useState("");
 const [didCreateMatch, setDidCreateMatch] = useState(false);
 const isMatchVisible =
-  currentMatch &&
-  !["finished", "expired", "cancelled", "ended", "complete"].includes(currentMatch.status);
+  !!currentMatch &&
+  !["finished", "expired", "cancelled", "ended", "complete"].includes(
+    currentMatch.status
+  );
 const getUsername = (user: any) => {
   if (!user) return "Waiting...";
   if (Array.isArray(user)) return user[0]?.username || "Waiting...";
   return user.username || "Waiting...";
 };
 
-const [voteCount, setVoteCount] = useState({
+const [voteCount, setVoteCount] = useState<{
+  a: number;
+  b: number;
+  aUsers: string[];
+  bUsers: string[];
+}>({
   a: 0,
   b: 0,
-  aUsers: [] as string[],
-  bUsers: [] as string[],
+  aUsers: [],
+  bUsers: [],
 });
 
 // const addDebugXP = (amount: number) => {
@@ -230,7 +255,6 @@ useEffect(() => {
 if (status === "loading") {
   return <p>Loading...</p>;
 }
-
   if (!session) {
     return (
       <main style={{
@@ -571,16 +595,19 @@ setVoteCount({
   </div>
 </div>
 <button
-  onClick={async () => {
-    await fetch("/api/match/reset-votes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ match_id: currentMatch.id }),
-    });
+onClick={async () => {
+  if (!currentMatch?.id) return;
 
-    setVoteCount({ a: 0, b: 0 });
-    console.log("🧹 votes reset");
-  }}
+  await fetch("/api/match/reset-votes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ match_id: currentMatch.id }),
+  });
+
+  setVoteCount({ a: 0, b: 0, aUsers: [], bUsers: [] });
+
+  console.log("🧹 votes reset");
+}}
 >
   Reset Votes
 </button>

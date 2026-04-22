@@ -4,6 +4,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const match_id = searchParams.get("match_id");
 
+  if (!match_id) {
+    return Response.json({ error: "Missing match_id" }, { status: 400 });
+  }
+
   const { data, error } = await supabaseAdmin
     .from("match_votes")
     .select("vote, user_id")
@@ -24,7 +28,7 @@ export async function GET(req: Request) {
   let aUsers: string[] = [];
   let bUsers: string[] = [];
 
-  data.forEach((v) => {
+  (data || []).forEach((v) => {
     const name = nameMap[v.user_id] || "Unknown";
 
     if (v.vote === "A") aUsers.push(name);
