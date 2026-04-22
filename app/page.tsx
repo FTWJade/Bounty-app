@@ -22,7 +22,8 @@ const [search, setSearch] = useState("");
 const [didCreateMatch, setDidCreateMatch] = useState(false);
 const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
 const isMatchVisible =
-  currentMatch && 
+  currentMatch &&
+  currentMatch.status &&
   currentMatch.status !== "finished" &&
   currentMatch.status !== "expired" &&
   currentMatch.status !== "cancelled";
@@ -236,11 +237,13 @@ if (status === "loading") {
     return (
       <main style={{
         display: "flex",
-        height: "100vh",
-        justifyContent: "center",
+        minHeight: "100vh",
+        justifyContent: "flex-start",
         alignItems: "center",
         flexDirection: "column",
-        fontFamily: "Arial"
+        paddingTop: 20,
+        paddingBottom: 80,
+        fontFamily: "Arial",
       }}>
         <h1>Bounty App</h1>
 
@@ -283,14 +286,22 @@ const filteredLeaderboard = leaderboard
     user.username?.toLowerCase().includes(search.toLowerCase())
   );
 
+const canVote =
+  currentMatch &&
+  currentMatch.status === "active" &&
+  session.user.id !== currentMatch.creator_id &&
+  session.user.id !== currentMatch.opponent_id;
+
   return (
     <main style={{
       display: "flex",
-      height: "100vh",
-      justifyContent: "center",
+      minHeight: "100vh",
+      justifyContent: "flex-start",
       alignItems: "center",
       flexDirection: "column",
-      fontFamily: "Arial"
+      paddingTop: 20,
+      paddingBottom: 80,
+      fontFamily: "Arial",
     }}>
 
       <div
@@ -439,6 +450,36 @@ if (result.data) {
   🏆 Win Match
 </button>
 
+ // debug button
+    <button
+  style={{
+    marginTop: 10,
+    padding: "8px 12px",
+    background: "orange",
+    color: "black",
+    borderRadius: 6,
+  }}
+onClick={() => {
+  if (!currentMatch?.id) return;
+
+  for (let i = 0; i < 10; i++) {
+    const fakeVote = Math.random() > 0.5 ? "A" : "B";
+
+    fetch("/api/match/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: currentMatch.id,
+        user_id: "debug-" + Math.random(),
+        vote: fakeVote,
+      }),
+    });
+  }
+}}
+>
+  🧪 Add Fake Vote
+</button>
+
 {isMatchVisible && (
   <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
     <h3>🎮 Match</h3>
@@ -452,10 +493,9 @@ if (result.data) {
     : getUsername(currentMatch.creator)}
 </p>
     <p>Opponent: {getUsername(currentMatch.opponent)}</p>
-{isMatchVisible &&
- currentMatch?.opponent_id &&
- session.user.id !== currentMatch.creator_id &&
- session.user.id !== currentMatch.opponent_id && (
+
+    
+{canVote && (
   <div style={{ marginTop: 10 }}>
     <h3>🗳 Vote</h3>
 <div style={{ marginTop: 15 }}>
@@ -541,36 +581,6 @@ if (result.data) {
     >
       Vote B
     </button>
-
-    // debug button
-    <button
-  style={{
-    marginTop: 10,
-    padding: "8px 12px",
-    background: "orange",
-    color: "black",
-    borderRadius: 6,
-  }}
-onClick={() => {
-  if (!currentMatch?.id) return;
-
-  for (let i = 0; i < 10; i++) {
-    const fakeVote = Math.random() > 0.5 ? "A" : "B";
-
-    fetch("/api/match/vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: currentMatch.id,
-        user_id: "debug-" + Math.random(),
-        vote: fakeVote,
-      }),
-    });
-  }
-}}
->
-  🧪 Add Fake Vote
-</button>
   </div>
 )}
 
