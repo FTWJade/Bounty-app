@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export default async function handler(
   req: NextApiRequest,
@@ -7,7 +7,7 @@ export default async function handler(
 ) {
   const { match_id } = req.query;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("match_votes")
     .select("vote")
     .eq("match_id", match_id);
