@@ -372,7 +372,7 @@ const votingUnlocked =
 const hasTwoPlayers =
   currentMatch?.creator_id && currentMatch?.opponent_id;
 
-const canViewVotes = !!currentMatch && isParticipant;
+const canViewVotes = !!currentMatch;
 
 const canVote =
   votingUnlocked &&
