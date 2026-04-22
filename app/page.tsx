@@ -655,6 +655,15 @@ setVoteCount({
           }),
         });
 
+// 🔥 FORCE refresh immediately
+const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+const data = await res.json();
+
+setVoteCount({
+  a: data.a ?? 0,
+  b: data.b ?? 0,
+});
+
         setPopup("Voted Player A");
       }}
     >
@@ -673,6 +682,15 @@ setVoteCount({
             vote: "B",
           }),
         });
+
+// 🔥 FORCE refresh immediately
+const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+const data = await res.json();
+
+setVoteCount({
+  a: data.a ?? 0,
+  b: data.b ?? 0,
+});
 
         setPopup("Voted Player B");
       }}
