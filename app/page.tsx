@@ -110,8 +110,8 @@ const [voteCount, setVoteCount] = useState({
 useEffect(() => {
   if (!currentMatch?.id || !session?.user?.id) return;
 
-  const handleLeave = async () => {
-    await fetch("/api/match/leave", {
+  const interval = setInterval(async () => {
+    await fetch("/api/match/heartbeat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -119,19 +119,10 @@ useEffect(() => {
         user_id: session.user.id,
       }),
     });
-  };
+  }, 5000); // ping every 5 sec
 
-  const onUnload = () => {
-    handleLeave();
-  };
-
-  window.addEventListener("beforeunload", onUnload);
-
-  return () => {
-    window.removeEventListener("beforeunload", onUnload);
-    handleLeave(); // also runs when React unmounts
-  };
-}, [currentMatch?.id]);
+  return () => clearInterval(interval);
+}, [currentMatch?.id, session?.user?.id]);
 
 useEffect(() => {
   if (!currentMatch?.id) return;
@@ -148,6 +139,38 @@ useEffect(() => {
     });
   };
 
+  useEffect(() => {
+  if (!currentMatch?.id) return;
+
+  const interval = setInterval(async () => {
+    const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
+    const data = await res.json();
+
+    const match = data.data;
+    if (!match) return;
+
+    const creatorGone = !match.creator_id;
+    const opponentGone = !match.opponent_id;
+
+    // 🚨 CLOSE MATCH IF SOMEONE LEFT
+    if (creatorGone || opponentGone) {
+      await fetch("/api/match/force-close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ match_id: currentMatch.id }),
+      });
+
+      setCurrentMatch(null);
+      setMatchId("");
+      setDidCreateMatch(false);
+      setPopup("⚠️ Match closed (player left)");
+    }
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [currentMatch?.id]);
+
+
   const interval = setInterval(loadVotes, 1000); // faster = more “live”
   loadVotes(); // initial fetch
 
@@ -155,7 +178,8 @@ useEffect(() => {
 }, [currentMatch?.id]);
 
 useEffect(() => {
-   if (!currentMatch?.id || currentMatch.status === "finished") return;
+  if (!currentMatch?.id || currentMatch.status === "finished") return;
+  if (!session?.user?.id) return;
 
   let active = true;
 
@@ -165,12 +189,14 @@ useEffect(() => {
       if (!res.ok) return;
 
       const data = await res.json();
-
       if (!active || !data.data) return;
 
       const match = data.data;
-    console.log("🗳 LIVE VOTES:", data);
+
+      console.log("🗳 LIVE VOTES:", data);
+
       setCurrentMatch(match);
+
       if (
         match.status === "finished" ||
         match.status === "expired" ||
@@ -179,12 +205,19 @@ useEffect(() => {
         clearInterval(interval);
         active = false;
 
-      setCurrentMatch(null);
-      setMatchId("");
-      setDidCreateMatch(false);
+        // 🔥 refresh user + leaderboard ONCE
+        await loadUser(session.user.id);
+
+        const updatedLeaderboard = await fetch("/api/leaderboard");
+        const lb = await updatedLeaderboard.json();
+        setLeaderboard(lb.data || []);
+
+        setCurrentMatch(null);
+        setMatchId("");
+        setDidCreateMatch(false);
+
         console.log("🛑 Match ended → UI cleared");
       }
-
     } catch (err) {
       console.warn("Polling failed:", err);
     }
@@ -194,7 +227,7 @@ useEffect(() => {
     active = false;
     clearInterval(interval);
   };
-}, [currentMatch?.id]);
+}, [currentMatch?.id, session?.user?.id]);
 
 useEffect(() => {
   console.log("📊 STATE SNAPSHOT:", {
