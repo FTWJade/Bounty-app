@@ -311,6 +311,7 @@ const canViewVotes = !!currentMatch;
 
 const canVote =
   votingUnlocked &&
+  participantCount >= 2 && // match must have both players
   session.user.id !== currentMatch?.creator_id &&
   session.user.id !== currentMatch?.opponent_id;
 
