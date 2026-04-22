@@ -488,21 +488,19 @@ if (result.data) {
 onClick={async () => {
   if (!currentMatch?.id) return;
 
-  for (let i = 0; i < 10; i++) {
-const vote = i % 2 === 0 ? "A" : "B";
-const res = await fetch("/api/match/vote", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    match_id: currentMatch.id,
-    user_id: "debug-" + Date.now() + "-" + i,
-    vote,
-  }),
-});
+for (let i = 0; i < 10; i++) {
+  const vote = i % 2 === 0 ? "A" : "B";
 
-const text = await res.text();
-console.log("VOTE RESPONSE:", text);
-  }
+  await fetch("/api/match/vote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: currentMatch.id,
+      user_id: crypto.randomUUID(), // ✅ FIXED
+      vote,
+    }),
+  });
+}
 
   const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
   const data = await res.json();
