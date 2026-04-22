@@ -480,27 +480,33 @@ if (result.data) {
     color: "black",
     borderRadius: 6,
   }}
-onClick={() => {
-  if (!currentMatch?.id) return;
+onClick={async () => {
+  if (!currentMatch?.id) {
+    console.log("NO MATCH");
+    return;
+  }
 
-for (let i = 0; i < 10; i++) {
-  const fakeVote = Math.random() > 0.5 ? "A" : "B";
+  for (let i = 0; i < 10; i++) {
+    const vote = Math.random() > 0.5 ? "A" : "B";
 
-  setVoteCount((prev) => ({
-    a: prev.a + (fakeVote === "A" ? 1 : 0),
-    b: prev.b + (fakeVote === "B" ? 1 : 0),
-  }));
-  console.log("🧪 FAKE VOTE BUTTON CLICKED");
-  fetch("/api/match/vote", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      match_id: currentMatch.id,
-      user_id: "debug-" + Math.random(),
-      vote: fakeVote,
-    }),
-  });
-}
+    console.log("sending vote:", vote);
+
+    await fetch("/api/match/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: currentMatch.id,
+        user_id: "debug-" + Date.now() + "-" + i,
+        vote,
+      }),
+    });
+  }
+
+  // force refresh immediately
+  const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+  const data = await res.json();
+
+  setVoteCount(data);
 }}
 >
   🧪 Add Fake Vote

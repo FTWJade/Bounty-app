@@ -1,11 +1,8 @@
-import type { NextApiRequest, NextApiResponse } from "next";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const { match_id } = req.query;
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const match_id = searchParams.get("match_id");
 
   const { data, error } = await supabaseAdmin
     .from("match_votes")
@@ -13,7 +10,7 @@ export default async function handler(
     .eq("match_id", match_id);
 
   if (error) {
-    return res.status(400).json({ error: error.message });
+    return Response.json({ error: error.message }, { status: 400 });
   }
 
   let a = 0;
@@ -24,5 +21,5 @@ export default async function handler(
     if (v.vote === "B") b++;
   });
 
-  return res.status(200).json({ a, b });
+  return Response.json({ a, b });
 }
