@@ -358,40 +358,42 @@ if (result.data) {
 )}
 
 
-onClick={async () => {
-  if (!matchId) {
-    setPopup("No match selected");
-    return;
-  }
+<button
+  style={{ ...btn, background: "green", color: "white" }}
+  onClick={async () => {
+    if (!matchId) {
+      setPopup("No match selected");
+      return;
+    }
 
-  const res = await fetch("/api/match/finish", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      match_id: matchId,
-      winner_id: session.user.id,
-    }),
-  });
+    const res = await fetch("/api/match/finish", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: matchId,
+        winner_id: session.user.id,
+      }),
+    });
 
-  if (!res.ok) {
-    setPopup("Failed to finish match");
-    return;
-  }
+    if (!res.ok) {
+      setPopup("Failed to finish match");
+      return;
+    }
 
-  // 🔥 refresh everything
-  await loadUser(session.user.id);
+    await loadUser(session.user.id);
 
-  const updatedLeaderboard = await fetch("/api/leaderboard");
-  const data = await updatedLeaderboard.json();
-  setLeaderboard(data.data || []);
+    const updatedLeaderboard = await fetch("/api/leaderboard");
+    const data = await updatedLeaderboard.json();
+    setLeaderboard(data.data || []);
 
-  setPopup("🏆 Match finished!");
-  setCurrentMatch(null);
-  setMatchId("");
-  setDidCreateMatch(false);
-}}
-
-
+    setPopup("🏆 Match finished!");
+    setCurrentMatch(null);
+    setMatchId("");
+    setDidCreateMatch(false);
+  }}
+>
+  🏆 Win Match
+</button>
 
 {isMatchVisible && (
   <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
