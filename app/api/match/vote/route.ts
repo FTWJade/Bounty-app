@@ -5,23 +5,26 @@ export async function POST(request: Request) {
 
   console.log("VOTE:", { match_id, user_id, vote });
 
-  const { error } = await supabaseAdmin
-    .from("match_votes")
-    .upsert(
-      {
-        match_id: String(match_id),
-        user_id: String(user_id),
-        vote,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: "match_id,user_id",
-      }
-    );
+const { data, error } = await supabaseAdmin
+  .from("match_votes")
+  .upsert(
+    {
+      match_id: String(match_id),
+      user_id: String(user_id),
+      vote,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      onConflict: "match_id,user_id",
+    }
+  );
 
-  if (error) {
-    return Response.json({ error: error.message }, { status: 500 });
-  }
+console.log("UPSERT RESULT:", { data, error });
+
+if (error) {
+  console.log("SUPABASE ERROR:", error);
+  return Response.json({ error: error.message }, { status: 500 });
+}
 
   return Response.json({ success: true });
 }
