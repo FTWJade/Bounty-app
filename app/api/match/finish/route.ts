@@ -27,11 +27,21 @@ export async function POST(req: Request) {
     return Response.json({ error: "No opponent" }, { status: 400 });
   }
 
+  if (!match.creator_id) {
+  return Response.json({ error: "No creator" }, { status: 400 });
+}
+
   // 2. Determine loser
-  const loser_id =
-    match.creator_id === winner_id
-      ? match.opponent_id
+const loser_id =
+  match.opponent_id && match.opponent_id !== winner_id
+    ? match.opponent_id
+    : match.creator_id === winner_id
+      ? null
       : match.creator_id;
+
+if (!loser_id) {
+  return Response.json({ error: "No valid loser" }, { status: 400 });
+}
 
   // 3. Get levels
   const { data: winner } = await supabaseAdmin

@@ -491,7 +491,10 @@ console.log("VOTE RESPONSE:", text);
   const data = await res.json();
 
   console.log("REFRESHED VOTES:", data);
-  setVoteCount(data);
+  setVoteCount({
+  a: data.a ?? 0,
+  b: data.b ?? 0,
+});
 }}
 >
   🧪 Add Fake Vote

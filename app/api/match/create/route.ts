@@ -12,21 +12,17 @@ export async function POST(req: Request) {
   }
 
   const matchId = generateMatchId();
-    await supabaseAdmin.from("bounties").upsert({
-    user_id: "DEBUG_OPPONENT",
-    username: "Debug Bot",
-    points: 0,
-    });
-const { data, error } = await supabaseAdmin
-  .from("matches")
-  .insert({
-    id: matchId,
-    creator_id: user_id,
-    opponent_id: "DEBUG_OPPONENT", // 👈 ADD THIS
-    status: "open",
-  })
-  .select()
-  .single();
+
+  const { data, error } = await supabaseAdmin
+    .from("matches")
+    .insert({
+      id: matchId,
+      creator_id: user_id,
+      opponent_id: null,
+      status: "open",
+    })
+    .select()
+    .single();
 
   return Response.json({ data, error });
 }
