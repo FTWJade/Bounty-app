@@ -490,7 +490,7 @@ for (let i = 0; i < 10; i++) {
     a: prev.a + (fakeVote === "A" ? 1 : 0),
     b: prev.b + (fakeVote === "B" ? 1 : 0),
   }));
-
+  console.log("🧪 FAKE VOTE BUTTON CLICKED");
   fetch("/api/match/vote", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -521,7 +521,7 @@ for (let i = 0; i < 10; i++) {
     <p>Opponent: {getUsername(currentMatch.opponent)}</p>
 
     
-{canVote && hasVoteActivity  && (
+{canVote  && (
 <div style={{ marginTop: 15 }}>
   <h3>🗳 Live Votes</h3>
 
