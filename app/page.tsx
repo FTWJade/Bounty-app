@@ -49,16 +49,9 @@ const getUsername = (user: any) => {
   return user.username || "Waiting...";
 };
 
-const [voteCount, setVoteCount] = useState<{
-  a: number;
-  b: number;
-  aUsers: string[];
-  bUsers: string[];
-}>({
+const [voteCount, setVoteCount] = useState({
   a: 0,
   b: 0,
-  aUsers: [],
-  bUsers: [],
 });
 
 // const addDebugXP = (amount: number) => {
@@ -126,8 +119,6 @@ useEffect(() => {
     setVoteCount({
       a: json.a ?? 0,
       b: json.b ?? 0,
-      aUsers: json.aUsers ?? [],
-      bUsers: json.bUsers ?? [],
     });
   };
 
@@ -526,8 +517,6 @@ const data = await res.json();
 setVoteCount({
   a: data.a ?? 0,
   b: data.b ?? 0,
-  aUsers: data.aUsers ?? [],
-  bUsers: data.bUsers ?? [],
 });
 }}
 >
@@ -555,17 +544,11 @@ setVoteCount({
   <h3>🗳 Live Votes</h3>
 
 <div>
-  🔵 A: {voteCount.a}
-  <div style={{ fontSize: 12 }}>
-    {voteCount.aUsers?.join(", ")}
-  </div>
+  🔵 A: {getUsername(currentMatch.creator)}
 </div>
 
 <div>
-  🔴 B: {voteCount.b}
-  <div style={{ fontSize: 12 }}>
-    {voteCount.bUsers?.join(", ")}
-  </div>
+  🔴 B: {getUsername(currentMatch.opponent)}
 </div>
   <div style={{ marginTop: 10 }}>
     <h3>🗳 Vote</h3>
@@ -594,24 +577,6 @@ setVoteCount({
     />
   </div>
 </div>
-<button
-onClick={async () => {
-  if (!currentMatch?.id) return;
-
-  await fetch("/api/match/reset-votes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ match_id: currentMatch.id }),
-  });
-
-  setVoteCount({ a: 0, b: 0, aUsers: [], bUsers: [] });
-
-  console.log("🧹 votes reset");
-}}
->
-  Reset Votes
-</button>
-
 {canVote && (
   <>
     <button
@@ -630,7 +595,7 @@ onClick={async () => {
         setPopup("Voted Player A");
       }}
     >
-      Vote A
+      Vote {getUsername(currentMatch.creator)}
     </button>
 
     <button
@@ -649,7 +614,7 @@ onClick={async () => {
         setPopup("Voted Player B");
       }}
     >
-      Vote B
+      Vote {getUsername(currentMatch.opponent)}
     </button>
   </>
 )}
