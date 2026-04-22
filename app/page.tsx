@@ -88,27 +88,15 @@ useEffect(() => {
 
   let active = true;
 
-  const loadVotes = async () => {
-    try {
-      const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-      const json = await res.json();
+const loadVotes = async () => {
+  const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+  const json = await res.json();
 
-      if (!active) return;
-
-      const v =
-        json?.data?.votes ??
-        json?.data ??
-        json;
-
-    setVoteCount((prev) => ({
-      a: v?.a ?? prev.a,
-      b: v?.b ?? prev.b,
-    }));
-
-    } catch (err) {
-      console.warn("Vote polling failed:", err);
-    }
-  };
+  setVoteCount({
+    a: json.a ?? 0,
+    b: json.b ?? 0,
+  });
+};
 
   loadVotes();
   const interval = setInterval(loadVotes, 2000);
@@ -293,7 +281,8 @@ const participantCount =
 
 const votingUnlocked =
   !!currentMatch &&
-  ["active", "open", "lobby", "waiting"].includes(currentMatch.status);
+  ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
+  participantCount >= 2;
 
 const canVote =
   votingUnlocked &&
@@ -483,17 +472,18 @@ onClick={async () => {
   if (!currentMatch?.id) return;
 
   for (let i = 0; i < 10; i++) {
-    const vote = Math.random() > 0.5 ? "A" : "B";
+const res = await fetch("/api/match/vote", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    match_id: currentMatch.id,
+    user_id: "debug-" + Date.now() + "-" + i,
+    vote,
+  }),
+});
 
-    await fetch("/api/match/vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: currentMatch.id,
-        user_id: "debug-" + Date.now() + "-" + i,
-        vote,
-      }),
-    });
+const text = await res.text();
+console.log("VOTE RESPONSE:", text);
   }
 
   const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);

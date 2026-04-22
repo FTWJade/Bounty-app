@@ -1,20 +1,16 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const { match_id } = req.body;
+export async function POST(req: Request) {
+  const { match_id } = await req.json();
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from("match_votes")
     .delete()
     .eq("match_id", match_id);
 
   if (error) {
-    return res.status(400).json({ error: error.message });
+    return Response.json({ error: error.message }, { status: 400 });
   }
 
-  return res.status(200).json({ success: true });
+  return Response.json({ success: true });
 }
