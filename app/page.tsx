@@ -510,43 +510,40 @@ if (result.data) {
   </div>
 )}
 
+{currentMatch &&
+ session.user.id === currentMatch.creator_id && (
+  <button
+    style={{ ...btn, background: "green", color: "white" }}
+    onClick={async () => {
+      const res = await fetch("/api/match/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+        match_id: currentMatch.id,
+          winner_id: session.user.id,
+        }),
+      });
 
-<button
-  style={{ ...btn, background: "green", color: "white" }}
-  onClick={async () => {
-    if (!matchId) {
-      setPopup("No match selected");
-      return;
-    }
+      if (!res.ok) {
+        setPopup("Failed to finish match");
+        return;
+      }
 
-    const res = await fetch("/api/match/finish", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: matchId,
-        winner_id: session.user.id,
-      }),
-    });
+      await loadUser(session.user.id);
 
-    if (!res.ok) {
-      setPopup("Failed to finish match");
-      return;
-    }
+      const updatedLeaderboard = await fetch("/api/leaderboard");
+      const data = await updatedLeaderboard.json();
+      setLeaderboard(data.data || []);
 
-    await loadUser(session.user.id);
-
-    const updatedLeaderboard = await fetch("/api/leaderboard");
-    const data = await updatedLeaderboard.json();
-    setLeaderboard(data.data || []);
-
-    setPopup("🏆 Match finished!");
-    setCurrentMatch(null);
-    setMatchId("");
-    setDidCreateMatch(false);
-  }}
->
-  🏆 Win Match
-</button>
+      setPopup("🏆 Match finished!");
+      setCurrentMatch(null);
+      setMatchId("");
+      setDidCreateMatch(false);
+    }}
+  >
+    🏆 Win Match
+  </button>
+)}
 
 {/* debug button */}
     {/* <button
