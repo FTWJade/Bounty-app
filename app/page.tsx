@@ -89,13 +89,25 @@ useEffect(() => {
   let active = true;
 
 const loadVotes = async () => {
-  const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-  const json = await res.json();
+  try {
+    const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
 
-  setVoteCount({
-    a: json.a ?? 0,
-    b: json.b ?? 0,
-  });
+    if (!res.ok) {
+      console.warn("Votes fetch failed");
+      return;
+    }
+
+    const json = await res.json();
+
+    console.log("🗳 LIVE VOTES:", json);
+
+    setVoteCount({
+      a: json.a ?? json.data?.a ?? 0,
+      b: json.b ?? json.data?.b ?? 0,
+    });
+  } catch (err) {
+    console.warn("Vote polling error:", err);
+  }
 };
 
   loadVotes();
