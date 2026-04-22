@@ -20,6 +20,7 @@ const [matchId, setMatchId] = useState("");
 const [currentMatch, setCurrentMatch] = useState<any>(null);
 const [search, setSearch] = useState("");
 const [didCreateMatch, setDidCreateMatch] = useState(false);
+const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
 const isMatchVisible =
   currentMatch && 
   currentMatch.status !== "finished" &&
@@ -85,6 +86,34 @@ const getUsername = (user: any) => {
 };
 
 useEffect(() => {
+  if (!currentMatch?.id) return;
+
+  let active = true;
+
+  const loadVotes = async () => {
+    try {
+      const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+      const data = await res.json();
+
+      if (!active) return;
+
+      setVoteCount(data);
+    } catch (err) {
+      console.warn("Vote polling failed:", err);
+    }
+  };
+
+  loadVotes(); // initial call
+
+  const interval = setInterval(loadVotes, 2000);
+
+  return () => {
+    active = false;
+    clearInterval(interval);
+  };
+}, [currentMatch?.id]);
+
+useEffect(() => {
    if (!currentMatch?.id || currentMatch.status === "finished") return;
 
   let active = true;
@@ -99,7 +128,7 @@ useEffect(() => {
       if (!active || !data.data) return;
 
       const match = data.data;
-
+    console.log("🗳 LIVE VOTES:", data);
       setCurrentMatch(match);
       if (
         match.status === "finished" ||
@@ -423,6 +452,129 @@ if (result.data) {
     : getUsername(currentMatch.creator)}
 </p>
     <p>Opponent: {getUsername(currentMatch.opponent)}</p>
+{isMatchVisible &&
+ currentMatch?.opponent_id &&
+ session.user.id !== currentMatch.creator_id &&
+ session.user.id !== currentMatch.opponent_id && (
+  <div style={{ marginTop: 10 }}>
+    <h3>🗳 Vote</h3>
+<div style={{ marginTop: 15 }}>
+  <h3>🗳 Live Votes</h3>
+
+  <div style={{ display: "flex", gap: 20 }}>
+    <p>🔵 A: {voteCount.a}</p>
+    <p>🔴 B: {voteCount.b}</p>
+  </div>
+
+  <div
+    style={{
+      width: 300,
+      height: 10,
+      background: "#333",
+      borderRadius: 5,
+      overflow: "hidden",
+      marginTop: 8,
+    }}
+  >
+    <div
+      style={{
+        width: `${
+          voteCount.a + voteCount.b === 0
+            ? 50
+            : (voteCount.a / (voteCount.a + voteCount.b)) * 100
+        }%`,
+        height: "100%",
+        background: "blue",
+        transition: "width 0.3s ease",
+      }}
+    />
+  </div>
+</div>
+<button
+  onClick={async () => {
+    await fetch("/api/match/reset-votes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ match_id: currentMatch.id }),
+    });
+
+    setVoteCount({ a: 0, b: 0 });
+    console.log("🧹 votes reset");
+  }}
+>
+  Reset Votes
+</button>
+    <button
+      style={{ ...btn, background: "blue", color: "white" }}
+      onClick={async () => {
+        await fetch("/api/match/vote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            match_id: currentMatch.id,
+            user_id: session.user.id,
+            vote: "A",
+          }),
+        });
+
+        setPopup("Voted Player A");
+      }}
+    >
+      Vote A
+    </button>
+
+    <button
+      style={{ ...btn, background: "red", color: "white" }}
+      onClick={async () => {
+        await fetch("/api/match/vote", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            match_id: currentMatch.id,
+            user_id: session.user.id,
+            vote: "B",
+          }),
+        });
+
+        setPopup("Voted Player B");
+      }}
+    >
+      Vote B
+    </button>
+
+    // debug button
+    <button
+  style={{
+    marginTop: 10,
+    padding: "8px 12px",
+    background: "orange",
+    color: "black",
+    borderRadius: 6,
+  }}
+onClick={() => {
+  if (!currentMatch?.id) return;
+
+  for (let i = 0; i < 10; i++) {
+    const fakeVote = Math.random() > 0.5 ? "A" : "B";
+
+    fetch("/api/match/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: currentMatch.id,
+        user_id: "debug-" + Math.random(),
+        vote: fakeVote,
+      }),
+    });
+  }
+}}
+>
+  🧪 Add Fake Vote
+</button>
+  </div>
+)}
+
+
   </div>
 )}
 
