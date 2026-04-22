@@ -20,7 +20,6 @@ const [matchId, setMatchId] = useState("");
 const [currentMatch, setCurrentMatch] = useState<any>(null);
 const [search, setSearch] = useState("");
 const [didCreateMatch, setDidCreateMatch] = useState(false);
-const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
 const isMatchVisible =
   currentMatch &&
   !["finished", "expired", "cancelled", "ended", "complete"].includes(currentMatch.status);
@@ -29,6 +28,13 @@ const getUsername = (user: any) => {
   if (Array.isArray(user)) return user[0]?.username || "Waiting...";
   return user.username || "Waiting...";
 };
+
+const [voteCount, setVoteCount] = useState({
+  a: 0,
+  b: 0,
+  aUsers: [] as string[],
+  bUsers: [] as string[],
+});
 
 // const addDebugXP = (amount: number) => {
 //   const newPoints = points + amount;
@@ -95,6 +101,8 @@ useEffect(() => {
     setVoteCount({
       a: json.a ?? 0,
       b: json.b ?? 0,
+      aUsers: json.aUsers ?? [],
+      bUsers: json.bUsers ?? [],
     });
   };
 
@@ -488,12 +496,14 @@ for (let i = 0; i < 10; i++) {
 }
 
   const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-  const data = await res.json();
+  
+const data = await res.json();
 
-  console.log("REFRESHED VOTES:", data);
 setVoteCount({
   a: data.a ?? 0,
   b: data.b ?? 0,
+  aUsers: data.aUsers ?? [],
+  bUsers: data.bUsers ?? [],
 });
 }}
 >
@@ -514,15 +524,25 @@ setVoteCount({
 </p>
     <p>Opponent: {getUsername(currentMatch.opponent)}</p>
 
+
     
 {canViewVotes && (
 <div style={{ marginTop: 15 }}>
   <h3>🗳 Live Votes</h3>
 
-  <div style={{ display: "flex", gap: 20 }}>
-    <p>🔵 A: {voteCount.a}</p>
-    <p>🔴 B: {voteCount.b}</p>
+<div>
+  🔵 A: {voteCount.a}
+  <div style={{ fontSize: 12 }}>
+    {voteCount.aUsers?.join(", ")}
   </div>
+</div>
+
+<div>
+  🔴 B: {voteCount.b}
+  <div style={{ fontSize: 12 }}>
+    {voteCount.bUsers?.join(", ")}
+  </div>
+</div>
   <div style={{ marginTop: 10 }}>
     <h3>🗳 Vote</h3>
 
