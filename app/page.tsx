@@ -148,7 +148,7 @@ useEffect(() => {
 }, [currentMatch?.id]);
 
 useEffect(() => {
-  if (!currentMatch?.id) return;
+  if (!currentMatch?.id || !session?.user?.id) return;
 
   const interval = setInterval(async () => {
     const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
@@ -157,19 +157,19 @@ useEffect(() => {
     const match = data.data;
     if (!match) return;
 
-    const creatorLeft =
-      currentMatch?.creator_id &&
-      !match.creator_id;
+    if (match.status !== "active" && match.status !== "open") return;
 
-    const opponentLeft =
-      currentMatch?.opponent_id &&
-      !match.opponent_id;
+    const creatorLeft = !match.creator_id;
+    const opponentLeft = !match.opponent_id;
 
     if (creatorLeft || opponentLeft) {
       await fetch("/api/match/force-close", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ match_id: currentMatch.id }),
+        body: JSON.stringify({
+          match_id: currentMatch.id,
+          caller_id: session.user.id,
+        }),
       });
 
       setCurrentMatch(null);
@@ -180,7 +180,7 @@ useEffect(() => {
   }, 3000);
 
   return () => clearInterval(interval);
-}, [currentMatch?.id]);
+}, [currentMatch, session?.user?.id]);
 
 
 useEffect(() => {
