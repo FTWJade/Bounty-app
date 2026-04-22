@@ -293,13 +293,12 @@ const participantCount =
 
 const votingUnlocked =
   !!currentMatch &&
-  ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
-  participantCount >= 2; // instead of 3
+  ["active", "open", "lobby", "waiting"].includes(currentMatch.status);
 
 const canVote =
   votingUnlocked &&
-  session.user.id !== currentMatch.creator_id &&
-  session.user.id !== currentMatch.opponent_id;
+  session.user.id !== currentMatch?.creator_id &&
+  session.user.id !== currentMatch?.opponent_id;
 
 const filteredLeaderboard = leaderboard
   .map((user, index) => ({ ...user, realRank: index + 1 }))
@@ -481,15 +480,10 @@ if (result.data) {
     borderRadius: 6,
   }}
 onClick={async () => {
-  if (!currentMatch?.id) {
-    console.log("NO MATCH");
-    return;
-  }
+  if (!currentMatch?.id) return;
 
   for (let i = 0; i < 10; i++) {
     const vote = Math.random() > 0.5 ? "A" : "B";
-
-    console.log("sending vote:", vote);
 
     await fetch("/api/match/vote", {
       method: "POST",
@@ -502,10 +496,10 @@ onClick={async () => {
     });
   }
 
-  // force refresh immediately
   const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
   const data = await res.json();
 
+  console.log("REFRESHED VOTES:", data);
   setVoteCount(data);
 }}
 >

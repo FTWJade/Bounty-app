@@ -17,15 +17,16 @@ export async function POST(req: Request) {
     username: "Debug Bot",
     points: 0,
     });
-  const { data, error } = await supabaseAdmin
-    .from("matches")
-    .insert({
-      id: matchId, // 👈 custom ID
-      creator_id: user_id,
-      status: "open",
-    })
-    .select()
-    .single();
+const { data, error } = await supabaseAdmin
+  .from("matches")
+  .insert({
+    id: matchId,
+    creator_id: user_id,
+    opponent_id: "DEBUG_OPPONENT", // 👈 ADD THIS
+    status: "open",
+  })
+  .select()
+  .single();
 
   return Response.json({ data, error });
 }
