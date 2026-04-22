@@ -544,11 +544,11 @@ setVoteCount({
   <h3>🗳 Live Votes</h3>
 
 <div>
-  🔵 A: {getUsername(currentMatch.creator)}
+  🔵 A: {getUsername(currentMatch.creator)} — {voteCount.a} votes
 </div>
 
 <div>
-  🔴 B: {getUsername(currentMatch.opponent)}
+  🔴 B: {getUsername(currentMatch.opponent)} — {voteCount.b} votes
 </div>
   <div style={{ marginTop: 10 }}>
     <h3>🗳 Vote</h3>
