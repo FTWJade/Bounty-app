@@ -48,7 +48,9 @@ const getUsername = (user: any) => {
   if (Array.isArray(user)) return user[0]?.username || "Waiting...";
   return user.username || "Waiting...";
 };
-
+const isParticipant =
+  session?.user?.id === currentMatch?.creator_id ||
+  session?.user?.id === currentMatch?.opponent_id;
 const [voteCount, setVoteCount] = useState({
   a: 0,
   b: 0,
@@ -370,7 +372,7 @@ const votingUnlocked =
 const hasTwoPlayers =
   currentMatch?.creator_id && currentMatch?.opponent_id;
 
-const canViewVotes = !!currentMatch;
+const canViewVotes = !!currentMatch && isParticipant;
 
 const canVote =
   votingUnlocked &&
@@ -510,8 +512,8 @@ if (result.data) {
   </div>
 )}
 
-{currentMatch &&
- session.user.id === currentMatch.creator_id && (
+
+{currentMatch && isParticipant && (
   <button
     style={{ ...btn, background: "green", color: "white" }}
     onClick={async () => {
