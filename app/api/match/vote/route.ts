@@ -19,19 +19,20 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   // 2. Cooldown check
-  if (lastVote) {
-    const lastTime = new Date(lastVote.created_at).getTime();
+if (lastVote?.created_at) {
+  const lastTime = new Date(lastVote.created_at).getTime();
+  const diff = now - lastTime;
 
-    if (now - lastTime < THREE_MINUTES) {
-      return Response.json(
-        {
-          error: "Cooldown active",
-          remaining: Math.ceil((THREE_MINUTES - (now - lastTime)) / 1000),
-        },
-        { status: 429 }
-      );
-    }
+  if (diff < THREE_MINUTES) {
+    return Response.json(
+      {
+        error: "Cooldown active",
+        remaining: Math.ceil((THREE_MINUTES - diff) / 1000),
+      },
+      { status: 429 }
+    );
   }
+}
 
   // 3. ALWAYS insert new vote (no update logic)
   await supabaseAdmin.from("match_votes").insert({
