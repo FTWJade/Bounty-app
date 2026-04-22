@@ -91,36 +91,26 @@ useEffect(() => {
   const loadVotes = async () => {
     try {
       const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-      const data = await res.json();
+      const json = await res.json();
 
       if (!active) return;
 
-const loadVotes = async () => {
-  try {
-    const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-    const json = await res.json();
+      const v =
+        json?.data?.votes ??
+        json?.data ??
+        json;
 
-    const v =
-      json?.data?.votes ??
-      json?.data ??
-      json;
+      setVoteCount({
+        a: v?.a ?? 0,
+        b: v?.b ?? 0,
+      });
 
-    setVoteCount({
-      a: v?.a ?? 0,
-      b: v?.b ?? 0,
-    });
-
-  } catch (err) {
-    console.warn("Vote polling failed:", err);
-  }
-};
     } catch (err) {
       console.warn("Vote polling failed:", err);
     }
   };
 
-  loadVotes(); // initial call
-
+  loadVotes();
   const interval = setInterval(loadVotes, 2000);
 
   return () => {
