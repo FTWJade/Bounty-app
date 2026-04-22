@@ -20,6 +20,7 @@ type Match = {
   opponent_id?: string;
   creator?: any;
   opponent?: any;
+  created_at?: string; // ✅ add this
 };
 export default function Home() {
   const { data: session, status } = useSession();
@@ -154,29 +155,36 @@ useEffect(() => {
     const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
     const data = await res.json();
 
-    const match = data.data;
-    if (!match) return;
+const match = data.data;
+if (!match) return;
 
-    if (match.status !== "active" && match.status !== "open") return;
+if (match.status !== "active" && match.status !== "open") return;
 
-    const creatorLeft = !match.creator_id;
-    const opponentLeft = !match.opponent_id;
+// prevent instant false triggers after creation
+const createdAt = new Date(currentMatch.created_at ?? 0).getTime();
+if (Date.now() - createdAt < 5000) return;
 
-    if (creatorLeft || opponentLeft) {
-      await fetch("/api/match/force-close", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          match_id: currentMatch.id,
-          caller_id: session.user.id,
-        }),
-      });
+const creatorLeft =
+  currentMatch.creator_id !== null && match.creator_id === null;
 
-      setCurrentMatch(null);
-      setMatchId("");
-      setDidCreateMatch(false);
-      setPopup("⚠️ Match closed (player left)");
-    }
+const opponentLeft =
+  currentMatch.opponent_id !== null && match.opponent_id === null;
+
+if (creatorLeft || opponentLeft) {
+  await fetch("/api/match/force-close", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: currentMatch.id,
+      caller_id: session.user.id,
+    }),
+  });
+
+  setCurrentMatch(null);
+  setMatchId("");
+  setDidCreateMatch(false);
+  setPopup("⚠️ Match closed (player left)");
+}
   }, 3000);
 
   return () => clearInterval(interval);
