@@ -4,18 +4,16 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const match_id = searchParams.get("match_id");
 
+  console.log("GET VOTES FOR:", match_id);
+
   if (!match_id) {
-    return Response.json({ error: "Missing match_id" }, { status: 400 });
+    return Response.json({ a: 0, b: 0 });
   }
 
-  const { data, error } = await supabaseAdmin
+  const { data } = await supabaseAdmin
     .from("match_votes")
     .select("vote")
-    .eq("match_id", match_id);
-
-  if (error) {
-    return Response.json({ error: error.message }, { status: 400 });
-  }
+    .eq("match_id", String(match_id));
 
   let a = 0;
   let b = 0;
