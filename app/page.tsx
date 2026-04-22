@@ -23,10 +23,7 @@ const [didCreateMatch, setDidCreateMatch] = useState(false);
 const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
 const isMatchVisible =
   currentMatch &&
-  currentMatch.status &&
-  currentMatch.status !== "finished" &&
-  currentMatch.status !== "expired" &&
-  currentMatch.status !== "cancelled";
+  !["finished", "expired", "cancelled", "ended", "complete"].includes(currentMatch.status);
 const getUsername = (user: any) => {
   if (!user) return "Waiting...";
   if (Array.isArray(user)) return user[0]?.username || "Waiting...";
@@ -98,10 +95,25 @@ useEffect(() => {
 
       if (!active) return;
 
-      setVoteCount({
-  a: data?.a ?? data?.data?.a ?? 0,
-  b: data?.b ?? data?.data?.b ?? 0,
-});
+const loadVotes = async () => {
+  try {
+    const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+    const json = await res.json();
+
+    const v =
+      json?.data?.votes ??
+      json?.data ??
+      json;
+
+    setVoteCount({
+      a: v?.a ?? 0,
+      b: v?.b ?? 0,
+    });
+
+  } catch (err) {
+    console.warn("Vote polling failed:", err);
+  }
+};
     } catch (err) {
       console.warn("Vote polling failed:", err);
     }
@@ -293,7 +305,7 @@ const filteredLeaderboard = leaderboard
 
 const canVote =
   currentMatch &&
-  (currentMatch.status === "active" || currentMatch.status === "open") &&
+  ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
   session.user.id !== currentMatch.creator_id &&
   session.user.id !== currentMatch.opponent_id;
 
