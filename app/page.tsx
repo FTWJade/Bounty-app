@@ -491,17 +491,9 @@ for (let i = 0; i < 10; i++) {
   const data = await res.json();
 
   console.log("REFRESHED VOTES:", data);
-setVoteCount(prev => {
-  const next = {
-    a: data.a ?? 0,
-    b: data.b ?? 0,
-  };
-
-  if (prev.a !== next.a || prev.b !== next.b) {
-    return next;
-  }
-
-  return prev;
+setVoteCount({
+  a: data.a ?? 0,
+  b: data.b ?? 0,
 });
 }}
 >
