@@ -108,6 +108,32 @@ const [voteCount, setVoteCount] = useState({
 };
 
 useEffect(() => {
+  if (!currentMatch?.id || !session?.user?.id) return;
+
+  const handleLeave = async () => {
+    await fetch("/api/match/leave", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: currentMatch.id,
+        user_id: session.user.id,
+      }),
+    });
+  };
+
+  const onUnload = () => {
+    handleLeave();
+  };
+
+  window.addEventListener("beforeunload", onUnload);
+
+  return () => {
+    window.removeEventListener("beforeunload", onUnload);
+    handleLeave(); // also runs when React unmounts
+  };
+}, [currentMatch?.id]);
+
+useEffect(() => {
   if (!currentMatch?.id) return;
 
   const loadVotes = async () => {
