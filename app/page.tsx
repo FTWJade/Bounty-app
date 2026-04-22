@@ -18,6 +18,7 @@ export default function Home() {
 const prevLevel = useRef(level);
 const [matchId, setMatchId] = useState("");
 const [currentMatch, setCurrentMatch] = useState<any>(null);
+const [search, setSearch] = useState("");
 const [didCreateMatch, setDidCreateMatch] = useState(false);
 const isMatchVisible =
   currentMatch && 
@@ -239,6 +240,20 @@ const btn = {
   fontWeight: 600,
 };
 
+const myUser = leaderboard.find(
+  (u) => u.user_id === session?.user?.id
+);
+
+const myRank = leaderboard.findIndex(
+  (u) => u.user_id === session?.user?.id
+) + 1;
+
+const filteredLeaderboard = leaderboard
+  .map((user, index) => ({ ...user, realRank: index + 1 }))
+  .filter((user) =>
+    user.username?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <main style={{
       display: "flex",
@@ -457,11 +472,29 @@ if (result.data) {
           marginTop: "10px"
         }}
       /> */}
+      <input
+      value={search}
+      onChange={(e) => setSearch(e.target.value)}
+      placeholder="Search user..."
+      style={{
+        padding: "10px",
+        borderRadius: 8,
+        border: "1px solid #ccc",
+        marginTop: 20,
+        width: 300,
+      }}
+    />
 
 <div style={{ marginTop: 30, textAlign: "center" }}>
   <h2>🏆 Leaderboard</h2>
 
-  {leaderboard.map((user, index) => (
+    {search && myRank > 0 && (
+      <p style={{ marginTop: 10, fontWeight: "bold" }}>
+        Your rank #{myRank}
+      </p>
+    )}
+
+  {filteredLeaderboard.map((user, index) => (
     <div
       key={user.user_id}
       style={{
@@ -475,12 +508,12 @@ if (result.data) {
       }}
     >
       <span>
-        #{index + 1} {user.username}
+    #{user.realRank} {user.username}
       </span>
       <span>{user.points} pts</span>
     </div>
-  ))}
-</div>
+    ))}
+  </div>
 
   {/* <button
     onClick={() => addDebugXP(50)}
