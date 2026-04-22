@@ -53,6 +53,7 @@ export async function POST(req: Request) {
     .update({
       opponent_id: user_id,
       status: "active",
+      last_activity_at: new Date().toISOString()
     })
     .eq("id", match_id)
     .select()

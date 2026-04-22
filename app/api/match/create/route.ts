@@ -20,6 +20,7 @@ export async function POST(req: Request) {
       creator_id: user_id,
       opponent_id: null,
       status: "open",
+      last_activity_at: new Date().toISOString()
     })
     .select()
     .single();
