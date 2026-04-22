@@ -284,6 +284,11 @@ const votingUnlocked =
   ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
   participantCount >= 2;
 
+const hasTwoPlayers =
+  currentMatch?.creator_id && currentMatch?.opponent_id;
+
+const canViewVotes = !!currentMatch;
+
 const canVote =
   votingUnlocked &&
   session.user.id !== currentMatch?.creator_id &&
@@ -515,7 +520,7 @@ console.log("VOTE RESPONSE:", text);
     <p>Opponent: {getUsername(currentMatch.opponent)}</p>
 
     
-{canVote  && (
+{canViewVotes && (
 <div style={{ marginTop: 15 }}>
   <h3>🗳 Live Votes</h3>
 
@@ -564,6 +569,9 @@ console.log("VOTE RESPONSE:", text);
 >
   Reset Votes
 </button>
+
+{canVote && (
+  <>
     <button
       style={{ ...btn, background: "blue", color: "white" }}
       onClick={async () => {
@@ -601,6 +609,8 @@ console.log("VOTE RESPONSE:", text);
     >
       Vote B
     </button>
+  </>
+)}
   </div>
 )}
 
