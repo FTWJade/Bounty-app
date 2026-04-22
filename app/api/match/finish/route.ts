@@ -65,6 +65,51 @@ if (!loser_id) {
     loserLevel,
   });
 
+  const { data: votes } = await supabaseAdmin
+  .from("match_votes")
+  .select("user_id, vote")
+  .eq("match_id", match_id);
+  const votersA =
+  votes?.filter((v) => v.vote === "A") ?? [];
+
+const votersB =
+  votes?.filter((v) => v.vote === "B") ?? [];
+
+  const winnerSide =
+  winner_id === match.creator_id ? "A" : "B";
+
+  for (const v of votersA) {
+  const correct = winnerSide === "A";
+
+  await supabaseAdmin.rpc("increment_xp", {
+    uid: v.user_id,
+    amount: correct ? 10 : 3,
+  });
+
+  if (correct) {
+    await supabaseAdmin.rpc("increment_bounty", {
+      uid: v.user_id,
+      amount: 2,
+    });
+  }
+}
+
+for (const v of votersB) {
+  const correct = winnerSide === "B";
+
+  await supabaseAdmin.rpc("increment_xp", {
+    uid: v.user_id,
+    amount: correct ? 10 : 3,
+  });
+
+  if (correct) {
+    await supabaseAdmin.rpc("increment_bounty", {
+      uid: v.user_id,
+      amount: 2,
+    });
+  }
+}
+
   // 5. Apply XP + bounty
   await supabaseAdmin.rpc("increment_xp", {
     uid: winner_id,
