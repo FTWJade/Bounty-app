@@ -806,19 +806,19 @@ export default function Home() {
                           margin: "8px auto",
                         }}
                       >
-                        <div
-                          style={{
-                            position: "absolute",
-                            top: 0,
-                            left: `clamp(0%, calc(${fillPercent}% - 4px), calc(100% - 8px))`,
-                            transform: "none",
-                            width: 8,
-                            height: "100%",
-                            background: "white",
-                            borderRadius: 4,
-                            transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                          }}
-                        />
+                      <div
+                        style={{
+                          position: "absolute",
+                          top: "50%",
+                          left: `clamp(0%, calc(${fillPercent}% - 4px), calc(100% - 8px))`,
+                          transform: "translateY(-50%)",
+                          width: 8,
+                          height: 8,
+                          background: "white",
+                          borderRadius: 4,
+                          transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                        }}
+                      />
                       </div>
                     </div>
                   </div>
