@@ -34,404 +34,417 @@ export default function Home() {
   const xpIntoLevel = safePoints % 100;
   const [popup, setPopup] = useState<string | null>(null);
   const showPopup = (msg: string, duration = 1500) => {
-  setPopup(msg);
+    setPopup(msg);
 
-  setTimeout(() => {
-    setPopup(null);
-  }, duration);
-};
+    setTimeout(() => {
+      setPopup(null);
+    }, duration);
+  };
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
-const prevLevel = useRef(level);
-const [matchId, setMatchId] = useState("");
-const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
-const [search, setSearch] = useState("");
-const [didCreateMatch, setDidCreateMatch] = useState(false);
-const isMatchVisible =
-  !!currentMatch &&
-  !["finished", "expired", "cancelled", "ended", "complete"].includes(
-    currentMatch.status
-  );
-const getUsername = (user: any) => {
-  if (!user) return "Waiting...";
-  if (Array.isArray(user)) return user[0]?.username || "Waiting...";
-  return user.username || "Waiting...";
-};
-const isParticipant =
-  session?.user?.id === currentMatch?.creator_id ||
-  session?.user?.id === currentMatch?.opponent_id;
-const [voteCount, setVoteCount] = useState({
-  a: 0,
-  b: 0,
-});
-const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
-const isSolo = currentMatch?.mode === "solo";
-const canFinishMatch =
-  currentMatch?.mode === "pvp"
-    ? isParticipant
-    : session?.user?.id === currentMatch?.creator_id;
+  const prevLevel = useRef(level);
+  const [matchId, setMatchId] = useState("");
+  const [currentMatch, setCurrentMatch] = useState<Match | null>(null);
+  const [search, setSearch] = useState("");
+  const [didCreateMatch, setDidCreateMatch] = useState(false);
+  const isMatchVisible =
+    !!currentMatch &&
+    !["finished", "expired", "cancelled", "ended", "complete"].includes(
+      currentMatch.status
+    );
+  const getUsername = (user: any) => {
+    if (!user) return "Waiting...";
+    if (Array.isArray(user)) return user[0]?.username || "Waiting...";
+    return user.username || "Waiting...";
+  };
+  const isParticipant =
+    session?.user?.id === currentMatch?.creator_id ||
+    session?.user?.id === currentMatch?.opponent_id;
+  const [voteCount, setVoteCount] = useState({
+    a: 0,
+    b: 0,
+  });
+const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
+  const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
+  const isSolo = currentMatch?.mode === "solo";
+  const canFinishMatch =
+    currentMatch?.mode === "pvp"
+      ? isParticipant
+      : session?.user?.id === currentMatch?.creator_id;
 
-// const addDebugXP = (amount: number) => {
-//   const newPoints = points + amount;
+  // const addDebugXP = (amount: number) => {
+  //   const newPoints = points + amount;
 
-//     const inMatch =
-//     currentMatch?.status === "open" ||
-//     currentMatch?.status === "active";
+  //     const inMatch =
+  //     currentMatch?.status === "open" ||
+  //     currentMatch?.status === "active";
 
 
-//   setPoints(newPoints);
-//   animateXP(newPoints);
+  //   setPoints(newPoints);
+  //   animateXP(newPoints);
 
-//   console.log("🧪 DEBUG XP ADDED:", amount, "NEW TOTAL:", newPoints);
-// };
+  //   console.log("🧪 DEBUG XP ADDED:", amount, "NEW TOTAL:", newPoints);
+  // };
 
 
   const animateXP = (target: number) => {
-  let start = displayPoints;
-  let diff = target - start;
+    let start = displayPoints;
+    let diff = target - start;
 
-  if (diff === 0) return;
+    if (diff === 0) return;
 
-  const duration = 600; // ms
-  const steps = 30;
-  const increment = diff / steps;
+    const duration = 600; // ms
+    const steps = 30;
+    const increment = diff / steps;
 
-  let current = start;
-  let i = 0;
+    let current = start;
+    let i = 0;
 
-  const interval = setInterval(() => {
-    i++;
-    current += increment;
+    const interval = setInterval(() => {
+      i++;
+      current += increment;
 
-    if (i >= steps) {
-      current = target;
-      clearInterval(interval);
-    }
+      if (i >= steps) {
+        current = target;
+        clearInterval(interval);
+      }
 
-    setDisplayPoints(Math.floor(current));
-  }, duration / steps);
+      setDisplayPoints(Math.floor(current));
+    }, duration / steps);
   };
   const loadUser = async (userId: string) => {
-  const res = await fetch(`/api/bounty?user_id=${userId}`);
-  const result = await res.json();
+    const res = await fetch(`/api/bounty?user_id=${userId}`);
+    const result = await res.json();
 
 
-  if (result.data) {
-    setBounty(result.data.bounty ?? 0);
-    const newPoints = Number(result.data.points ?? 0);
-    setPoints(newPoints);
-    animateXP(newPoints);
-  }
-};
-
-useEffect(() => {
-  if (!currentMatch?.id || !session?.user?.id) return;
-
-  const interval = setInterval(async () => {
-    await fetch("/api/match/heartbeat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: currentMatch.id,
-        user_id: session.user.id,
-      }),
-    });
-  }, 5000); // ping every 5 sec
-
-  return () => clearInterval(interval);
-}, [currentMatch?.id, session?.user?.id]);
-
-useEffect(() => {
-  if (!currentMatch?.id) return;
-
-  const loadVotes = async () => {
-    const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-    const json = await res.json();
-
-    console.log("🗳 POLL:", json);
-
-    setVoteCount({
-      a: json.a ?? 0,
-      b: json.b ?? 0,
-    });
+    if (result.data) {
+      setBounty(result.data.bounty ?? 0);
+      const newPoints = Number(result.data.points ?? 0);
+      setPoints(newPoints);
+      animateXP(newPoints);
+    }
   };
 
-  const interval = setInterval(loadVotes, 1000); // faster = more “live”
-  loadVotes(); // initial fetch
+  useEffect(() => {
+    if (!currentMatch?.id || !session?.user?.id) return;
 
-  return () => clearInterval(interval);
-}, [currentMatch?.id]);
+    const interval = setInterval(async () => {
+      await fetch("/api/match/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: currentMatch.id,
+          user_id: session.user.id,
+        }),
+      });
+    }, 5000); // ping every 5 sec
 
-useEffect(() => {
-  if (!currentMatch?.id || !session?.user?.id) return;
+    return () => clearInterval(interval);
+  }, [currentMatch?.id, session?.user?.id]);
 
-  const interval = setInterval(async () => {
-    const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
-    const data = await res.json();
+  useEffect(() => {
+    if (!currentMatch?.id) return;
 
-const match = data.data;
-if (!match) return;
+    const loadVotes = async () => {
+      const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+      const json = await res.json();
 
-if (match.status !== "active" && match.status !== "open") return;
+      console.log("🗳 POLL:", json);
 
-// prevent instant false triggers after creation
-if (!currentMatch.created_at) return;
-const createdAt = new Date(currentMatch.created_at).getTime();
-if (Date.now() - createdAt < 5000) return;
+      setVoteCount({
+        a: json.a ?? 0,
+        b: json.b ?? 0,
+      });
+    };
 
-const creatorLeft =
-  currentMatch.creator_id !== null && match.creator_id === null;
+    const interval = setInterval(loadVotes, 1000); // faster = more “live”
+    loadVotes(); // initial fetch
 
-const opponentLeft =
-  currentMatch.opponent_id !== null && match.opponent_id === null;
+    return () => clearInterval(interval);
+  }, [currentMatch?.id]);
 
-if (creatorLeft || opponentLeft) {
-  await fetch("/api/match/force-close", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      match_id: currentMatch.id,
-      caller_id: session.user.id,
-    }),
-  });
+  useEffect(() => {
+    if (!currentMatch?.id || !session?.user?.id) return;
 
-  setCurrentMatch(null);
-  setMatchId("");
-  setDidCreateMatch(false);
-  showPopup("⚠️ Match closed (player left)");
-}
-  }, 3000);
-
-  return () => clearInterval(interval);
-}, [currentMatch, session?.user?.id]);
-
-
-useEffect(() => {
-  if (!currentMatch?.id || currentMatch.status === "finished") return;
-  if (!session?.user?.id) return;
-
-  let active = true;
-
-  const interval = setInterval(async () => {
-    try {
+    const interval = setInterval(async () => {
       const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
-      if (!res.ok) return;
-
       const data = await res.json();
-      if (!active || !data.data) return;
 
       const match = data.data;
+      if (!match) return;
 
-      console.log("🗳 LIVE VOTES:", data);
+      if (match.status !== "active" && match.status !== "open") return;
 
-      setCurrentMatch(match);
+      // prevent instant false triggers after creation
+      if (!currentMatch.created_at) return;
+      const createdAt = new Date(currentMatch.created_at).getTime();
+      if (Date.now() - createdAt < 5000) return;
 
-      if (
-        match.status === "finished" ||
-        match.status === "expired" ||
-        match.status === "cancelled"
-      ) {
-        clearInterval(interval);
-        active = false;
+      const creatorLeft =
+        currentMatch.creator_id !== null && match.creator_id === null;
 
-        // 🔥 refresh user + leaderboard ONCE
-        await loadUser(session.user.id);
+      const opponentLeft =
+        currentMatch.opponent_id !== null && match.opponent_id === null;
 
-        const updatedLeaderboard = await fetch("/api/leaderboard");
-        const lb = await updatedLeaderboard.json();
-        setLeaderboard(lb.data || []);
+      if (creatorLeft || opponentLeft) {
+        await fetch("/api/match/force-close", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            match_id: currentMatch.id,
+            caller_id: session.user.id,
+          }),
+        });
 
         setCurrentMatch(null);
         setMatchId("");
         setDidCreateMatch(false);
-
-        console.log("🛑 Match ended → UI cleared");
+        showPopup("⚠️ Match closed (player left)");
       }
-    } catch (err) {
-      console.warn("Polling failed:", err);
-    }
-  }, 3000);
+    }, 3000);
 
-  return () => {
-    active = false;
-    clearInterval(interval);
-  };
-}, [currentMatch?.id, session?.user?.id]);
+    return () => clearInterval(interval);
+  }, [currentMatch, session?.user?.id]);
 
-useEffect(() => {
-  console.log("📊 STATE SNAPSHOT:", {
-    points,
-    displayPoints,
-    level,
-    xpIntoLevel,
-  });
-}, [points, displayPoints, level]);
 
-useEffect(() => {
-  if (!session?.user?.id) return;
+  useEffect(() => {
+    if (!currentMatch?.id || currentMatch.status === "finished") return;
+    if (!session?.user?.id) return;
 
-  const loadLeaderboard = async () => {
-    const res = await fetch("/api/leaderboard");
-    const data = await res.json();
-    setLeaderboard(data.data || []);
-  };
+    let active = true;
 
-  loadLeaderboard();
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
+        if (!res.ok) return;
 
-  const interval = setInterval(loadLeaderboard, 10000);
+        const data = await res.json();
+        if (!active || !data.data) return;
 
-  return () => clearInterval(interval);
-}, [session?.user?.id]);
+        const match = data.data;
 
-useEffect(() => {
-  if (!prevLevel.current) {
-    prevLevel.current = level;
-    return;
-  }
+        console.log("🗳 LIVE VOTES:", data);
 
-  if (level > prevLevel.current) {
-    showPopup("🎉 LEVEL UP!");
-  }
+        setCurrentMatch(match);
 
-  prevLevel.current = level;
-}, [level]);
+        if (
+          match.status === "finished" ||
+          match.status === "expired" ||
+          match.status === "cancelled"
+        ) {
+          clearInterval(interval);
+          active = false;
 
-useEffect(() => {
-  if (!session?.user?.id) return;
+          // 🔥 refresh user + leaderboard ONCE
+          await loadUser(session.user.id);
 
-  const userId = session.user.id;
+          const updatedLeaderboard = await fetch("/api/leaderboard");
+          const lb = await updatedLeaderboard.json();
+          setLeaderboard(lb.data || []);
 
-  const run = async () => {
-    console.log("RUN DAILY FOR:", userId);
+          setCurrentMatch(null);
+          setMatchId("");
+          setDidCreateMatch(false);
 
-    await loadUser(userId);
+          console.log("🛑 Match ended → UI cleared");
+        }
+      } catch (err) {
+        console.warn("Polling failed:", err);
+      }
+    }, 3000);
 
-    const daily = await fetch("/api/daily", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: userId }),
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [currentMatch?.id, session?.user?.id]);
+
+  useEffect(() => {
+    console.log("📊 STATE SNAPSHOT:", {
+      points,
+      displayPoints,
+      level,
+      xpIntoLevel,
     });
+  }, [points, displayPoints, level]);
 
-    const data = await daily.json();
+  useEffect(() => {
+    if (!session?.user?.id) return;
 
-    if (data.pointsAdded) {
-      showPopup(`+${data.pointsAdded} XP 🎉`);
-      const newPoints = points + data.pointsAdded;
-      setPoints(newPoints);
-      animateXP(newPoints);
+    const loadLeaderboard = async () => {
+      const res = await fetch("/api/leaderboard");
+      const data = await res.json();
+      setLeaderboard(data.data || []);
+    };
+
+    loadLeaderboard();
+
+    const interval = setInterval(loadLeaderboard, 10000);
+
+    return () => clearInterval(interval);
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!prevLevel.current) {
+      prevLevel.current = level;
+      return;
     }
 
-    if (data.unlocked?.length > 0) {
-      data.unlocked.forEach((a: string) => {
-        setTimeout(() => showPopup(`🏆 ${a}`), 500);
+    if (level > prevLevel.current) {
+      showPopup("🎉 LEVEL UP!");
+    }
+
+    prevLevel.current = level;
+  }, [level]);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const userId = session.user.id;
+
+    const run = async () => {
+      console.log("RUN DAILY FOR:", userId);
+
+      await loadUser(userId);
+
+      const daily = await fetch("/api/daily", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
       });
-    }
+
+      const data = await daily.json();
+
+      if (data.pointsAdded) {
+        showPopup(`+${data.pointsAdded} XP 🎉`);
+        const newPoints = points + data.pointsAdded;
+        setPoints(newPoints);
+        animateXP(newPoints);
+      }
+
+      if (data.unlocked?.length > 0) {
+        data.unlocked.forEach((a: string) => {
+          setTimeout(() => showPopup(`🏆 ${a}`), 500);
+        });
+      }
+    };
+
+    run();
+  }, [session?.user?.id]);
+
+  if (status === "loading") {
+    return <p>Loading...</p>;
+  }
+  if (!session) {
+    return (
+      <main style={{
+        display: "flex",
+        minHeight: "100vh",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "column",
+        fontFamily: "Arial",
+        textAlign: "center",
+      }}>
+        <h1>Bounty App</h1>
+
+        <p style={{
+          marginTop: 10,
+          marginBottom: 20,
+          color: "#ccc",
+          fontSize: 14,
+          maxWidth: 280,
+          lineHeight: 1.4,
+        }}>
+          Create matches, earn XP, climb levels, and compete in live PvP battles.
+          Vote, win, and build your bounty score.
+        </p>
+
+        <button
+          onClick={() => signIn("twitch")}
+          style={{
+            padding: "12px 20px",
+            background: "#9146FF",
+            color: "white",
+            border: "none",
+            borderRadius: "8px"
+          }}
+        >
+          Login with Twitch
+        </button>
+      </main>
+    );
+  }
+  // simple reusable button style (so they STOP looking like text)
+  const btn = {
+    marginTop: "10px",
+    padding: "10px 14px",
+    borderRadius: "8px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: 600,
   };
 
-  run();
-}, [session?.user?.id]);
-
-if (status === "loading") {
-  return <p>Loading...</p>;
-}
-if (!session) {
-  return (
-    <main style={{
-      display: "flex",
-      minHeight: "100vh",
-      justifyContent: "center",
-      alignItems: "center",
-      flexDirection: "column",
-      fontFamily: "Arial",
-      textAlign: "center",
-    }}>
-      <h1>Bounty App</h1>
-
-      <p style={{
-        marginTop: 10,
-        marginBottom: 20,
-        color: "#ccc",
-        fontSize: 14,
-        maxWidth: 280,
-        lineHeight: 1.4,
-      }}>
-        Create matches, earn XP, climb levels, and compete in live PvP battles.
-        Vote, win, and build your bounty score.
-      </p>
-
-      <button
-        onClick={() => signIn("twitch")}
-        style={{
-          padding: "12px 20px",
-          background: "#9146FF",
-          color: "white",
-          border: "none",
-          borderRadius: "8px"
-        }}
-      >
-        Login with Twitch
-      </button>
-    </main>
-  );
-}
-  // simple reusable button style (so they STOP looking like text)
-const btn = {
-  marginTop: "10px",
-  padding: "10px 14px",
-  borderRadius: "8px",
-  border: "none",
-  cursor: "pointer",
-  fontWeight: 600,
-};
-
-const myUser = leaderboard.find(
-  (u) => u.user_id === session?.user?.id
-);
-
-const myRank = leaderboard.findIndex(
-  (u) => u.user_id === session?.user?.id
-) + 1;
-
-const participantCount =
-  (currentMatch?.creator_id ? 1 : 0) +
-  (currentMatch?.opponent_id ? 1 : 0);
-
-const votingUnlocked =
-  !!currentMatch &&
-  ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
-  (
-    isSolo
-      ? true
-      : participantCount >= 2
+  const myUser = leaderboard.find(
+    (u) => u.user_id === session?.user?.id
   );
 
-const hasTwoPlayers =
-  currentMatch?.creator_id && currentMatch?.opponent_id;
+  const myRank = leaderboard.findIndex(
+    (u) => u.user_id === session?.user?.id
+  ) + 1;
 
-const canViewVotes = !!currentMatch;
-const showOpponent =
-  currentMatch?.mode === "pvp" && !!currentMatch?.opponent_id;
-const canVote =
-  !!currentMatch &&
-  votingUnlocked &&
-  (
-    isSolo
-      ? true // everyone in solo match can vote
-      : session.user.id !== currentMatch.creator_id &&
+  const participantCount =
+    (currentMatch?.creator_id ? 1 : 0) +
+    (currentMatch?.opponent_id ? 1 : 0);
+
+  const votingUnlocked =
+    !!currentMatch &&
+    ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
+    (
+      isSolo
+        ? true
+        : participantCount >= 2
+    );
+
+  const hasTwoPlayers =
+    currentMatch?.creator_id && currentMatch?.opponent_id;
+
+  const canViewVotes = !!currentMatch;
+  const showOpponent =
+    currentMatch?.mode === "pvp" && !!currentMatch?.opponent_id;
+  const canVote =
+    !!currentMatch &&
+    votingUnlocked &&
+    (
+      isSolo
+        ? true // everyone in solo match can vote
+        : session.user.id !== currentMatch.creator_id &&
         session.user.id !== currentMatch.opponent_id
-  );
+    );
 
-const filteredLeaderboard = leaderboard
-  .map((user, index) => ({ ...user, realRank: index + 1 }))
-  .filter((user) =>
-    user.username?.toLowerCase().includes(search.toLowerCase())
-  );
-  
+  const filteredLeaderboard = leaderboard
+    .map((user, index) => ({ ...user, realRank: index + 1 }))
+    .filter((user) =>
+      user.username?.toLowerCase().includes(search.toLowerCase())
+    );
+
 
   const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
-const hasVoteActivity = totalVotes > 0;
+  const hasVoteActivity = totalVotes > 0;
 
+const total = voteCount.a + voteCount.b;
 
+const mySideCount =
+  myVote === "A"
+    ? voteCount.a
+    : myVote === "B"
+      ? voteCount.b
+      : 0;
+
+const fillPercent =
+  total === 0
+    ? 50
+    : (mySideCount / total) * 100;
 
   return (
     <main style={{
@@ -446,154 +459,154 @@ const hasVoteActivity = totalVotes > 0;
     }}>
 
       <div
-  style={{
-    position: "absolute",
-    top: 10,
-    left: 10,
-    fontSize: 14,
-  }}
->
-  <a
-    href="/about"
-    style={{
-      color: "#555",
-      textDecoration: "none",
-    }}
-  >
-    About
-  </a>
-</div>
+        style={{
+          position: "absolute",
+          top: 10,
+          left: 10,
+          fontSize: 14,
+        }}
+      >
+        <a
+          href="/about"
+          style={{
+            color: "#555",
+            textDecoration: "none",
+          }}
+        >
+          About
+        </a>
+      </div>
 
-{!mode && (
-  <div>
-    <h2>Choose Mode</h2>
+      {!mode && (
+        <div>
+          <h2>Choose Mode</h2>
 
-    <button onClick={() => setMode("pvp")} style={btn}>
-      🆚 1v1 PvP
-    </button>
+          <button onClick={() => setMode("pvp")} style={btn}>
+            🆚 1v1 PvP
+          </button>
 
-    <button onClick={() => setMode("solo")} style={btn}>
-      🎲 Solo Prediction
-    </button>
-  </div>
-)}
-{mode && (
-  <button
-    style={{ ...btn, background: "#444", color: "white" }}
-    onClick={async () => {
-      const res = await fetch("/api/match/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: session.user.id,
-          mode,
-        }),
-      });
-      setMode(null);
-      const result = await res.json();
+          <button onClick={() => setMode("solo")} style={btn}>
+            🎲 Solo Prediction
+          </button>
+        </div>
+      )}
+      {mode && (
+        <button
+          style={{ ...btn, background: "#444", color: "white" }}
+          onClick={async () => {
+            const res = await fetch("/api/match/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                user_id: session.user.id,
+                mode,
+              }),
+            });
+            setMode(null);
+            const result = await res.json();
 
-      if (result.data) {
-        const full = await fetch(`/api/match/get?id=${result.data.id}`).then(r => r.json());
+            if (result.data) {
+              const full = await fetch(`/api/match/get?id=${result.data.id}`).then(r => r.json());
 
-        setCurrentMatch(full.data);
-        setMatchId(full.data.id);
-        setDidCreateMatch(true);
-      }
-    }}
-  >
-    🎮 Create Match
-  </button>
-)}
+              setCurrentMatch(full.data);
+              setMatchId(full.data.id);
+              setDidCreateMatch(true);
+            }
+          }}
+        >
+          🎮 Create Match
+        </button>
+      )}
 
-{currentMatch && (
-  <p style={{ marginTop: 10 }}>
-    Match ID: <b>{currentMatch.id}</b>
-  </p>
-)}
+      {currentMatch && (
+        <p style={{ marginTop: 10 }}>
+          Match ID: <b>{currentMatch.id}</b>
+        </p>
+      )}
 
-{!currentMatch && (
-  <div style={{ marginTop: 10 }}>
-    <input
-      value={matchId}
-      onChange={(e) => setMatchId(e.target.value)}
-      placeholder="Enter Match ID"
-      style={{
-        padding: "10px",
-        borderRadius: 8,
-        border: "1px solid #ccc",
-      }}
-    />
+      {!currentMatch && (
+        <div style={{ marginTop: 10 }}>
+          <input
+            value={matchId}
+            onChange={(e) => setMatchId(e.target.value)}
+            placeholder="Enter Match ID"
+            style={{
+              padding: "10px",
+              borderRadius: 8,
+              border: "1px solid #ccc",
+            }}
+          />
 
-    <button
-      style={{ ...btn, background: "purple", color: "white" }}
-      onClick={async () => {
-        const res = await fetch("/api/match/join", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: session.user.id,
-            match_id: matchId,
-          }),
-        });
+          <button
+            style={{ ...btn, background: "purple", color: "white" }}
+            onClick={async () => {
+              const res = await fetch("/api/match/join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: session.user.id,
+                  match_id: matchId,
+                }),
+              });
 
-        const text = await res.text();
+              const text = await res.text();
 
-        if (!res.ok) {
-          showPopup(text);
-          
-        } else {
-          showPopup("Joined match!");
-        }
-        const updated = await fetch(`/api/match/get?id=${matchId}`);
-        const data = await updated.json();
+              if (!res.ok) {
+                showPopup(text);
 
-        if (data.data) {
-          setCurrentMatch(data.data);
-        }
-      }}
-    >
-      Join Match
-    </button>
-  </div>
-)}
+              } else {
+                showPopup("Joined match!");
+              }
+              const updated = await fetch(`/api/match/get?id=${matchId}`);
+              const data = await updated.json();
+
+              if (data.data) {
+                setCurrentMatch(data.data);
+              }
+            }}
+          >
+            Join Match
+          </button>
+        </div>
+      )}
 
 
-{currentMatch && canFinishMatch && (
-  <button
-    style={{ ...btn, background: "green", color: "white" }}
-    onClick={async () => {
-      const res = await fetch("/api/match/finish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          match_id: currentMatch.id,
-          winner_id: session.user.id,
-        }),
-      });
+      {currentMatch && canFinishMatch && (
+        <button
+          style={{ ...btn, background: "green", color: "white" }}
+          onClick={async () => {
+            const res = await fetch("/api/match/finish", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                match_id: currentMatch.id,
+                winner_id: session.user.id,
+              }),
+            });
 
-      if (!res.ok) {
-        showPopup("Failed to finish match");
-        return;
-      }
+            if (!res.ok) {
+              showPopup("Failed to finish match");
+              return;
+            }
 
-      await loadUser(session.user.id);
+            await loadUser(session.user.id);
 
-      const updatedLeaderboard = await fetch("/api/leaderboard");
-      const data = await updatedLeaderboard.json();
-      setLeaderboard(data.data || []);
+            const updatedLeaderboard = await fetch("/api/leaderboard");
+            const data = await updatedLeaderboard.json();
+            setLeaderboard(data.data || []);
 
-      showPopup("🏆 Match finished!");
-      setCurrentMatch(null);
-      setMatchId("");
-      setDidCreateMatch(false);
-    }}
-  >
-    🏆 Win Match
-  </button>
-)}
+            showPopup("🏆 Match finished!");
+            setCurrentMatch(null);
+            setMatchId("");
+            setDidCreateMatch(false);
+          }}
+        >
+          🏆 Win Match
+        </button>
+      )}
 
-{/* debug button */}
-    {/* <button
+      {/* debug button */}
+      {/* <button
   style={{
     marginTop: 10,
     padding: "8px 12px",
@@ -631,159 +644,192 @@ setVoteCount({
   🧪 Add Fake Vote
 </button> */}
 
-{isMatchVisible && (
-  <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
-    <h3>🎮 Match</h3>
+      {isMatchVisible && (
+        <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
+          <h3>🎮 Match</h3>
 
-    <p>ID: {currentMatch.id}</p>
-    <p>Status: {currentMatch.status}</p>
-<p>
-  Creator:{" "}
-  {currentMatch.creator_id === session.user.id
-    ? session.user.name
-    : getUsername(currentMatch.creator)}
-</p>
-    <p>Opponent: {getUsername(currentMatch.opponent)}</p>
-
-
-    
-{canViewVotes && (
-<div style={{ marginTop: 15 }}>
-  <h3>🗳 Live Votes</h3>
-
-<div>
-    🔵 A: {currentMatch.creator?.username ?? "Loading..."} — {voteCount.a} votes
-</div>
-
-{currentMatch?.mode === "solo" ? (
-  <div>🎲 Solo match (no opponent)</div>
-) : showOpponent ? (
-  <div>
-    🔴 B: {getUsername(currentMatch.opponent)} — {voteCount.b} votes
-  </div>
-) : (
-  <div>🔴 B: Waiting for opponent...</div>
-)}
-  <div style={{ marginTop: 10 }}>
-    <h3>🗳 Vote</h3>
-
-  <div
-    style={{
-      width: 300,
-      height: 10,
-      background: "#333",
-      borderRadius: 5,
-      overflow: "hidden",
-      marginTop: 8,
-    }}
-  >
-    <div
-      style={{
-        width: `${
-          voteCount.a + voteCount.b === 0
-            ? 50
-            : (voteCount.a / (voteCount.a + voteCount.b)) * 100
-        }%`,
-        height: "100%",
-        background: "blue",
-        transition: "width 0.3s ease",
-      }}
-    />
-  </div>
-</div>
-{canVote && (
-  <>
-    <button
-      style={{ ...btn, background: "blue", color: "white" }}
-      onClick={async () => {
-        await fetch("/api/match/vote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            match_id: currentMatch.id,
-            user_id: session.user.id,
-            vote: "A",
-          }),
-        });
-
-        const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-        const data = await res.json();
-
-        setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
-
-        showPopup(isSolo ? "Voted WIN" : "Voted Player A");
-      }}
-    >
-      {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
-    </button>
-
-    <button
-      style={{ ...btn, background: "red", color: "white" }}
-      onClick={async () => {
-        await fetch("/api/match/vote", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            match_id: currentMatch.id,
-            user_id: session.user.id,
-            vote: "B",
-          }),
-        });
-
-        const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-        const data = await res.json();
-
-        setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
-
-        showPopup(isSolo ? "Voted LOSE" : "Voted Player B");
-      }}
-    >
-      {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
-    </button>
-  </>
-)}
-  </div>
-)}
+          <p>ID: {currentMatch.id}</p>
+          <p>Status: {currentMatch.status}</p>
+          <p>
+            Creator:{" "}
+            {currentMatch.creator_id === session.user.id
+              ? session.user.name
+              : getUsername(currentMatch.creator)}
+          </p>
+          <p>Opponent: {getUsername(currentMatch.opponent)}</p>
 
 
-  </div>
-)}
 
-{popup && (
-  <div
-    style={{
-      position: "fixed",
-      top: 20,
-      right: 20,
-      background: "#222",
-      color: "white",
-      padding: "12px 16px",
-      borderRadius: 8,
-      zIndex: 999,
-    }}
-  >
-    {popup}
-  </div>
-)}
+          {canViewVotes && (
+            <div style={{ marginTop: 15 }}>
+              <h3>🗳 Live Votes</h3>
+
+              <div>
+                🔵 A: {currentMatch.creator?.username ?? "Loading..."} — {voteCount.a} votes
+              </div>
+
+              {currentMatch?.mode === "solo" ? (
+                <div>🎲 Solo match (no opponent)</div>
+              ) : showOpponent ? (
+                <div>
+                  🔴 B: {getUsername(currentMatch.opponent)} — {voteCount.b} votes
+                </div>
+              ) : (
+                <div>🔴 B: Waiting for opponent...</div>
+              )}
+              <div style={{ marginTop: 10 }}>
+                <h3>🗳 Vote</h3>
+                {myVote && (
+                  <p style={{ fontSize: 12, marginTop: 5, color: "#aaa" }}>
+                    You voted: {myVote === "A"
+                      ? getUsername(currentMatch.creator)
+                      : getUsername(currentMatch.opponent)}
+                  </p>
+                )}
+                <div
+                  style={{
+                    width: 300,
+                    height: 10,
+                    background: "#333",
+                    borderRadius: 5,
+                    overflow: "hidden",
+                    marginTop: 8,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${fillPercent}%`,
+                      height: "100%",
+                      background: "blue",
+                      transition: "width 0.3s ease",
+                    }}
+                  />
+                </div>
+              </div>
+              {canVote && (
+                <>
+                  <button
+                    style={{ ...btn, background: "blue", color: "white" }}
+                    onClick={async () => {
+                      const res = await fetch("/api/match/vote", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          match_id: currentMatch.id,
+                          user_id: session.user.id,
+                          vote: "A",
+                        }),
+                      });
+
+                      const result = await res.json();
+                      if (!res.ok) {
+                        if (result.remaining) {
+                          const mins = Math.floor(result.remaining / 60);
+                          const secs = result.remaining % 60;
+
+                          showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
+                        } else {
+                          showPopup(result.error || "Unable to vote");
+                        }
+                        return;
+                      }
+
+                      const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
+                      setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
+                      setMyVote("A");
+                      showPopup(
+                        isSolo
+                          ? "Voted WIN"
+                          : `Voted ${getUsername(currentMatch.creator)}`
+                      );
+                    }}
+                  >
+                    {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
+                  </button>
+
+                  <button
+                    style={{ ...btn, background: "red", color: "white" }}
+                    onClick={async () => {
+                      const res = await fetch("/api/match/vote", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          match_id: currentMatch.id,
+                          user_id: session.user.id,
+                          vote: "B",
+                        }),
+                      });
+
+                      const result = await res.json();
+
+                      if (!res.ok) {
+                        if (result.remaining) {
+                          const mins = Math.floor(result.remaining / 60);
+                          const secs = result.remaining % 60;
+
+                          showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
+                        } else {
+                          showPopup(result.error || "Unable to vote");
+                        }
+                        return;
+                      }
+
+                      const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
+                      setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
+                      setMyVote("B");
+                      showPopup(
+                        isSolo
+                          ? "Voted LOSE"
+                          : `Voted ${getUsername(currentMatch.opponent)}`
+                      );
+                    }}
+                  >
+                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+
+
+        </div>
+      )}
+
+      {popup && (
+        <div
+          style={{
+            position: "fixed",
+            top: 20,
+            right: 20,
+            background: "#222",
+            color: "white",
+            padding: "12px 16px",
+            borderRadius: 8,
+            zIndex: 999,
+          }}
+        >
+          {popup}
+        </div>
+      )}
 
       <h1>Welcome {session.user?.name}</h1>
       <h2>Level {level}</h2>
       <p>{displayPoints} XP</p>
 
-<div style={{ width: 300, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", marginTop: 10 }}>
-  <div
-    style={{
-      width: `${((xpIntoLevel || 0) / xpNeeded) * 100}%`,
-      height: "100%",
-      background: "limegreen",
-      transition: "width 0.3s ease"
-    }}
-  />
-</div>
+      <div style={{ width: 300, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", marginTop: 10 }}>
+        <div
+          style={{
+            width: `${((xpIntoLevel || 0) / xpNeeded) * 100}%`,
+            height: "100%",
+            background: "limegreen",
+            transition: "width 0.3s ease"
+          }}
+        />
+      </div>
 
-<p>
-  {xpIntoLevel} / {xpNeeded} XP
-</p>
+      <p>
+        {xpIntoLevel} / {xpNeeded} XP
+      </p>
 
       <p>Current bounty: ${bounty}</p>
       {/* <input
@@ -796,49 +842,49 @@ setVoteCount({
         }}
       /> */}
       <input
-      value={search}
-      onChange={(e) => setSearch(e.target.value)}
-      placeholder="Search user..."
-      style={{
-        padding: "10px",
-        borderRadius: 8,
-        border: "1px solid #ccc",
-        marginTop: 20,
-        width: 300,
-      }}
-    />
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search user..."
+        style={{
+          padding: "10px",
+          borderRadius: 8,
+          border: "1px solid #ccc",
+          marginTop: 20,
+          width: 300,
+        }}
+      />
 
-<div style={{ marginTop: 30, textAlign: "center" }}>
-  <h2>🏆 Leaderboard</h2>
+      <div style={{ marginTop: 30, textAlign: "center" }}>
+        <h2>🏆 Leaderboard</h2>
 
-    {search && myRank > 0 && (
-      <p style={{ marginTop: 10, fontWeight: "bold" }}>
-        Your rank #{myRank}
-      </p>
-    )}
+        {search && myRank > 0 && (
+          <p style={{ marginTop: 10, fontWeight: "bold" }}>
+            Your rank #{myRank}
+          </p>
+        )}
 
-  {filteredLeaderboard.map((user, index) => (
-    <div
-      key={user.user_id}
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        width: 300,
-        marginTop: 8,
-        padding: 8,
-        border: "1px solid #ccc",
-        borderRadius: 6,
-      }}
-    >
-      <span>
-    #{user.realRank} {user.username}
-      </span>
-      <span>{user.points} pts</span>
-    </div>
-    ))}
-  </div>
+        {filteredLeaderboard.map((user, index) => (
+          <div
+            key={user.user_id}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              width: 300,
+              marginTop: 8,
+              padding: 8,
+              border: "1px solid #ccc",
+              borderRadius: 6,
+            }}
+          >
+            <span>
+              #{user.realRank} {user.username}
+            </span>
+            <span>{user.points} pts</span>
+          </div>
+        ))}
+      </div>
 
-  {/* <button
+      {/* <button
     onClick={() => addDebugXP(50)}
     style={{
       marginTop: "20px",
@@ -851,7 +897,7 @@ setVoteCount({
     🧪 Add 50 XP (Debug)
   </button> */}
 
-{/* <button
+      {/* <button
 onClick={async () => {
   console.log("SESSION:", session);
   console.log("USER ID:", session?.user?.id);
@@ -887,7 +933,7 @@ await fetch("/api/bounty", {
 </button> */}
 
 
-    {/* <button
+      {/* <button
       style={{
         ...btn,
         background: "orange",
@@ -938,26 +984,26 @@ await fetch("/api/bounty", {
       🧪 SIMULATE MATCH WIN (DEBUG)
     </button> */}
 
-<a
-  href="https://www.buymeacoffee.com/justsojaded"
-  target="_blank"
-  rel="noopener noreferrer"
->
-  <button
-    style={{
-      marginTop: "20px",
-      padding: "10px 16px",
-      background: "#FFDD00",
-      color: "#000",
-      borderRadius: "8px",
-      fontWeight: "bold",
-      border: "none",
-      cursor: "pointer",
-    }}
-  >
-    ☕ Buy me a coffee
-  </button>
-</a>
+      <a
+        href="https://www.buymeacoffee.com/justsojaded"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <button
+          style={{
+            marginTop: "20px",
+            padding: "10px 16px",
+            background: "#FFDD00",
+            color: "#000",
+            borderRadius: "8px",
+            fontWeight: "bold",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          ☕ Buy me a coffee
+        </button>
+      </a>
 
       <button
         onClick={() => signOut()}
