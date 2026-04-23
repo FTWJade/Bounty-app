@@ -59,6 +59,10 @@ const [voteCount, setVoteCount] = useState({
 });
 const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
 const isSolo = currentMatch?.mode === "solo";
+const canFinishMatch =
+  currentMatch?.mode === "pvp"
+    ? isParticipant
+    : session?.user?.id === currentMatch?.creator_id;
 
 // const addDebugXP = (amount: number) => {
 //   const newPoints = points + amount;
@@ -399,12 +403,12 @@ const showOpponent =
 const canVote =
   !!currentMatch &&
   votingUnlocked &&
+  participantCount >= 2 &&
   (
     isSolo
-      ? true // everyone can vote in solo
-      : session.user.id !== currentMatch?.creator_id &&
-        session.user.id !== currentMatch?.opponent_id &&
-        participantCount >= 2
+      ? session.user.id !== currentMatch.creator_id // 👈 creator CANNOT vote
+      : session.user.id !== currentMatch.creator_id &&
+        session.user.id !== currentMatch.opponent_id
   );
 
 const filteredLeaderboard = leaderboard
@@ -544,7 +548,7 @@ const hasVoteActivity = totalVotes > 0;
 )}
 
 
-{currentMatch && isParticipant && (
+{currentMatch && canFinishMatch && (
   <button
     style={{ ...btn, background: "green", color: "white" }}
     onClick={async () => {
@@ -552,7 +556,7 @@ const hasVoteActivity = totalVotes > 0;
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-        match_id: currentMatch.id,
+          match_id: currentMatch.id,
           winner_id: session.user.id,
         }),
       });

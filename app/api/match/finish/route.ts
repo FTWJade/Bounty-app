@@ -86,6 +86,22 @@ const votersB =
     amount: correct ? 10 : 3,
   });
 
+  if (match.mode === "solo") {
+  // only creator can finish SOLO matches
+  if (winner_id !== match.creator_id) {
+    return new Response("Only creator can finish solo match", { status: 403 });
+  }
+}
+
+if (match.mode === "pvp") {
+  const isCreator = winner_id === match.creator_id;
+  const isOpponent = winner_id === match.opponent_id;
+
+  if (!isCreator && !isOpponent) {
+    return new Response("Invalid winner", { status: 403 });
+  }
+}
+
   if (correct) {
     await supabaseAdmin.rpc("increment_bounty", {
       uid: v.user_id,
