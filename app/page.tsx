@@ -577,8 +577,43 @@ const soloWinnerId =
         </div>
       )}
 
+{currentMatch?.mode === "pvp" && canFinishMatch && (
+  <button
+    style={{ ...btn, background: "green", color: "white" }}
+    onClick={async () => {
+      const res = await fetch("/api/match/finish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          match_id: currentMatch.id,
+          winner_id: session.user.id,
+          caller_id: session.user.id,
+        }),
+      });
 
-{currentMatch && canFinishMatch && isSolo && (
+      if (!res.ok) {
+        showPopup("Failed to finish match");
+        return;
+      }
+
+      await loadUser(session.user.id);
+
+      const updatedLeaderboard = await fetch("/api/leaderboard");
+      const data = await updatedLeaderboard.json();
+      setLeaderboard(data.data || []);
+
+      showPopup("🏆 Match finished!");
+      setCurrentMatch(null);
+      setMatchId("");
+      setDidCreateMatch(false);
+    }}
+  >
+    🏆 Declare Winner (Me)
+  </button>
+)}
+
+
+{currentMatch?.mode === "solo" && canFinishMatch && (
   <>
     <button
       style={{ ...btn, background: "green", color: "white" }}
@@ -588,7 +623,7 @@ const soloWinnerId =
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             match_id: currentMatch.id,
-            winner_id: currentMatch.creator_id, // ✅ FIXED
+            winner_id: currentMatch.creator_id,
             caller_id: session.user.id,
           }),
         });
@@ -599,11 +634,6 @@ const soloWinnerId =
         }
 
         await loadUser(session.user.id);
-
-        const updatedLeaderboard = await fetch("/api/leaderboard");
-        const data = await updatedLeaderboard.json();
-        setLeaderboard(data.data || []);
-
         showPopup("🏆 You WON");
 
         setCurrentMatch(null);
@@ -611,10 +641,9 @@ const soloWinnerId =
         setDidCreateMatch(false);
       }}
     >
-      🏆 Win Match
+      🏆 Win
     </button>
 
-    {/* LOSE BUTTON */}
     <button
       style={{ ...btn, background: "red", color: "white" }}
       onClick={async () => {
@@ -634,11 +663,6 @@ const soloWinnerId =
         }
 
         await loadUser(session.user.id);
-
-        const updatedLeaderboard = await fetch("/api/leaderboard");
-        const data = await updatedLeaderboard.json();
-        setLeaderboard(data.data || []);
-
         showPopup("💀 You LOST");
 
         setCurrentMatch(null);
@@ -646,7 +670,7 @@ const soloWinnerId =
         setDidCreateMatch(false);
       }}
     >
-      💀 Lose Match
+      💀 Lose
     </button>
   </>
 )}
