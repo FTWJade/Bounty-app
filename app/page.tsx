@@ -33,6 +33,13 @@ export default function Home() {
   const level = Math.floor(safePoints / 100) + 1;
   const xpIntoLevel = safePoints % 100;
   const [popup, setPopup] = useState<string | null>(null);
+  const showPopup = (msg: string, duration = 1500) => {
+  setPopup(msg);
+
+  setTimeout(() => {
+    setPopup(null);
+  }, duration);
+};
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
 const prevLevel = useRef(level);
@@ -191,7 +198,7 @@ if (creatorLeft || opponentLeft) {
   setCurrentMatch(null);
   setMatchId("");
   setDidCreateMatch(false);
-  setPopup("⚠️ Match closed (player left)");
+  showPopup("⚠️ Match closed (player left)");
 }
   }, 3000);
 
@@ -283,7 +290,7 @@ useEffect(() => {
   }
 
   if (level > prevLevel.current) {
-    setPopup("🎉 LEVEL UP!");
+    showPopup("🎉 LEVEL UP!");
   }
 
   prevLevel.current = level;
@@ -308,7 +315,7 @@ useEffect(() => {
     const data = await daily.json();
 
     if (data.pointsAdded) {
-      setPopup(`+${data.pointsAdded} XP 🎉`);
+      showPopup(`+${data.pointsAdded} XP 🎉`);
       const newPoints = points + data.pointsAdded;
       setPoints(newPoints);
       animateXP(newPoints);
@@ -316,7 +323,7 @@ useEffect(() => {
 
     if (data.unlocked?.length > 0) {
       data.unlocked.forEach((a: string) => {
-        setTimeout(() => setPopup(`🏆 ${a}`), 500);
+        setTimeout(() => showPopup(`🏆 ${a}`), 500);
       });
     }
   };
@@ -529,10 +536,10 @@ const hasVoteActivity = totalVotes > 0;
         const text = await res.text();
 
         if (!res.ok) {
-          setPopup(text);
+          showPopup(text);
           
         } else {
-          setPopup("Joined match!");
+          showPopup("Joined match!");
         }
         const updated = await fetch(`/api/match/get?id=${matchId}`);
         const data = await updated.json();
@@ -562,7 +569,7 @@ const hasVoteActivity = totalVotes > 0;
       });
 
       if (!res.ok) {
-        setPopup("Failed to finish match");
+        showPopup("Failed to finish match");
         return;
       }
 
@@ -572,7 +579,7 @@ const hasVoteActivity = totalVotes > 0;
       const data = await updatedLeaderboard.json();
       setLeaderboard(data.data || []);
 
-      setPopup("🏆 Match finished!");
+      showPopup("🏆 Match finished!");
       setCurrentMatch(null);
       setMatchId("");
       setDidCreateMatch(false);
@@ -701,7 +708,7 @@ setVoteCount({
 
         setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
 
-        setPopup(isSolo ? "Voted WIN" : "Voted Player A");
+        showPopup(isSolo ? "Voted WIN" : "Voted Player A");
       }}
     >
       {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
@@ -725,7 +732,7 @@ setVoteCount({
 
         setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
 
-        setPopup(isSolo ? "Voted LOSE" : "Voted Player B");
+        showPopup(isSolo ? "Voted LOSE" : "Voted Player B");
       }}
     >
       {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}

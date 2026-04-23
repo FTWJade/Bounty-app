@@ -43,9 +43,15 @@ export async function POST(req: Request) {
   }
 
   // 4. prevent double join
-  if (match.opponent_id) {
-    return new Response("Match already full", { status: 400 });
+if (match.mode === "pvp" && match.opponent_id) {
+  return new Response("Match already full", { status: 400 });
+}
+
+if (match.mode === "solo") {
+  if (match.creator_id && match.creator_id !== user_id) {
+    return new Response("Solo match already has a player", { status: 400 });
   }
+}
 
   // 5. join match
   const { data, error: updateError } = await supabaseAdmin
