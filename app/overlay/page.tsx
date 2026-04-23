@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-export const dynamic = "force-dynamic";
 export default function Overlay() {
   const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
   const [winner, setWinner] = useState<string | null>(null);
+  const params = typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search)
+    : null;
 
-  const params = useSearchParams();
-  const matchId = params.get("match");
+const matchId =
+  typeof window !== "undefined"
+    ? new URLSearchParams(window.location.search).get("match")
+    : null;
     const [match, setMatch] = useState<any>(null);
     const isSolo = match?.mode === "solo";
   useEffect(() => {
