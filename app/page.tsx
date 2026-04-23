@@ -24,6 +24,7 @@ type Match = {
   created_at?: string; // ✅ add this
 };
 export default function Home() {
+  
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
@@ -57,13 +58,25 @@ export default function Home() {
     if (Array.isArray(user)) return user[0]?.username || null;
     return user.username || null;
   };
-  const isParticipant =
-    session?.user?.id === currentMatch?.creator_id ||
-    session?.user?.id === currentMatch?.opponent_id;
+  
   const [voteCount, setVoteCount] = useState({
     a: 0,
     b: 0,
   });
+  const isParticipant =
+    session?.user?.id === currentMatch?.creator_id ||
+    session?.user?.id === currentMatch?.opponent_id;
+  const isCreator = session?.user?.id === currentMatch?.creator_id;
+
+  const leftUser = isCreator
+    ? currentMatch?.opponent
+    : currentMatch?.creator;
+
+  const rightUser = isCreator
+    ? currentMatch?.creator
+    : currentMatch?.opponent;
+  const leftVotes = isCreator ? voteCount.b : voteCount.a;
+const rightVotes = isCreator ? voteCount.a : voteCount.b;
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
@@ -84,6 +97,7 @@ export default function Home() {
 
     let current = start;
     let i = 0;
+    
 
     const interval = setInterval(() => {
       i++;
@@ -455,6 +469,7 @@ export default function Home() {
 
     return 50;
   })();
+  
 
   const soloWinnerId =
     isSolo && currentMatch
@@ -727,16 +742,15 @@ export default function Home() {
                       }}
                     >
                       {/* LEFT = OPPONENT */}
-                      <span>
-                        {currentMatch.opponent_id
-                          ? `${getUsername(currentMatch.opponent)} — ${voteCount.b}`
-                          : "⏳ Waiting for opponent..."}
-                      </span>
+                    <span>
+                      {currentMatch.opponent_id
+                        ? `${getUsername(leftUser)} — ${leftVotes}`
+                        : "⏳ Waiting for opponent..."}
+                    </span>
 
-                      {/* RIGHT = CREATOR */}
-                      <span>
-                        {getUsername(currentMatch.creator)} — {voteCount.a}
-                      </span>
+                    <span>
+                      {getUsername(rightUser)} — {rightVotes}
+                    </span>
                     </div>
                     <div
                       style={{
