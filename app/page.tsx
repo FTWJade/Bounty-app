@@ -397,10 +397,15 @@ const canViewVotes = !!currentMatch;
 const showOpponent =
   currentMatch?.mode === "pvp" && !!currentMatch?.opponent_id;
 const canVote =
+  !!currentMatch &&
   votingUnlocked &&
-  participantCount >= 2 && // match must have both players
-  session.user.id !== currentMatch?.creator_id &&
-  session.user.id !== currentMatch?.opponent_id;
+  (
+    isSolo
+      ? true // everyone can vote in solo
+      : session.user.id !== currentMatch?.creator_id &&
+        session.user.id !== currentMatch?.opponent_id &&
+        participantCount >= 2
+  );
 
 const filteredLeaderboard = leaderboard
   .map((user, index) => ({ ...user, realRank: index + 1 }))
