@@ -52,11 +52,11 @@ export default function Home() {
     !["finished", "expired", "cancelled", "ended", "complete"].includes(
       currentMatch.status
     );
-  const getUsername = (user: any) => {
-    if (!user) return "Waiting...";
-    if (Array.isArray(user)) return user[0]?.username || "Waiting...";
-    return user.username || "Waiting...";
-  };
+const getUsername = (user: any) => {
+  if (!user) return null; // 👈 CHANGE THIS
+  if (Array.isArray(user)) return user[0]?.username || null;
+  return user.username || null;
+};
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
@@ -680,17 +680,17 @@ setVoteCount({
               <div style={{ marginTop: 10 }}>
                 <h3>🗳 Vote</h3>
                 {myVote ? (
-                <p style={{ fontSize: 12, marginTop: 5, color: "#aaa" }}>
-                  You voted:{" "}
-                  {isSolo
-                    ? myVote === "A"
-                      ? "WIN"
-                      : "LOSE"
-                    : myVote === "A"
-                      ? getUsername(currentMatch.creator)
-                      : getUsername(currentMatch.opponent)}
-                </p>
-              ) : null}
+                  <p style={{ fontSize: 12, marginTop: 5, color: "#aaa" }}>
+                    You voted:{" "}
+                    {isSolo ? (
+                      myVote === "A" ? "WIN" : "LOSE"
+                    ) : myVote === "A" ? (
+                      getUsername(currentMatch.creator)
+                    ) : (
+                      getUsername(currentMatch.opponent)
+                    )}
+                  </p>
+                ) : null}
                 <div
                   style={{
                     width: 300,
