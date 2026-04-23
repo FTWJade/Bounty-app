@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-
+export const dynamic = "force-dynamic";
 export default function Overlay() {
   const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
   const [winner, setWinner] = useState<string | null>(null);
