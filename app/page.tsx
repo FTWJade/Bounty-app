@@ -810,7 +810,7 @@ export default function Home() {
                           style={{
                             position: "absolute",
                             top: 0,
-                            left: `calc(${fillPercent}% - 4px)`,
+                            left: `clamp(0%, calc(${fillPercent}% - 4px), calc(100% - 8px))`,
                             transform: "none",
                             width: 8,
                             height: "100%",
