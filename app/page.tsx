@@ -14,6 +14,7 @@ type MatchStatus =
   | "cancelled";
 
 type Match = {
+  mode?: "pvp" | "solo";
   id: string;
   status: MatchStatus;
   creator_id?: string;
@@ -56,6 +57,8 @@ const [voteCount, setVoteCount] = useState({
   a: 0,
   b: 0,
 });
+const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
+const isSolo = currentMatch?.mode === "solo";
 
 // const addDebugXP = (amount: number) => {
 //   const newPoints = points + amount;
@@ -161,7 +164,8 @@ if (!match) return;
 if (match.status !== "active" && match.status !== "open") return;
 
 // prevent instant false triggers after creation
-const createdAt = new Date(currentMatch.created_at ?? 0).getTime();
+if (!currentMatch.created_at) return;
+const createdAt = new Date(currentMatch.created_at).getTime();
 if (Date.now() - createdAt < 5000) return;
 
 const creatorLeft =
@@ -390,7 +394,8 @@ const hasTwoPlayers =
   currentMatch?.creator_id && currentMatch?.opponent_id;
 
 const canViewVotes = !!currentMatch;
-
+const showOpponent =
+  currentMatch?.mode === "pvp" && !!currentMatch?.opponent_id;
 const canVote =
   votingUnlocked &&
   participantCount >= 2 && // match must have both players
@@ -440,42 +445,46 @@ const hasVoteActivity = totalVotes > 0;
   </a>
 </div>
 
-<button
-  style={{ ...btn, background: "#444", color: "white" }}
-  onClick={async () => {
+{!mode && (
+  <div>
+    <h2>Choose Mode</h2>
 
-    await fetch("/api/bounty", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    user_id: session.user.id,
-    username: session.user.name,
-  }),
-});
+    <button onClick={() => setMode("pvp")} style={btn}>
+      🆚 1v1 PvP
+    </button>
 
-    const res = await fetch("/api/match/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user_id: session.user.id }),
-    });
+    <button onClick={() => setMode("solo")} style={btn}>
+      🎲 Solo Prediction
+    </button>
+  </div>
+)}
+{mode && (
+  <button
+    style={{ ...btn, background: "#444", color: "white" }}
+    onClick={async () => {
+      const res = await fetch("/api/match/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: session.user.id,
+          mode,
+        }),
+      });
+      setMode(null);
+      const result = await res.json();
 
-    const result = await res.json();
+      if (result.data) {
+        const full = await fetch(`/api/match/get?id=${result.data.id}`).then(r => r.json());
 
-    console.log("CREATE RESULT:", result);
-
-if (result.data) {
-  // 🔥 fetch full match with joins
-  const res = await fetch(`/api/match/get?id=${result.data.id}`);
-  const full = await res.json();
-
-  setCurrentMatch(full.data);
-  setMatchId(full.data.id);
-  setDidCreateMatch(true);
-}
-  }}
->
-  🎮 Create Match
-</button>
+        setCurrentMatch(full.data);
+        setMatchId(full.data.id);
+        setDidCreateMatch(true);
+      }
+    }}
+  >
+    🎮 Create Match
+  </button>
+)}
 
 {currentMatch && (
   <p style={{ marginTop: 10 }}>
@@ -624,12 +633,18 @@ setVoteCount({
   <h3>🗳 Live Votes</h3>
 
 <div>
-  🔵 A: {getUsername(currentMatch.creator)} — {voteCount.a} votes
+    🔵 A: {currentMatch.creator?.username ?? "Loading..."} — {voteCount.a} votes
 </div>
 
-<div>
-  🔴 B: {getUsername(currentMatch.opponent)} — {voteCount.b} votes
-</div>
+{currentMatch?.mode === "solo" ? (
+  <div>🎲 Solo match (no opponent)</div>
+) : showOpponent ? (
+  <div>
+    🔴 B: {getUsername(currentMatch.opponent)} — {voteCount.b} votes
+  </div>
+) : (
+  <div>🔴 B: Waiting for opponent...</div>
+)}
   <div style={{ marginTop: 10 }}>
     <h3>🗳 Vote</h3>
 
@@ -672,19 +687,15 @@ setVoteCount({
           }),
         });
 
-// 🔥 FORCE refresh immediately
-const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-const data = await res.json();
+        const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+        const data = await res.json();
 
-setVoteCount({
-  a: data.a ?? 0,
-  b: data.b ?? 0,
-});
+        setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
 
-        setPopup("Voted Player A");
+        setPopup(isSolo ? "Voted WIN" : "Voted Player A");
       }}
     >
-      Vote {getUsername(currentMatch.creator)}
+      {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
     </button>
 
     <button
@@ -700,19 +711,15 @@ setVoteCount({
           }),
         });
 
-// 🔥 FORCE refresh immediately
-const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-const data = await res.json();
+        const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+        const data = await res.json();
 
-setVoteCount({
-  a: data.a ?? 0,
-  b: data.b ?? 0,
-});
+        setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
 
-        setPopup("Voted Player B");
+        setPopup(isSolo ? "Voted LOSE" : "Voted Player B");
       }}
     >
-      Vote {getUsername(currentMatch.opponent)}
+      {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
     </button>
   </>
 )}

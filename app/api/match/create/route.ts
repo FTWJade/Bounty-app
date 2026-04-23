@@ -5,7 +5,8 @@ function generateMatchId() {
 }
 
 export async function POST(req: Request) {
-  const { user_id } = await req.json();
+  const body = await req.json();
+  const { user_id, mode } = body;
 
   if (!user_id) {
     return new Response("Missing user_id", { status: 400 });
@@ -20,6 +21,7 @@ export async function POST(req: Request) {
       creator_id: user_id,
       opponent_id: null,
       status: "open",
+      mode: mode || "pvp",
       last_activity_at: new Date().toISOString()
     })
     .select()
