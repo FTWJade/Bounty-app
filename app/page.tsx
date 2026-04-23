@@ -887,7 +887,7 @@ setVoteCount({
                       );
                     }}
                   >
-                    {isSolo ? "Vote LOSE" : `Vote Opponent`}
+                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
                   </button>
                 </>
               )}
