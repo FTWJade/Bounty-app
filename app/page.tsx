@@ -446,12 +446,11 @@ export default function Home() {
 
     // 🎲 SOLO MODE
     if (currentMatch?.mode === "solo") {
-      const myVoteSide =
-        myVote === "A" ? voteCount.a :
-          myVote === "B" ? voteCount.b :
-            0;
+      const total = voteCount.a + voteCount.b;
 
-      return Math.min(100, Math.max(0, (myVoteSide / total) * 100));
+      if (total === 0) return 50;
+
+      return (voteCount.a / total) * 100;
     }
 
     return 50;
