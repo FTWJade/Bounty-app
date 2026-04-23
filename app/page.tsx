@@ -416,7 +416,7 @@ const canVote =
   votingUnlocked &&
   (
     isSolo
-      ? session.user.id === currentMatch.creator_id // only creator can vote
+      ? true // everyone in solo match can vote
       : session.user.id !== currentMatch.creator_id &&
         session.user.id !== currentMatch.opponent_id
   );
