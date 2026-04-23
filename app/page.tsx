@@ -399,7 +399,11 @@ const participantCount =
 const votingUnlocked =
   !!currentMatch &&
   ["active", "open", "lobby", "waiting"].includes(currentMatch.status) &&
-  participantCount >= 2;
+  (
+    isSolo
+      ? true
+      : participantCount >= 2
+  );
 
 const hasTwoPlayers =
   currentMatch?.creator_id && currentMatch?.opponent_id;
@@ -410,10 +414,9 @@ const showOpponent =
 const canVote =
   !!currentMatch &&
   votingUnlocked &&
-  participantCount >= 2 &&
   (
     isSolo
-      ? session.user.id !== currentMatch.creator_id // 👈 creator CANNOT vote
+      ? session.user.id === currentMatch.creator_id // only creator can vote
       : session.user.id !== currentMatch.creator_id &&
         session.user.id !== currentMatch.opponent_id
   );
