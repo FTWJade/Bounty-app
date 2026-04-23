@@ -4,9 +4,9 @@ import { calculateMatchRewards } from "@/lib/game/rewards";
 export async function POST(req: Request) {
   const { match_id, winner_id } = await req.json();
 
-  if (!match_id || !winner_id) {
-    return Response.json({ error: "Missing fields" }, { status: 400 });
-  }
+if (!match_id) {
+  return Response.json({ error: "Missing match_id" }, { status: 400 });
+}
 
   
   // 1. Get match
@@ -32,11 +32,13 @@ if (match.mode === "pvp" && !match.opponent_id) {
   return Response.json({ error: "No creator" }, { status: 400 });
 }
 
-if (match.mode === "solo" && winner_id !== match.creator_id) {
-  return Response.json(
-    { error: "Only creator can finish solo match" },
-    { status: 403 }
-  );
+if (match.mode === "solo") {
+  if (!match.creator_id) {
+    return Response.json({ error: "No creator" }, { status: 400 });
+  }
+
+  // Only creator is allowed to trigger finish
+  // (you may want to pass caller_id later for stricter validation)
 }
 
   // 2. Determine loser

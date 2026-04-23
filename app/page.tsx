@@ -52,11 +52,11 @@ export default function Home() {
     !["finished", "expired", "cancelled", "ended", "complete"].includes(
       currentMatch.status
     );
-const getUsername = (user: any) => {
-  if (!user) return null; // 👈 CHANGE THIS
-  if (Array.isArray(user)) return user[0]?.username || null;
-  return user.username || null;
-};
+  const getUsername = (user: any) => {
+    if (!user) return null; // 👈 CHANGE THIS
+    if (Array.isArray(user)) return user[0]?.username || null;
+    return user.username || null;
+  };
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
@@ -64,7 +64,7 @@ const getUsername = (user: any) => {
     a: 0,
     b: 0,
   });
-const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
+  const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
   const canFinishMatch =
@@ -429,22 +429,29 @@ const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
     );
 
 
-const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
+  const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
   const hasVoteActivity = totalVotes > 0;
 
-const total = voteCount.a + voteCount.b;
+  const total = voteCount.a + voteCount.b;
 
-const mySideCount =
-  myVote === "A"
-    ? voteCount.a
-    : myVote === "B"
-      ? voteCount.b
-      : 0;
+  const mySideCount =
+    myVote === "A"
+      ? voteCount.a
+      : myVote === "B"
+        ? voteCount.b
+        : 0;
 
-const fillPercent =
-  totalVotes === 0
-    ? 50
-    : ((mySideCount ?? 0) / totalVotes) * 100;
+  const fillPercent =
+    totalVotes === 0
+      ? 50
+      : ((mySideCount ?? 0) / totalVotes) * 100;
+
+const soloWinnerId =
+  isSolo && currentMatch
+    ? voteCount.a >= voteCount.b
+      ? currentMatch.creator_id // WIN
+      : null // LOSE (no winner)
+    : null;
 
   return (
     <main style={{
@@ -571,39 +578,79 @@ const fillPercent =
       )}
 
 
-      {currentMatch && canFinishMatch && (
-        <button
-          style={{ ...btn, background: "green", color: "white" }}
-          onClick={async () => {
-            const res = await fetch("/api/match/finish", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                match_id: currentMatch.id,
-                winner_id: session.user.id,
-              }),
-            });
+{currentMatch && canFinishMatch && isSolo && (
+  <>
+    <button
+      style={{ ...btn, background: "green", color: "white" }}
+      onClick={async () => {
+        const res = await fetch("/api/match/finish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            match_id: currentMatch.id,
+            winner_id: currentMatch.creator_id, // ✅ FIXED
+            caller_id: session.user.id,
+          }),
+        });
 
-            if (!res.ok) {
-              showPopup("Failed to finish match");
-              return;
-            }
+        if (!res.ok) {
+          showPopup("Failed to finish match");
+          return;
+        }
 
-            await loadUser(session.user.id);
+        await loadUser(session.user.id);
 
-            const updatedLeaderboard = await fetch("/api/leaderboard");
-            const data = await updatedLeaderboard.json();
-            setLeaderboard(data.data || []);
+        const updatedLeaderboard = await fetch("/api/leaderboard");
+        const data = await updatedLeaderboard.json();
+        setLeaderboard(data.data || []);
 
-            showPopup("🏆 Match finished!");
-            setCurrentMatch(null);
-            setMatchId("");
-            setDidCreateMatch(false);
-          }}
-        >
-          🏆 Win Match
-        </button>
-      )}
+        showPopup("🏆 You WON");
+
+        setCurrentMatch(null);
+        setMatchId("");
+        setDidCreateMatch(false);
+      }}
+    >
+      🏆 Win Match
+    </button>
+
+    {/* LOSE BUTTON */}
+    <button
+      style={{ ...btn, background: "red", color: "white" }}
+      onClick={async () => {
+        const res = await fetch("/api/match/finish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            match_id: currentMatch.id,
+            winner_id: null,
+            caller_id: session.user.id,
+          }),
+        });
+
+        if (!res.ok) {
+          showPopup("Failed to finish match");
+          return;
+        }
+
+        await loadUser(session.user.id);
+
+        const updatedLeaderboard = await fetch("/api/leaderboard");
+        const data = await updatedLeaderboard.json();
+        setLeaderboard(data.data || []);
+
+        showPopup("💀 You LOST");
+
+        setCurrentMatch(null);
+        setMatchId("");
+        setDidCreateMatch(false);
+      }}
+    >
+      💀 Lose Match
+    </button>
+  </>
+)}
+
 
       {/* debug button */}
       {/* <button
@@ -789,9 +836,9 @@ setVoteCount({
                       }));
                       setMyVote("B");
                       showPopup(
-                      isSolo
-                        ? "Voted LOSE"
-                        : "Voted Opponent"
+                        isSolo
+                          ? "Voted LOSE"
+                          : "Voted Opponent"
                       );
                     }}
                   >
