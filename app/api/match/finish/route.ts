@@ -8,6 +8,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  
   // 1. Get match
   const { data: match, error } = await supabaseAdmin
     .from("matches")
@@ -23,24 +24,34 @@ export async function POST(req: Request) {
     return Response.json({ error: "Already finished" }, { status: 400 });
   }
 
-  if (!match.opponent_id) {
-    return Response.json({ error: "No opponent" }, { status: 400 });
-  }
+if (match.mode === "pvp" && !match.opponent_id) {
+  return Response.json({ error: "No opponent" }, { status: 400 });
+}
 
   if (!match.creator_id) {
   return Response.json({ error: "No creator" }, { status: 400 });
 }
 
-  // 2. Determine loser
-const loser_id =
-  match.opponent_id && match.opponent_id !== winner_id
-    ? match.opponent_id
-    : match.creator_id === winner_id
-      ? null
-      : match.creator_id;
+if (match.mode === "solo" && winner_id !== match.creator_id) {
+  return Response.json(
+    { error: "Only creator can finish solo match" },
+    { status: 403 }
+  );
+}
 
-if (!loser_id) {
-  return Response.json({ error: "No valid loser" }, { status: 400 });
+  // 2. Determine loser
+let loser_id: string | null = null;
+
+if (match.mode === "pvp") {
+  loser_id =
+    winner_id === match.creator_id
+      ? match.opponent_id
+      : match.creator_id;
+}
+
+if (match.mode === "solo") {
+  // optional: no loser in solo
+  loser_id = null;
 }
 
   // 3. Get levels
@@ -50,14 +61,20 @@ if (!loser_id) {
     .eq("user_id", winner_id)
     .single();
 
-  const { data: loser } = await supabaseAdmin
-    .from("bounties")
-    .select("points")
-    .eq("user_id", loser_id)
-    .single();
+const { data: loser } = loser_id
+  ? await supabaseAdmin
+      .from("bounties")
+      .select("points")
+      .eq("user_id", loser_id)
+      .single()
+  : { data: null };
 
-  const winnerLevel = Math.floor((winner?.points ?? 0) / 100) + 1;
-  const loserLevel = Math.floor((loser?.points ?? 0) / 100) + 1;
+const winnerLevel = Math.floor((winner?.points ?? 0) / 100) + 1;
+
+const loserLevel =
+  loser_id && loser
+    ? Math.floor((loser.points ?? 0) / 100) + 1
+    : winnerLevel; // fallback for solo
 
   // 4. Rewards
   const rewards = calculateMatchRewards({
@@ -85,22 +102,6 @@ const votersB =
     uid: v.user_id,
     amount: correct ? 10 : 3,
   });
-
-  if (match.mode === "solo") {
-  // only creator can finish SOLO matches
-  if (winner_id !== match.creator_id) {
-    return new Response("Only creator can finish solo match", { status: 403 });
-  }
-}
-
-if (match.mode === "pvp") {
-  const isCreator = winner_id === match.creator_id;
-  const isOpponent = winner_id === match.opponent_id;
-
-  if (!isCreator && !isOpponent) {
-    return new Response("Invalid winner", { status: 403 });
-  }
-}
 
   if (correct) {
     await supabaseAdmin.rpc("increment_bounty", {
@@ -137,10 +138,12 @@ for (const v of votersB) {
     amount: rewards.bountyGain,
   });
 
+if (loser_id) {
   await supabaseAdmin.rpc("increment_xp", {
     uid: loser_id,
     amount: rewards.loserXP,
   });
+}
 
   // 6. Update match (THIS IS THE KEY FIX)
   await supabaseAdmin
