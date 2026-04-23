@@ -464,6 +464,19 @@ const fillPercent = (() => {
     return (myVoteSide / total) * 100;
   }
 
+  if (currentMatch?.mode === "pvp") {
+  const isCreator = session?.user?.id === currentMatch?.creator_id;
+
+  const mySide = isCreator ? voteCount.a : voteCount.b;
+  const opponentSide = isCreator ? voteCount.b : voteCount.a;
+
+  const total = mySide + opponentSide;
+
+  if (total === 0) return 50;
+
+  return (mySide / total) * 100;
+}
+
   return 50;
 })();
 
