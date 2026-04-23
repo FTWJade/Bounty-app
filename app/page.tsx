@@ -75,6 +75,9 @@ export default function Home() {
   const rightUser = isCreator
     ? currentMatch?.creator
     : currentMatch?.opponent;
+
+  const leftColor = isCreator ? "red" : "blue";
+  const rightColor = isCreator ? "blue" : "red";
   const leftVotes = isCreator ? voteCount.b : voteCount.a;
   const rightVotes = isCreator ? voteCount.a : voteCount.b;
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
@@ -758,11 +761,10 @@ export default function Home() {
                         style={{
                           width: `${(leftVotes / (leftVotes + rightVotes || 1)) * 100}%`,
                           height: "100%",
-                          background: "red",
+                          background: leftColor,
                           position: "absolute",
                           left: 0,
                           top: 0,
-                          transition: "width 0.3s ease",
                         }}
                       />
 
@@ -770,11 +772,10 @@ export default function Home() {
                         style={{
                           width: `${(rightVotes / (leftVotes + rightVotes || 1)) * 100}%`,
                           height: "100%",
-                          background: "blue",
+                          background: rightColor,
                           position: "absolute",
                           right: 0,
                           top: 0,
-                          transition: "width 0.3s ease",
                         }}
                       />
                     </div>
