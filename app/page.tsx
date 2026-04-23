@@ -446,13 +446,19 @@ const fillPercent = (() => {
   if (total === 0) return 50;
 
   // 🆚 PVP MODE
-  if (currentMatch?.mode === "pvp") {
-    const isCreator = session?.user?.id === currentMatch?.creator_id;
+if (currentMatch?.mode === "pvp") {
+  const isCreator = session?.user?.id === currentMatch?.creator_id;
 
-    const myVotes = isCreator ? voteCount.a : voteCount.b;
+  const mySide = isCreator ? voteCount.a : voteCount.b;
+  const opponentSide = isCreator ? voteCount.b : voteCount.a;
 
-    return (myVotes / total) * 100;
-  }
+  const totalVotes = mySide + opponentSide;
+
+  if (totalVotes === 0) return 50;
+
+  // % of the bar that belongs to YOU
+  return (mySide / totalVotes) * 100;
+}
 
   // 🎲 SOLO MODE
   if (currentMatch?.mode === "solo") {
@@ -802,16 +808,20 @@ setVoteCount({
                     height: 10,
                     background: "#333",
                     borderRadius: 5,
+                    position: "relative",
                     overflow: "hidden",
                     marginTop: 8,
                   }}
                 >
                   <div
                     style={{
-                      width: `${fillPercent}%`,
+                      position: "absolute",
+                      left: `${fillPercent}%`,
+                      transform: "translateX(-50%)",
+                      width: 4,
                       height: "100%",
-                      background: "blue",
-                      transition: "width 0.3s ease",
+                      background: "white",
+                      transition: "left 0.3s ease",
                     }}
                   />
                 </div>
