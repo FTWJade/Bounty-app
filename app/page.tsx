@@ -783,17 +783,7 @@ export default function Home() {
                         You voted: {myVote === "A" ? "WIN" : "LOSE"}
                       </p>
                     )}
-
                     <div
-                      style={{
-                        width: 300,
-                        height: 10,
-                        background: "#333",
-                        borderRadius: 5,
-                        position: "relative",
-                        overflow: "hidden",
-                        margin: "8px auto",
-                      }}
                     >
                       <div
                         style={{
@@ -806,19 +796,18 @@ export default function Home() {
                           margin: "8px auto",
                         }}
                       >
-                      <div
-                        style={{
-                          position: "absolute",
-                          top: "50%",
-                          left: `clamp(0%, calc(${fillPercent}% - 4px), calc(100% - 8px))`,
-                          transform: "translateY(-50%)",
-                          width: 8,
-                          height: 8,
-                          background: "white",
-                          borderRadius: 4,
-                          transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                        }}
-                      />
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: -2, // 👈 key fix
+                            left: `clamp(0%, calc(${fillPercent}% - 4px), calc(100% - 8px))`,
+                            width: 8,
+                            height: 14, // slightly taller so it reads clearly
+                            background: "white",
+                            borderRadius: 4,
+                            transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                          }}
+                        />
                       </div>
                     </div>
                   </div>
