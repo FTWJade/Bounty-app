@@ -429,7 +429,7 @@ export default function Home() {
     );
 
 
-  const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
+const totalVotes = voteCount.a + voteCount.b;
   const hasVoteActivity = totalVotes > 0;
 
   const total = voteCount.a + voteCount.b;
@@ -441,10 +441,10 @@ export default function Home() {
         ? voteCount.b
         : 0;
 
-  const fillPercent =
-    totalVotes === 0
-      ? 50
-      : ((mySideCount ?? 0) / totalVotes) * 100;
+const fillPercent =
+  totalVotes === 0
+    ? 50
+    : (voteCount.a / totalVotes) * 100;
 
 const soloWinnerId =
   isSolo && currentMatch
