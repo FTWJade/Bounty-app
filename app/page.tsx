@@ -454,19 +454,6 @@ export default function Home() {
       return (myVoteSide / total) * 100;
     }
 
-    if (currentMatch?.mode === "pvp") {
-      const isCreator = session?.user?.id === currentMatch?.creator_id;
-
-      const mySide = isCreator ? voteCount.a : voteCount.b;
-      const opponentSide = isCreator ? voteCount.b : voteCount.a;
-
-      const total = mySide + opponentSide;
-
-      if (total === 0) return 50;
-
-      return (mySide / total) * 100;
-    }
-
     return 50;
   })();
 
@@ -719,50 +706,7 @@ export default function Home() {
             <div style={{ marginTop: 15 }}>
               <div style={{ marginTop: 10 }}>
                 <h3>🗳 Vote</h3>
-                {isSolo ? (
-                  <div style={{ textAlign: "center", marginBottom: 10 }}>
-
-                    {myVote && (
-                      <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote === "A" ? "WIN" : "LOSE"}
-                      </p>
-                    )}
-
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      width: 300,
-                      margin: "5px auto",
-                      color: "#ccc",
-                      fontSize: 13,
-                    }}>
-                      <span>LOSE — {voteCount.b}</span>
-                      <span>WIN — {voteCount.a}</span>
-                    </div>
-
-                    <div style={{
-                      width: 300,
-                      height: 10,
-                      background: "#333",
-                      borderRadius: 5,
-                      position: "relative",
-                      overflow: "hidden",
-                      margin: "8px auto",
-                    }}>
-                      <div
-                        style={{
-                          position: "absolute",
-                          left: `${fillPercent}%`,
-                          transform: "translateX(-50%)",
-                          width: 4,
-                          height: "100%",
-                          background: "white",
-                        }}
-                      />
-                    </div>
-
-                  </div>
-                ) : (
+                {!isSolo ? (
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
 
                     {myVote && (
@@ -773,18 +717,75 @@ export default function Home() {
                       </p>
                     )}
 
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      width: 300,
-                      margin: "5px auto",
-                      color: "#ccc",
-                      fontSize: 13,
-                    }}>
-                      <span>{getUsername(currentMatch.creator)} — {voteCount.a}</span>
-                      <span>{getUsername(currentMatch.opponent)} — {voteCount.b}</span>
-                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        width: 300,
+                        margin: "5px auto",
+                        color: "#ccc",
+                        fontSize: 13,
+                      }}
+                    >
+                      {/* LEFT = OPPONENT */}
+                      <span>
+                        {currentMatch.opponent_id
+                          ? `${getUsername(currentMatch.opponent)} — ${voteCount.b}`
+                          : "⏳ Waiting for opponent..."}
+                      </span>
 
+                      {/* RIGHT = CREATOR */}
+                      <span>
+                        {getUsername(currentMatch.creator)} — {voteCount.a}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  // KEEP YOUR SOLO UI EXACTLY AS IS
+                  <div style={{ textAlign: "center", marginBottom: 10 }}>
+                    {myVote && (
+                      <p style={{ fontSize: 12, color: "#aaa" }}>
+                        You voted: {myVote === "A" ? "WIN" : "LOSE"}
+                      </p>
+                    )}
+
+                    <div
+                      style={{
+                        width: 300,
+                        height: 10,
+                        background: "#333",
+                        borderRadius: 5,
+                        position: "relative",
+                        overflow: "hidden",
+                        margin: "8px auto",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 300,
+                          height: 10,
+                          background: "#333",
+                          borderRadius: 5,
+                          position: "relative",
+                          overflow: "hidden",
+                          margin: "8px auto",
+                        }}
+                      >
+                        <div
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: `${fillPercent}%`,
+                            transform: "translateX(-50%)",
+                            width: 8,
+                            height: "100%",
+                            background: "white",
+                            borderRadius: 4,
+                            transition: "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
