@@ -441,10 +441,31 @@ const totalVotes = voteCount.a + voteCount.b;
         ? voteCount.b
         : 0;
 
-const fillPercent =
-  totalVotes === 0
-    ? 50
-    : (voteCount.a / totalVotes) * 100;
+const fillPercent = (() => {
+  const total = voteCount.a + voteCount.b;
+  if (total === 0) return 50;
+
+  // 🆚 PVP MODE
+  if (currentMatch?.mode === "pvp") {
+    const isCreator = session?.user?.id === currentMatch?.creator_id;
+
+    const myVotes = isCreator ? voteCount.a : voteCount.b;
+
+    return (myVotes / total) * 100;
+  }
+
+  // 🎲 SOLO MODE
+  if (currentMatch?.mode === "solo") {
+    const myVoteSide =
+      myVote === "A" ? voteCount.a :
+      myVote === "B" ? voteCount.b :
+      0;
+
+    return (myVoteSide / total) * 100;
+  }
+
+  return 50;
+})();
 
 const soloWinnerId =
   isSolo && currentMatch
