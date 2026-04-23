@@ -72,21 +72,6 @@ export default function Home() {
       ? isParticipant
       : session?.user?.id === currentMatch?.creator_id;
 
-  // const addDebugXP = (amount: number) => {
-  //   const newPoints = points + amount;
-
-  //     const inMatch =
-  //     currentMatch?.status === "open" ||
-  //     currentMatch?.status === "active";
-
-
-  //   setPoints(newPoints);
-  //   animateXP(newPoints);
-
-  //   console.log("🧪 DEBUG XP ADDED:", amount, "NEW TOTAL:", newPoints);
-  // };
-
-
   const animateXP = (target: number) => {
     let start = displayPoints;
     let diff = target - start;
@@ -430,7 +415,6 @@ export default function Home() {
 
 
   const totalVotes = voteCount.a + voteCount.b;
-  const hasVoteActivity = totalVotes > 0;
 
   const total = voteCount.a + voteCount.b;
 
@@ -715,46 +699,6 @@ export default function Home() {
         </>
       )}
 
-
-      {/* debug button */}
-      {/* <button
-  style={{
-    marginTop: 10,
-    padding: "8px 12px",
-    background: "orange",
-    color: "black",
-    borderRadius: 6,
-  }}
-onClick={async () => {
-  if (!currentMatch?.id) return;
-
-for (let i = 0; i < 10; i++) {
-  const vote = i % 2 === 0 ? "A" : "B";
-
-  await fetch("/api/match/vote", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      match_id: currentMatch.id,
-      user_id: crypto.randomUUID(),
-      vote,
-    }),
-  });
-}
-
-  const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
-  
-const data = await res.json();
-
-setVoteCount({
-  a: data.a ?? 0,
-  b: data.b ?? 0,
-});
-}}
->
-  🧪 Add Fake Vote
-</button> */}
-
       {isMatchVisible && (
         <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
           <h3>🎮 Match</h3>
@@ -847,48 +791,6 @@ setVoteCount({
               {canVote && (
                 <>
                   <button
-                    style={{ ...btn, background: "blue", color: "white" }}
-                    onClick={async () => {
-                      const res = await fetch("/api/match/vote", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          match_id: currentMatch.id,
-                          user_id: session.user.id,
-                          vote: "A",
-                        }),
-                      });
-
-                      const result = await res.json();
-                      if (!res.ok) {
-                        if (result.remaining) {
-                          const mins = Math.floor(result.remaining / 60);
-                          const secs = result.remaining % 60;
-
-                          showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
-                        } else {
-                          showPopup(result.error || "Unable to vote");
-                        }
-                        return;
-                      }
-
-                      const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-                      setVoteCount((prev) => ({
-                        a: data.a ?? prev.a,
-                        b: data.b ?? prev.b,
-                      }));
-                      setMyVote("A");
-                      showPopup(
-                        isSolo
-                          ? "Voted WIN"
-                          : `Voted ${getUsername(currentMatch.creator)}`
-                      );
-                    }}
-                  >
-                    {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
-                  </button>
-
-                  <button
                     style={{ ...btn, background: "red", color: "white" }}
                     onClick={async () => {
                       const res = await fetch("/api/match/vote", {
@@ -929,6 +831,47 @@ setVoteCount({
                     }}
                   >
                     {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
+                  </button>
+                  <button
+                    style={{ ...btn, background: "blue", color: "white" }}
+                    onClick={async () => {
+                      const res = await fetch("/api/match/vote", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          match_id: currentMatch.id,
+                          user_id: session.user.id,
+                          vote: "A",
+                        }),
+                      });
+
+                      const result = await res.json();
+                      if (!res.ok) {
+                        if (result.remaining) {
+                          const mins = Math.floor(result.remaining / 60);
+                          const secs = result.remaining % 60;
+
+                          showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
+                        } else {
+                          showPopup(result.error || "Unable to vote");
+                        }
+                        return;
+                      }
+
+                      const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
+                      setVoteCount((prev) => ({
+                        a: data.a ?? prev.a,
+                        b: data.b ?? prev.b,
+                      }));
+                      setMyVote("A");
+                      showPopup(
+                        isSolo
+                          ? "Voted WIN"
+                          : `Voted ${getUsername(currentMatch.creator)}`
+                      );
+                    }}
+                  >
+                    {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
                   </button>
                 </>
               )}
@@ -976,15 +919,6 @@ setVoteCount({
       </p>
 
       <p>Current bounty: ${bounty}</p>
-      {/* <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Set bounty amount"
-        style={{
-          padding: "10px",
-          marginTop: "10px"
-        }}
-      /> */}
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -1027,107 +961,6 @@ setVoteCount({
           </div>
         ))}
       </div>
-
-      {/* <button
-    onClick={() => addDebugXP(50)}
-    style={{
-      marginTop: "20px",
-      padding: "10px 16px",
-      background: "orange",
-      color: "black",
-      borderRadius: "8px",
-    }}
-  >
-    🧪 Add 50 XP (Debug)
-  </button> */}
-
-      {/* <button
-onClick={async () => {
-  console.log("SESSION:", session);
-  console.log("USER ID:", session?.user?.id);
-
-  if (!session?.user?.id) {
-    console.log("NO USER ID YET");
-    return;
-  }
-  const userId = session.user.id;
-  const username = session?.user?.name;
-await fetch("/api/bounty", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    user_id: session.user.id,
-    username: session.user.name,
-    bounty: Number(input),
-  }),
-});
-
-  setBounty(Number(input));
-}}
-  
-  
-  style={{
-    marginTop: "10px",
-    padding: "10px 16px",
-    background: "green",
-    color: "white"
-  }}
->
-  Save Bounty
-</button> */}
-
-
-      {/* <button
-      style={{
-        ...btn,
-        background: "orange",
-        color: "black",
-      }}
-    onClick={async () => {
-      if (!session?.user?.id) return;
-
-      console.log("🧪 SIMULATING MATCH");
-
-      const matchId = "debug-" + Date.now();
-
-      const createRes = await fetch("/api/debug/create-fake-match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          match_id: matchId,
-          creator_id: session.user.id,
-          opponent_id: "DEBUG_OPPONENT",
-        }),
-      });
-
-      const createData = await createRes.json();
-
-      if (!createData.data) return;
-
-      await new Promise((r) => setTimeout(r, 300));
-
-      await fetch("/api/match/finish", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          match_id: matchId,
-          winner_id: session.user.id,
-        }),
-      });
-
-      await loadUser(session.user.id);
-
-      setPopup("🧪 Debug match finished!");
-      setCurrentMatch(null);
-      setMatchId("");
-      setDidCreateMatch(false);
-
-      return;
-    }}
-    >
-      🧪 SIMULATE MATCH WIN (DEBUG)
-    </button> */}
-
       <a
         href="https://www.buymeacoffee.com/justsojaded"
         target="_blank"
