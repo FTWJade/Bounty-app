@@ -429,7 +429,7 @@ const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
     );
 
 
-  const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
+const totalVotes = (voteCount.a ?? 0) + (voteCount.b ?? 0);
   const hasVoteActivity = totalVotes > 0;
 
 const total = voteCount.a + voteCount.b;
@@ -442,9 +442,9 @@ const mySideCount =
       : 0;
 
 const fillPercent =
-  total === 0
+  totalVotes === 0
     ? 50
-    : (mySideCount / total) * 100;
+    : ((mySideCount ?? 0) / totalVotes) * 100;
 
   return (
     <main style={{
@@ -740,7 +740,10 @@ setVoteCount({
                       }
 
                       const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-                      setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
+                      setVoteCount((prev) => ({
+                        a: data.a ?? prev.a,
+                        b: data.b ?? prev.b,
+                      }));
                       setMyVote("A");
                       showPopup(
                         isSolo
@@ -780,7 +783,10 @@ setVoteCount({
                       }
 
                       const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-                      setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
+                      setVoteCount((prev) => ({
+                        a: data.a ?? prev.a,
+                        b: data.b ?? prev.b,
+                      }));
                       setMyVote("B");
                       showPopup(
                       isSolo
@@ -789,7 +795,7 @@ setVoteCount({
                       );
                     }}
                   >
-                    {isSolo ? "Vote LOSE" : "Vote Opponent"}
+                    {isSolo ? "Vote LOSE" : `Vote Opponent`}
                   </button>
                 </>
               )}
