@@ -451,7 +451,7 @@ export default function Home() {
           myVote === "B" ? voteCount.b :
             0;
 
-      return (myVoteSide / total) * 100;
+      return Math.min(100, Math.max(0, (myVoteSide / total) * 100));
     }
 
     return 50;
@@ -739,6 +739,41 @@ export default function Home() {
                         {getUsername(currentMatch.creator)} — {voteCount.a}
                       </span>
                     </div>
+                    <div
+                      style={{
+                        width: 300,
+                        height: 10,
+                        background: "#333",
+                        borderRadius: 5,
+                        margin: "10px auto",
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${(voteCount.a / (voteCount.a + voteCount.b || 1)) * 100}%`,
+                          height: "100%",
+                          background: "blue",
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+
+                      <div
+                        style={{
+                          width: `${(voteCount.b / (voteCount.a + voteCount.b || 1)) * 100}%`,
+                          height: "100%",
+                          background: "red",
+                          position: "absolute",
+                          right: 0,
+                          top: 0,
+                          transition: "width 0.3s ease",
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   // KEEP YOUR SOLO UI EXACTLY AS IS
@@ -775,8 +810,8 @@ export default function Home() {
                           style={{
                             position: "absolute",
                             top: 0,
-                            left: `${fillPercent}%`,
-                            transform: "translateX(-50%)",
+                            left: `calc(${fillPercent}% - 4px)`,
+                            transform: "none",
                             width: 8,
                             height: "100%",
                             background: "white",
