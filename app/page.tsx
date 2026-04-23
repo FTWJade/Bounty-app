@@ -319,37 +319,46 @@ useEffect(() => {
 if (status === "loading") {
   return <p>Loading...</p>;
 }
-  if (!session) {
-    return (
-      <main style={{
+if (!session) {
+  return (
+    <main style={{
       display: "flex",
       minHeight: "100vh",
-      justifyContent: "flex-start",
-      alignItems: "stretch",
+      justifyContent: "center",
+      alignItems: "center",
       flexDirection: "column",
-      paddingTop: 20,
-      paddingBottom: 80,
-      paddingLeft: 12,
-      paddingRight: 12,
       fontFamily: "Arial",
-      }}>
-        <h1>Bounty App</h1>
+      textAlign: "center",
+    }}>
+      <h1>Bounty App</h1>
 
-        <button
-          onClick={() => signIn("twitch")}
-          style={{
-            padding: "12px 20px",
-            background: "#9146FF",
-            color: "white",
-            border: "none",
-            borderRadius: "8px"
-          }}
-        >
-          Login with Twitch
-        </button>
-      </main>
-    );
-  }
+      <p style={{
+        marginTop: 10,
+        marginBottom: 20,
+        color: "#ccc",
+        fontSize: 14,
+        maxWidth: 280,
+        lineHeight: 1.4,
+      }}>
+        Create matches, earn XP, climb levels, and compete in live PvP battles.
+        Vote, win, and build your bounty score.
+      </p>
+
+      <button
+        onClick={() => signIn("twitch")}
+        style={{
+          padding: "12px 20px",
+          background: "#9146FF",
+          color: "white",
+          border: "none",
+          borderRadius: "8px"
+        }}
+      >
+        Login with Twitch
+      </button>
+    </main>
+  );
+}
   // simple reusable button style (so they STOP looking like text)
 const btn = {
   marginTop: "10px",
