@@ -679,13 +679,18 @@ setVoteCount({
               )}
               <div style={{ marginTop: 10 }}>
                 <h3>🗳 Vote</h3>
-                {myVote && (
-                  <p style={{ fontSize: 12, marginTop: 5, color: "#aaa" }}>
-                    You voted: {myVote === "A"
+                {myVote ? (
+                <p style={{ fontSize: 12, marginTop: 5, color: "#aaa" }}>
+                  You voted:{" "}
+                  {isSolo
+                    ? myVote === "A"
+                      ? "WIN"
+                      : "LOSE"
+                    : myVote === "A"
                       ? getUsername(currentMatch.creator)
                       : getUsername(currentMatch.opponent)}
-                  </p>
-                )}
+                </p>
+              ) : null}
                 <div
                   style={{
                     width: 300,
@@ -778,13 +783,13 @@ setVoteCount({
                       setVoteCount({ a: data.a ?? 0, b: data.b ?? 0 });
                       setMyVote("B");
                       showPopup(
-                        isSolo
-                          ? "Voted LOSE"
-                          : `Voted ${getUsername(currentMatch.opponent)}`
+                      isSolo
+                        ? "Voted LOSE"
+                        : "Voted Opponent"
                       );
                     }}
                   >
-                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
+                    {isSolo ? "Vote LOSE" : "Vote Opponent"}
                   </button>
                 </>
               )}
