@@ -773,75 +773,76 @@ setVoteCount({
 
           {canViewVotes && (
             <div style={{ marginTop: 15 }}>
-              <div style={{ marginBottom: 10, textAlign: "center" }}>
-                {myVote && (
-                  <p style={{ fontSize: 12, color: "#aaa", marginBottom: 6 }}>
-                    You voted:{" "}
-                    {isSolo
-                      ? myVote === "A" ? "WIN" : "LOSE"
-                      : myVote === "A"
-                        ? getUsername(currentMatch.creator)
-                        : getUsername(currentMatch.opponent)
-                    }
-                  </p>
-                )}
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    width: 300,
-                    fontSize: 13,
-                    marginBottom: 6,
-                    color: "#ccc",
-                  }}
-                >
-                  <span>
-                    {getUsername(currentMatch.creator) || "Creator"} — {voteCount.a}
-                  </span>
-
-                  <span>
-                    {getUsername(currentMatch.opponent) || "Opponent"} — {voteCount.b}
-                  </span>
-                </div>
-              </div>
               <div style={{ marginTop: 10 }}>
                 <h3>🗳 Vote</h3>
-                {myVote ? (
-                  <p style={{ fontSize: 12, marginTop: 5, color: "#aaa" }}>
-                    You voted:{" "}
-                    {isSolo ? (
-                      myVote === "A" ? "WIN" : "LOSE"
-                    ) : myVote === "A" ? (
-                      getUsername(currentMatch.creator)
-                    ) : (
-                      getUsername(currentMatch.opponent)
+                {isSolo ? (
+                  <div style={{ textAlign: "center", marginBottom: 10 }}>
+
+                    {myVote && (
+                      <p style={{ fontSize: 12, color: "#aaa" }}>
+                        You voted: {myVote === "A" ? "WIN" : "LOSE"}
+                      </p>
                     )}
-                  </p>
-                ) : null}
-                <div
-                  style={{
-                    width: 300,
-                    height: 10,
-                    background: "#333",
-                    borderRadius: 5,
-                    position: "relative",
-                    overflow: "hidden",
-                    marginTop: 8,
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      left: `${fillPercent}%`,
-                      transform: "translateX(-50%)",
-                      width: 4,
-                      height: "100%",
-                      background: "white",
-                      transition: "left 0.3s ease",
-                    }}
-                  />
-                </div>
+
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      width: 300,
+                      margin: "5px auto",
+                      color: "#ccc",
+                      fontSize: 13,
+                    }}>
+                      <span>LOSE — {voteCount.b}</span>
+                      <span>WIN — {voteCount.a}</span>
+                    </div>
+
+                    <div style={{
+                      width: 300,
+                      height: 10,
+                      background: "#333",
+                      borderRadius: 5,
+                      position: "relative",
+                      overflow: "hidden",
+                      margin: "8px auto",
+                    }}>
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: `${fillPercent}%`,
+                          transform: "translateX(-50%)",
+                          width: 4,
+                          height: "100%",
+                          background: "white",
+                        }}
+                      />
+                    </div>
+
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", marginBottom: 10 }}>
+
+                    {myVote && (
+                      <p style={{ fontSize: 12, color: "#aaa" }}>
+                        You voted: {myVote === "A"
+                          ? getUsername(currentMatch.creator)
+                          : getUsername(currentMatch.opponent)}
+                      </p>
+                    )}
+
+                    <div style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      width: 300,
+                      margin: "5px auto",
+                      color: "#ccc",
+                      fontSize: 13,
+                    }}>
+                      <span>{getUsername(currentMatch.creator)} — {voteCount.a}</span>
+                      <span>{getUsername(currentMatch.opponent)} — {voteCount.b}</span>
+                    </div>
+
+                  </div>
+                )}
               </div>
               {canVote && (
                 <>
