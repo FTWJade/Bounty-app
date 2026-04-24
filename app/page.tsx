@@ -466,7 +466,8 @@ export default function Home() {
   const diff = right - left;
 
   // normalize between 0 - 100 (center = 50)
-const fillPercent = (voteCount.a / totalVotes) * 100;
+const soloDiff = voteCount.b - voteCount.a;
+const fillPercent = 50 + (soloDiff / totalVotes) * 50;
 
 
   const soloWinnerId =
