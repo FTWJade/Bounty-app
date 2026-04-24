@@ -89,6 +89,7 @@ export default function Home() {
 
   const creatorColor = "blue";
   const opponentColor = "red";
+  
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
@@ -539,7 +540,7 @@ export default function Home() {
     setMyVote(voteKey);
 
     if (isSolo) {
-      showPopup(voteKey === "A" ? "Voted LOSE" : "Voted WIN");
+      showPopup(`Voted ${getVoteLabel(voteKey)}`);
     } else {
       const targetName =
         voteKey === "A"
@@ -553,6 +554,17 @@ export default function Home() {
   const canCancel =
     session.user.id === currentMatch?.creator_id &&
     (!currentMatch?.opponent_id || currentMatch.opponent_id === "");
+
+    const getVoteLabel = (voteKey: "A" | "B") => {
+  if (isSolo) {
+    return voteKey === "A" ? "LOSE" : "WIN";
+  }
+
+  // PvP
+  return voteKey === "A"
+    ? getUsername(leftUser)
+    : getUsername(rightUser);
+};
 
   return (
     <main style={{
@@ -865,7 +877,7 @@ export default function Home() {
 
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote === "A" ? "LOSE" : "WIN"}
+                        You voted: {getVoteLabel(myVote!)}
                       </p>
                     )}
 
