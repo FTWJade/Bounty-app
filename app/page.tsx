@@ -780,7 +780,7 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
                         display: "flex",
                         justifyContent: "space-between",
                         width: 300,
-                        margin: "5px auto",
+                        margin: "2px auto 8px auto",
                         color: "#ccc",
                         fontSize: 13,
                       }}
