@@ -267,6 +267,9 @@ export default function Home() {
 
           if (myVote) {
             if (match.mode === "solo") {
+              const correctSide =
+                match.winner_id === match.creator_id ? "A" : "B";
+
               if (myVote === correctSide) {
                 showPopup("🎉 You voted correctly!");
               } else {
@@ -541,10 +544,16 @@ export default function Home() {
       b: data.b ?? 0,
     });
 
-    setMyVote(voteKey);
+    let targetName = "";
 
-    const targetName =
-      voteKey === "A" ? getUsername(leftUser) : getUsername(rightUser);
+    if (isSolo) {
+      targetName = voteKey === "A" ? "LOSE" : "WIN";
+    } else {
+      targetName =
+        voteKey === "A"
+          ? getUsername(leftUser)
+          : getUsername(rightUser);
+    }
 
     showPopup(`Voted ${targetName}`);
   };
