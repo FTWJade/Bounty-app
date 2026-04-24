@@ -69,9 +69,12 @@ export default function Home() {
   const VOTE_CREATOR = "A";
   const VOTE_OPPONENT = "B";
 
+  const isCreator = session?.user?.id === currentMatch?.creator_id;
   const creatorVotes = voteCount.a;
   const opponentVotes = voteCount.b;
   const totalVotes = creatorVotes + opponentVotes || 1;
+  const hasEnoughVotes =
+  totalVotes >= 2 || (totalVotes >= 1 && !isCreator);
 
   const creatorColor = "blue";
   const opponentColor = "red";
@@ -79,7 +82,6 @@ export default function Home() {
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
 
-  const isCreator = session?.user?.id === currentMatch?.creator_id;
 
   const leftUser = currentMatch?.creator;
   const rightUser = currentMatch?.opponent;
@@ -95,10 +97,10 @@ export default function Home() {
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
-  const canFinishMatch =
-    currentMatch?.mode === "pvp"
-      ? isParticipant
-      : session?.user?.id === currentMatch?.creator_id;
+const canFinishMatch =
+  currentMatch?.mode === "pvp"
+    ? isParticipant
+    : session?.user?.id === currentMatch?.creator_id && hasEnoughVotes;
 
   const animateXP = (target: number) => {
     let start = displayPoints;
