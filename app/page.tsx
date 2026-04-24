@@ -266,14 +266,13 @@ export default function Home() {
           const updatedLeaderboard = await fetch("/api/leaderboard");
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
-          let message = "❌ Match ended";
+
+
+          let message = "";
 
           if (match.status === "finished") {
             const isWinner = match.winner_id === session.user.id;
-
-            message = isWinner
-              ? "🏆 You WON!"
-              : "💀 You lost!";
+            message = isWinner ? "🏆 You WON!" : "💀 You lost!";
           }
 
           if (match.status === "cancelled") {
@@ -773,8 +772,7 @@ export default function Home() {
             const updatedLeaderboard = await fetch("/api/leaderboard");
             const data = await updatedLeaderboard.json();
             setLeaderboard(data.data || []);
-
-            resetMatch("❌ Match cancelled");
+            resetMatch("🏆 You won!");
           }}
         >
           🏆 Declare Winner (Me)
