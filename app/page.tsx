@@ -466,7 +466,7 @@ export default function Home() {
   const diff = right - left;
 
   // normalize between 0 - 100 (center = 50)
-  const fillPercent = 50 + (diff / totalVotes) * 50;
+const fillPercent = (voteCount.a / totalVotes) * 100;
 
 
   const soloWinnerId =
@@ -779,7 +779,7 @@ export default function Home() {
                       <span>
                         {currentMatch.opponent_id ? (
                           <>
-                            <span style={{ color: getUserColor(leftUser?.id) }}>
+                            <span style={{ color: getUserColor(currentMatch.creator_id) }}>
                               {getUsername(leftUser)}
                             </span>
                             {" — "}
@@ -791,7 +791,7 @@ export default function Home() {
                       </span>
 
                       <span>
-                        <span style={{ color: getUserColor(rightUser?.id) }}>
+                        <span style={{ color: getUserColor(currentMatch.opponent_id) }}>
                           {getUsername(rightUser)}
                         </span>
                         {" — "}
@@ -877,7 +877,7 @@ export default function Home() {
                 <>
                   {/* LEFT */}
                   <button
-                    style={{ ...btn, background: getUserColor(leftUser?.id), color: "white" }}
+                    style={{ ...btn, background: getUserColor(currentMatch.creator_id), color: "white" }}
                     onClick={() => handleVote("A", leftUser)}
                   >
                     {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
@@ -885,7 +885,7 @@ export default function Home() {
 
                   {/* RIGHT */}
                   <button
-                    style={{ ...btn, background: getUserColor(rightUser?.id), color: "white" }}
+                    style={{ ...btn, background: getUserColor(currentMatch.opponent_id), color: "white" }}
                     onClick={() => handleVote("B", rightUser)}
                   >
                     {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
