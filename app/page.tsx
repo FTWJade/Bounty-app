@@ -261,6 +261,32 @@ export default function Home() {
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
 
+          // detect result
+          if (myVote) {
+            if (match.mode === "pvp") {
+              const winnerSide =
+                match.winner_id === match.creator_id ? "A" : "B";
+
+              if (myVote === winnerSide) {
+                showPopup("✅ Correct vote!");
+              } else {
+                showPopup("❌ Wrong vote");
+              }
+            }
+
+            if (match.mode === "solo") {
+              const correctAnswer =
+                match.winner_id === match.creator_id ? "B" : "A";
+
+              if (myVote === correctAnswer) {
+                showPopup("🎯 You predicted correctly!");
+              } else {
+                showPopup("💀 Wrong prediction");
+              }
+            }
+          }
+          setMyVote(null);
+
           setCurrentMatch(null);
           setMatchId("");
           setDidCreateMatch(false);
@@ -561,14 +587,38 @@ export default function Home() {
       {!mode && (
         <div>
           <h2>Choose Mode</h2>
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              justifyContent: "center",
+              marginTop: 10,
+            }}
+          >
+            <button
+              onClick={() => setMode("pvp")}
+              style={{
+                ...btn,
+                background: "#1e90ff",
+                color: "white",
+                minWidth: 140,
+              }}
+            >
+              🆚 PvP
+            </button>
 
-          <button onClick={() => setMode("pvp")} style={btn}>
-            🆚 1v1 PvP
-          </button>
-
-          <button onClick={() => setMode("solo")} style={btn}>
-            🎲 Solo Prediction
-          </button>
+            <button
+              onClick={() => setMode("solo")}
+              style={{
+                ...btn,
+                background: "#ff9800",
+                color: "white",
+                minWidth: 140,
+              }}
+            >
+              🎲 Solo
+            </button>
+          </div>
         </div>
       )}
       {mode && (
@@ -859,6 +909,7 @@ export default function Home() {
                         You voted: {myVote === "A" ? "LOSE" : "WIN"}
                       </p>
                     )}
+
                     <div
                       style={{
                         display: "flex",
