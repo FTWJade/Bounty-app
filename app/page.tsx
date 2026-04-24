@@ -538,10 +538,16 @@ export default function Home() {
 
     setMyVote(voteKey);
 
-    const targetName =
-      voteKey === "A" ? getUsername(leftUser) : getUsername(rightUser);
+    if (isSolo) {
+      showPopup(voteKey === "A" ? "Voted LOSE" : "Voted WIN");
+    } else {
+      const targetName =
+        voteKey === "A"
+          ? getUsername(leftUser)
+          : getUsername(rightUser);
 
-    showPopup(`Voted ${targetName}`);
+      showPopup(`Voted ${targetName}`);
+    }
   };
 
   const canCancel =
@@ -859,9 +865,7 @@ export default function Home() {
 
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote === "A"
-                          ? getUsername(leftUser)
-                          : getUsername(rightUser)}
+                        You voted: {myVote === "A" ? "LOSE" : "WIN"}
                       </p>
                     )}
 
