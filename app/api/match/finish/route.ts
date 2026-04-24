@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   }
 
   if (match.status === "finished") {
-    return Response.json({ error: "Already finished" }, { status: 400 });
+    return Response.json({ ok: true, message: "Already processed" });
   }
 
   if (match.mode === "pvp" && !match.opponent_id) {
@@ -77,6 +77,21 @@ export async function POST(req: Request) {
 
   const winnerLevel = Math.floor((winner?.points ?? 0) / 100) + 1;
 
+  // TRY TO CLAIM THE MATCH FIRST (prevents double processing)
+  const { data: claimed, error: claimError } = await supabaseAdmin
+    .from("matches")
+    .update({ status: "processing" })
+    .eq("id", match_id)
+    .eq("status", "active")
+    .select()
+    .single();
+
+  if (!claimed || claimError) {
+    return Response.json({
+      error: "Match already being processed or finished"
+    }, { status: 400 });
+  }
+
   const loserLevel =
     loser_id && loser
       ? Math.floor((loser.points ?? 0) / 100) + 1
@@ -86,6 +101,8 @@ export async function POST(req: Request) {
     winnerLevel,
     loserLevel,
   });
+  const correctSide =
+    winner_id === match.creator_id ? "A" : "B";
 
   // 5. Apply XP + bounty (PVP ONLY)
   if (!isSolo) {
@@ -105,9 +122,6 @@ export async function POST(req: Request) {
         amount: rewards.loserXP,
       });
     }
-
-    const correctSide =
-      winner_id === match.creator_id ? "A" : "B";
 
     for (const v of votes ?? []) {
       const isCorrect = v.vote === correctSide;
