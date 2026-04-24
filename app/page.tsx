@@ -860,8 +860,8 @@ export default function Home() {
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
                         You voted: {myVote === "A"
-                          ? getUsername(currentMatch.creator)
-                          : getUsername(currentMatch.opponent)}
+                          ? getUsername(leftUser)
+                          : getUsername(rightUser)}
                       </p>
                     )}
 
@@ -946,7 +946,9 @@ export default function Home() {
                     )}
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote === "A" ? "LOSE" : "WIN"}
+                        You voted: {myVote === "A"
+                          ? getUsername(leftUser)
+                          : getUsername(rightUser)}
                       </p>
                     )}
                     <div
