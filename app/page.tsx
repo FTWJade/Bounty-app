@@ -546,7 +546,10 @@ export default function Home() {
     setMyVote(voteKey);
 
     if (isSolo) {
-      showPopup(`Voted ${getVoteLabel(voteKey)}`);
+      const didVoteWin = voteKey === "B"; // B = WIN in your UI design
+      const won = didVoteWin;
+
+      showPopup(won ? "🏆 You voted WIN!" : "💀 You voted LOSE!");
     } else {
       const targetName =
         voteKey === "A"
