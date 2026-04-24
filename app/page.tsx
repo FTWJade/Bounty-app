@@ -74,7 +74,7 @@ export default function Home() {
   const opponentVotes = voteCount.b;
   const totalVotes = creatorVotes + opponentVotes || 1;
   const hasEnoughVotes =
-  totalVotes >= 2 || (totalVotes >= 1 && !isCreator);
+    totalVotes >= 2 || (totalVotes >= 1 && !isCreator);
 
   const creatorColor = "blue";
   const opponentColor = "red";
@@ -97,10 +97,10 @@ export default function Home() {
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
-const canFinishMatch =
-  currentMatch?.mode === "pvp"
-    ? isParticipant
-    : session?.user?.id === currentMatch?.creator_id && hasEnoughVotes;
+  const canFinishMatch =
+    currentMatch?.mode === "pvp"
+      ? isParticipant
+      : session?.user?.id === currentMatch?.creator_id && hasEnoughVotes;
 
   const animateXP = (target: number) => {
     let start = displayPoints;
@@ -851,6 +851,11 @@ const canFinishMatch =
 
                   // KEEP YOUR SOLO UI EXACTLY AS IS
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
+                    {isSolo && !hasEnoughVotes && (
+                      <p style={{ fontSize: 12, color: "#888" }}>
+                        Need at least 1 votes to finish
+                      </p>
+                    )}
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
                         You voted: {myVote === "A" ? "LOSE" : "WIN"}
@@ -904,25 +909,43 @@ const canFinishMatch =
                   </div>
                 )}
               </div>
-              {canVote && (
-                <>
-                  {/* LEFT */}
-                  <button
-                    style={{ ...btn, background: getUserColor(currentMatch.creator_id), color: "white" }}
-                    onClick={() => handleVote("A", leftUser)}
-                  >
-                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
-                  </button>
+{canVote && (
+  <div
+    style={{
+      display: "flex",
+      justifyContent: "space-between",
+      width: 300,
+      margin: "10px auto",
+      gap: 10, // nice spacing
+    }}
+  >
+    {/* LEFT */}
+    <button
+      style={{
+        ...btn,
+        flex: 1,
+        background: getUserColor(currentMatch.creator_id),
+        color: "white",
+      }}
+      onClick={() => handleVote("A", leftUser)}
+    >
+      {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
+    </button>
 
-                  {/* RIGHT */}
-                  <button
-                    style={{ ...btn, background: getUserColor(currentMatch.opponent_id), color: "white" }}
-                    onClick={() => handleVote("B", rightUser)}
-                  >
-                    {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
-                  </button>
-                </>
-              )}
+    {/* RIGHT */}
+    <button
+      style={{
+        ...btn,
+        flex: 1,
+        background: getUserColor(currentMatch.opponent_id),
+        color: "white",
+      }}
+      onClick={() => handleVote("B", rightUser)}
+    >
+      {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
+    </button>
+  </div>
+)}
             </div>
           )}
 
