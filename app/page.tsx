@@ -822,6 +822,7 @@ export default function Home() {
               </div>
               {canVote && (
                 <>
+                  {/* LEFT BUTTON */}
                   <button
                     style={{ ...btn, background: "red", color: "white" }}
                     onClick={async () => {
@@ -831,7 +832,7 @@ export default function Home() {
                         body: JSON.stringify({
                           match_id: currentMatch.id,
                           user_id: session.user.id,
-                          vote: leftVoteKey, // ✅ FIXED
+                          vote: leftVoteKey,
                         }),
                       });
 
@@ -841,7 +842,7 @@ export default function Home() {
                         if (result.remaining) {
                           const mins = Math.floor(result.remaining / 60);
                           const secs = result.remaining % 60;
-                          showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
+                          showPopup(`⏳ ${mins}m ${secs}s`);
                         } else {
                           showPopup(result.error || "Unable to vote");
                         }
@@ -855,15 +856,17 @@ export default function Home() {
                         b: data.b ?? 0,
                       });
 
-                      setMyVote(leftVoteKey); // ✅ FIXED
+                      setMyVote(leftVoteKey);
 
-                      showPopup("Voted LEFT");
+                      showPopup(`Voted ${getUsername(leftUser)}`);
                     }}
                   >
                     {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
                   </button>
+
+                  {/* RIGHT BUTTON */}
                   <button
-                    style={{ ...btn, background: "red", color: "white" }}
+                    style={{ ...btn, background: "blue", color: "white" }}
                     onClick={async () => {
                       const res = await fetch("/api/match/vote", {
                         method: "POST",
@@ -871,7 +874,7 @@ export default function Home() {
                         body: JSON.stringify({
                           match_id: currentMatch.id,
                           user_id: session.user.id,
-                          vote: leftVoteKey, // ✅ FIXED
+                          vote: rightVoteKey,
                         }),
                       });
 
@@ -881,7 +884,7 @@ export default function Home() {
                         if (result.remaining) {
                           const mins = Math.floor(result.remaining / 60);
                           const secs = result.remaining % 60;
-                          showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
+                          showPopup(`⏳ ${mins}m ${secs}s`);
                         } else {
                           showPopup(result.error || "Unable to vote");
                         }
@@ -895,12 +898,12 @@ export default function Home() {
                         b: data.b ?? 0,
                       });
 
-                      setMyVote(leftVoteKey); // ✅ FIXED
+                      setMyVote(rightVoteKey);
 
-                      showPopup("Voted LEFT");
+                      showPopup(`Voted ${getUsername(rightUser)}`);
                     }}
                   >
-                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
+                    {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
                   </button>
                 </>
               )}
