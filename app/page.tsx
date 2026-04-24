@@ -89,7 +89,7 @@ export default function Home() {
 
   const creatorColor = "blue";
   const opponentColor = "red";
-  
+
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
@@ -272,8 +272,13 @@ export default function Home() {
           let message = "";
 
           if (match.status === "finished") {
-            const isWinner = match.winner_id === session.user.id;
-            message = isWinner ? "🏆 You WON!" : "💀 You lost!";
+            if (match.mode === "solo") {
+              const won = match.winner_id === match.creator_id;
+              message = won ? "🏆 You WON!" : "💀 You lost!";
+            } else {
+              const isWinner = match.winner_id === session.user.id;
+              message = isWinner ? "🏆 You WON!" : "💀 You lost!";
+            }
           }
 
           if (match.status === "cancelled") {
@@ -555,16 +560,16 @@ export default function Home() {
     session.user.id === currentMatch?.creator_id &&
     (!currentMatch?.opponent_id || currentMatch.opponent_id === "");
 
-    const getVoteLabel = (voteKey: "A" | "B") => {
-  if (isSolo) {
-    return voteKey === "A" ? "LOSE" : "WIN";
-  }
+  const getVoteLabel = (voteKey: "A" | "B") => {
+    if (isSolo) {
+      return voteKey === "A" ? "LOSE" : "WIN";
+    }
 
-  // PvP
-  return voteKey === "A"
-    ? getUsername(leftUser)
-    : getUsername(rightUser);
-};
+    // PvP
+    return voteKey === "A"
+      ? getUsername(leftUser)
+      : getUsername(rightUser);
+  };
 
   return (
     <main style={{
