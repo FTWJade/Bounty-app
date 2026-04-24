@@ -76,15 +76,18 @@ export default function Home() {
     ? currentMatch?.creator
     : currentMatch?.opponent;
 
-  const leftColor = isCreator ? "red" : "blue";
-  const rightColor = isCreator ? "blue" : "red";
+const leftColor =
+  leftUser?.id === currentMatch?.creator_id ? "red" : "blue";
+
+const rightColor =
+  rightUser?.id === currentMatch?.creator_id ? "red" : "blue";
   const leftVotes = isCreator ? voteCount.b : voteCount.a;
   const rightVotes = isCreator ? voteCount.a : voteCount.b;
-  const leftVoteKey = isCreator ? "B" : "A";
-  const rightVoteKey = isCreator ? "A" : "B";
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
+  const leftVoteKey = isSolo ? "B" : (isCreator ? "B" : "A");
+  const rightVoteKey = isSolo ? "A" : (isCreator ? "A" : "B");
   const canFinishMatch =
     currentMatch?.mode === "pvp"
       ? isParticipant
