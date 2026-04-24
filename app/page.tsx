@@ -273,10 +273,7 @@ export default function Home() {
 
           if (match.status === "finished") {
             if (match.mode === "solo") {
-              const creatorVotes = voteCount.b;
-              const opponentVotes = voteCount.a;
-
-              const won = creatorVotes < opponentVotes; // since A = LOSE, B = WIN in your UI
+              const won = voteCount.b > voteCount.a;
 
               message = won ? "🏆 You WON!" : "💀 You lost!";
             } else {
