@@ -58,6 +58,7 @@ export default function Home() {
     !["finished", "expired", "cancelled", "ended", "complete"].includes(
       currentMatch.status
     );
+  const voteRef = useRef<"A" | "B" | null>(null);
   const getUsername = (user: any) => {
     if (!user) return null; // 👈 CHANGE THIS
     if (Array.isArray(user)) return user[0]?.username || null;
@@ -509,7 +510,6 @@ export default function Home() {
         : null // LOSE (no winner)
       : null;
 
-const voteRef = useRef<"A" | "B" | null>(null);
   const handleVote = async (voteKey: "A" | "B", targetUser: any) => {
     if (!currentMatch || !session?.user?.id) return;
     voteRef.current = voteKey;
