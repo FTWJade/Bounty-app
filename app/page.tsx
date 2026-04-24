@@ -809,6 +809,24 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
                       </span>
                     </div>
                     <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      width: 300,
+                      margin: "0 auto 6px auto",
+                      fontSize: 12,
+                      color: "#aaa",
+                    }}
+                  >
+                    <span>
+                      ❌ LOSE — {voteCount.a}
+                    </span>
+
+                    <span>
+                      {voteCount.b} — WIN ✅
+                    </span>
+                  </div>
+                    <div
                       style={{
                         position: "relative",
                         width: 300,
