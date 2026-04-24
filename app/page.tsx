@@ -453,36 +453,15 @@ export default function Home() {
         ? voteCount.b
         : 0;
 
-  const fillPercent = (() => {
-    const total = voteCount.a + voteCount.b;
-    if (total === 0) return 50;
+const fillPercent = (() => {
+  const total = voteCount.a + voteCount.b;
+  if (total === 0) return 50;
 
-    // 🆚 PVP MODE
-    if (currentMatch?.mode === "pvp") {
-      const isCreator = session?.user?.id === currentMatch?.creator_id;
+  // map LEFT side correctly (same logic as bar)
+  const leftSide = isCreator ? voteCount.b : voteCount.a;
 
-      const mySide = isCreator ? voteCount.a : voteCount.b;
-      const opponentSide = isCreator ? voteCount.b : voteCount.a;
-
-      const totalVotes = mySide + opponentSide;
-
-      if (totalVotes === 0) return 50;
-
-      // % of the bar that belongs to YOU
-      return (mySide / totalVotes) * 100;
-    }
-
-    // 🎲 SOLO MODE
-    if (currentMatch?.mode === "solo") {
-      const total = voteCount.a + voteCount.b;
-
-      if (total === 0) return 50;
-
-      return (voteCount.a / total) * 100;
-    }
-
-    return 50;
-  })();
+  return (leftSide / total) * 100;
+})();
 
 
   const soloWinnerId =
