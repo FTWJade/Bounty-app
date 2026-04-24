@@ -450,15 +450,22 @@ export default function Home() {
     ? voteCount.a / totalVotes   // creator is right
     : voteCount.b / totalVotes;  // opponent is right
 
-  const left = isCreator ? voteCount.b : voteCount.a;
-  const right = isCreator ? voteCount.a : voteCount.b;
+const left = isSolo
+  ? voteCount.a // LOSE
+  : isCreator
+    ? voteCount.b
+    : voteCount.a;
 
-  const diff = left - right;
+const right = isSolo
+  ? voteCount.b // WIN
+  : isCreator
+    ? voteCount.a
+    : voteCount.b;
+
+const diff = right - left;
 
   // normalize between 0 - 100 (center = 50)
-const fillPercent = isSolo
-  ? 50 - (diff / totalVotes) * 50
-  : 50 + (diff / totalVotes) * 50;
+const fillPercent = 50 + (diff / totalVotes) * 50;
 
 
   const soloWinnerId =
