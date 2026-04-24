@@ -87,26 +87,6 @@ export async function POST(req: Request) {
     loserLevel,
   });
 
-  if (isSolo) {
-    const correctAnswer = winner_id === match.creator_id ? "A" : "B";
-
-    for (const v of votes ?? []) {
-      const isCorrect = v.vote === correctAnswer;
-
-      await supabaseAdmin.rpc("increment_xp", {
-        uid: v.user_id,
-        amount: isCorrect ? 10 : 3,
-      });
-
-      if (isCorrect) {
-        await supabaseAdmin.rpc("increment_bounty", {
-          uid: v.user_id,
-          amount: 2,
-        });
-      }
-    }
-  }
-
   // 5. Apply XP + bounty (PVP ONLY)
   if (!isSolo) {
     await supabaseAdmin.rpc("increment_xp", {
