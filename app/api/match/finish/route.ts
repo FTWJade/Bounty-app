@@ -126,40 +126,18 @@ export async function POST(req: Request) {
       });
     }
 
-    const votersA =
-      votes?.filter((v) => v.vote === "A") ?? [];
-
-    const votersB =
-      votes?.filter((v) => v.vote === "B") ?? [];
-
-    const winnerSide =
+    const correctSide =
       winner_id === match.creator_id ? "A" : "B";
 
-    for (const v of votersA) {
-      const correct = winnerSide === "A";
+    for (const v of votes ?? []) {
+      const isCorrect = v.vote === correctSide;
 
       await supabaseAdmin.rpc("increment_xp", {
         uid: v.user_id,
-        amount: correct ? 10 : 3,
+        amount: isCorrect ? 10 : 3,
       });
 
-      if (correct) {
-        await supabaseAdmin.rpc("increment_bounty", {
-          uid: v.user_id,
-          amount: 2,
-        });
-      }
-    }
-
-    for (const v of votersB) {
-      const correct = winnerSide === "B";
-
-      await supabaseAdmin.rpc("increment_xp", {
-        uid: v.user_id,
-        amount: correct ? 10 : 3,
-      });
-
-      if (correct) {
+      if (isCorrect) {
         await supabaseAdmin.rpc("increment_bounty", {
           uid: v.user_id,
           amount: 2,
