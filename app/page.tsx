@@ -277,7 +277,7 @@ export default function Home() {
             if (match.mode === "solo") {
               const creatorWon = match.winner_id === match.creator_id;
 
-              const correctVote = creatorWon ? "A" : "B";
+              const correctVote = creatorWon ? "B" : "A";
 
               const didWinVote = vote === correctVote;
 

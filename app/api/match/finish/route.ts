@@ -77,6 +77,21 @@ export async function POST(req: Request) {
 
   const winnerLevel = Math.floor((winner?.points ?? 0) / 100) + 1;
 
+  // TRY TO CLAIM THE MATCH FIRST (prevents double processing)
+  const { data: claimed, error: claimError } = await supabaseAdmin
+    .from("matches")
+    .update({ status: "processing" })
+    .eq("id", match_id)
+    .eq("status", "active")
+    .select()
+    .single();
+
+  if (!claimed || claimError) {
+    return Response.json({
+      error: "Match already being processed or finished"
+    }, { status: 400 });
+  }
+
   const loserLevel =
     loser_id && loser
       ? Math.floor((loser.points ?? 0) / 100) + 1
@@ -86,11 +101,24 @@ export async function POST(req: Request) {
     winnerLevel,
     loserLevel,
   });
-  const correctSide =
-    winner_id === match.creator_id ? "A" : "B";
+
+let correctSide: "A" | "B" | null = null;
+
+if (match.mode === "pvp") {
+  correctSide = winner_id === match.creator_id ? "A" : "B";
+}
+
+if (match.mode === "solo") {
+  // SOLO RULE:
+  // creator_id is the "truth source"
+  // A = LOSE, B = WIN (from your UI logic)
+
+  const creatorWon = winner_id === match.creator_id;
+
+  correctSide = creatorWon ? "B" : "A";
+}
 
   // 5. Apply XP + bounty (PVP ONLY)
-  if (!isSolo) {
     await supabaseAdmin.rpc("increment_xp", {
       uid: winner_id,
       amount: rewards.winnerXP,
@@ -123,7 +151,6 @@ export async function POST(req: Request) {
         });
       }
     }
-  }
   // 6. Update match (THIS IS THE KEY FIX)
   const { data: updated } = await supabaseAdmin
     .from("matches")
