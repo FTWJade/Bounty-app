@@ -261,6 +261,7 @@ export default function Home() {
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
           const vote = voteRef.current;
+
           if (vote) {
             if (match.mode === "solo") {
               const winnerIsCreator = match.winner_id === match.creator_id;
