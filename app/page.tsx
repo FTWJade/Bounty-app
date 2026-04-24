@@ -290,7 +290,7 @@ export default function Home() {
 
           if (match.status === "finished") {
             if (match.mode === "solo") {
-              const won = voteCount.b > voteCount.a;
+              const won = match.winner_id === session.user.id;
 
               message = won ? "🏆 You WON!" : "💀 You lost!";
             } else {
