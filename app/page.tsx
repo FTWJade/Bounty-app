@@ -29,8 +29,7 @@ type MatchResult = {
 };
 
 export default function Home() {
-  const SOLO_LOSE = "A";
-  const SOLO_WIN = "B";
+
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
@@ -70,26 +69,32 @@ export default function Home() {
     a: 0,
     b: 0,
   });
-  const creator = currentMatch?.creator;
-  const opponent = currentMatch?.opponent;
 
-  const VOTE_CREATOR = "A";
-  const VOTE_OPPONENT = "B";
+  const users = {
+    A: currentMatch?.creator,
+    B: currentMatch?.opponent,
+  };
 
+  const votes = {
+    A: voteCount.a,
+    B: voteCount.b,
+  };
+  const sides = {
+    A: currentMatch?.creator,
+    B: currentMatch?.opponent,
+  };
+  const getSideName = (side: "A" | "B") => {
+    const user = sides[side];
+    return getUsername(user) || side;
+  };
   const creatorVotes = voteCount.a;
   const opponentVotes = voteCount.b;
   const totalVotes = creatorVotes + opponentVotes || 1;
-
-  const creatorColor = "blue";
-  const opponentColor = "red";
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
 
   const isCreator = session?.user?.id === currentMatch?.creator_id;
-
-  const leftUser = currentMatch?.creator;
-  const rightUser = currentMatch?.opponent;
 
   const getUserColor = (userId?: string) => {
     if (!currentMatch) return "gray";
@@ -266,10 +271,16 @@ export default function Home() {
 
           if (vote) {
             if (match.mode === "solo") {
-              const didWinVote = vote === SOLO_WIN;
+              const winnerIsCreator = match.winner_id === match.creator_id;
+
+              const correctVote = winnerIsCreator ? "A" : "B";
+
+              const didWinVote = vote === correctVote;
 
               showPopup(
-                didWinVote ? "🎉 You voted WIN!" : "❌ You voted LOSE!"
+                didWinVote
+                  ? "🎉 You voted correctly!"
+                  : "❌ You voted wrong!"
               );
             } else {
               const didWin =
@@ -505,10 +516,12 @@ export default function Home() {
         : null // LOSE (no winner)
       : null;
 
-  const handleVote = async (voteKey: "A" | "B", targetUser: any) => {
+  const handleVote = async (voteKey: "A" | "B") => {
     if (!currentMatch || !session?.user?.id) return;
+
     voteRef.current = voteKey;
     setMyVote(voteKey);
+
     const res = await fetch("/api/match/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -522,13 +535,7 @@ export default function Home() {
     const result = await res.json();
 
     if (!res.ok) {
-      if (result.remaining) {
-        const mins = Math.floor(result.remaining / 60);
-        const secs = result.remaining % 60;
-        showPopup(`⏳ ${mins}m ${secs}s`);
-      } else {
-        showPopup(result.error || "Unable to vote");
-      }
+      showPopup(result.error || "Unable to vote");
       return;
     }
 
@@ -540,18 +547,7 @@ export default function Home() {
       b: data.b ?? 0,
     });
 
-    let targetName = "";
-
-    if (isSolo) {
-      targetName = voteKey === "A" ? "LOSE" : "WIN";
-    } else {
-      targetName =
-        voteKey === "A"
-          ? getUsername(leftUser)
-          : getUsername(rightUser);
-    }
-
-    showPopup(`Voted ${targetName}`);
+    showPopup(`Voted ${voteKey === "A" ? "A" : "B"}`);
   };
 
 
@@ -848,7 +844,7 @@ export default function Home() {
                         {currentMatch.opponent_id ? (
                           <>
                             <span style={{ color: getUserColor(currentMatch.creator_id) }}>
-                              {getUsername(leftUser)}
+                              A — {getSideName("A")} — {votes.A}
                             </span>
                             {" — "}
                             {leftVotes}
@@ -860,7 +856,7 @@ export default function Home() {
 
                       <span>
                         <span style={{ color: getUserColor(currentMatch.opponent_id) }}>
-                          {getUsername(rightUser)}
+                          B — {getSideName("B")} — {votes.B}
                         </span>
                         {" — "}
                         {rightVotes}
@@ -963,20 +959,18 @@ export default function Home() {
               </div>
               {canVote && (
                 <>
-                  {/* LEFT */}
                   <button
-                    style={{ ...btn, background: getUserColor(currentMatch.creator_id), color: "white" }}
-                    onClick={() => handleVote("A", leftUser)}
+                    style={{ ...btn, background: "blue", color: "white" }}
+                    onClick={() => handleVote("A")}
                   >
-                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
+                    Vote {getSideName("A")}
                   </button>
 
-                  {/* RIGHT */}
                   <button
-                    style={{ ...btn, background: getUserColor(currentMatch.opponent_id), color: "white" }}
-                    onClick={() => handleVote("B", rightUser)}
+                    style={{ ...btn, background: "red", color: "white" }}
+                    onClick={() => handleVote("B")}
                   >
-                    {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
+                    Vote {getSideName("B")}
                   </button>
                 </>
               )}
