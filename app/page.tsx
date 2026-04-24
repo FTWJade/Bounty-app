@@ -290,14 +290,17 @@ export default function Home() {
                   : "❌ You voted wrong!"
               );
             } else {
-              const didWin =
-                session.user.id === match.winner_id;
+              // PvP MODE
+              const userId = session.user.id;
 
-              if (didWin) {
-                showPopup("🏆 You won!");
-              } else {
-                showPopup("💀 You lost");
+              if (!match.winner_id) {
+                showPopup("⏳ Match ended with no result");
+                return;
               }
+
+              const didWin = userId === match.winner_id;
+
+              showPopup(didWin ? "🏆 You won!" : "💀 You lost");
             }
           }
           setMyVote(null);
@@ -851,7 +854,7 @@ export default function Home() {
                         {currentMatch.opponent_id ? (
                           <>
                             <span style={{ color: getUserColor(currentMatch.creator_id) }}>
-                              A — {getSideName("A")} — {votes.A}
+                              {getSideName("A")} — {votes.A}
                             </span>
                             {" — "}
                             {leftVotes}
@@ -863,7 +866,7 @@ export default function Home() {
 
                       <span>
                         <span style={{ color: getUserColor(currentMatch.opponent_id) }}>
-                          B — {getSideName("B")} — {votes.B}
+                          {getSideName("B")} — {votes.B}
                         </span>
                         {" — "}
                         {rightVotes}
