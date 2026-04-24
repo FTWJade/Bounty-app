@@ -433,7 +433,16 @@ export default function Home() {
     );
 
 
-  const totalVotes = voteCount.a + voteCount.b;
+  const totalVotes = voteCount.a + voteCount.b || 1;
+
+  // map LEFT side to correct vote source
+  const leftWidth = isCreator
+    ? voteCount.b / totalVotes   // creator sees opponent on left
+    : voteCount.a / totalVotes;  // opponent sees creator on left
+
+  const rightWidth = isCreator
+    ? voteCount.a / totalVotes   // creator is right
+    : voteCount.b / totalVotes;  // opponent is right
 
   const total = voteCount.a + voteCount.b;
 
@@ -761,7 +770,7 @@ export default function Home() {
                     >
                       <div
                         style={{
-                          width: `${(leftVotes / (leftVotes + rightVotes || 1)) * 100}%`,
+                          width: `${leftWidth * 100}%`,
                           height: "100%",
                           background: leftColor,
                           position: "absolute",
@@ -772,7 +781,7 @@ export default function Home() {
 
                       <div
                         style={{
-                          width: `${(rightVotes / (leftVotes + rightVotes || 1)) * 100}%`,
+                          width: `${rightWidth * 100}%`,
                           height: "100%",
                           background: rightColor,
                           position: "absolute",
@@ -824,7 +833,7 @@ export default function Home() {
                 <>
                   {/* LEFT BUTTON */}
                   <button
-                    style={{ ...btn, background: "red", color: "white" }}
+                    style={{ ...btn, background: leftColor, color: "white" }}
                     onClick={async () => {
                       const res = await fetch("/api/match/vote", {
                         method: "POST",
@@ -866,7 +875,7 @@ export default function Home() {
 
                   {/* RIGHT BUTTON */}
                   <button
-                    style={{ ...btn, background: "blue", color: "white" }}
+                    style={{ ...btn, background: rightColor, color: "white" }}
                     onClick={async () => {
                       const res = await fetch("/api/match/vote", {
                         method: "POST",
