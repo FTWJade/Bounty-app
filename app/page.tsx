@@ -109,10 +109,27 @@ export default function Home() {
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
+
+  // 🎯 CENTRAL GAME RULES (makes everything easier to reason about)
+  const isPvP = currentMatch?.mode === "pvp";
+
+  const isMatchReady =
+    !!currentMatch &&
+    currentMatch.status !== "finished" &&
+    currentMatch.status !== "cancelled" &&
+    currentMatch.status !== "expired";
+
+  const isVotingPhase =
+    isMatchReady &&
+    ["active", "open", "lobby", "waiting"].includes(currentMatch.status);
+
   const canFinishMatch =
-    currentMatch?.mode === "pvp"
-      ? isParticipant
-      : session?.user?.id === currentMatch?.creator_id && hasEnoughVotes;
+    isMatchReady &&
+    (
+      isPvP
+        ? isParticipant
+        : session?.user?.id === currentMatch?.creator_id && hasEnoughVotes
+    );
 
   const animateXP = (target: number) => {
     let start = displayPoints;
@@ -458,13 +475,13 @@ export default function Home() {
   const showOpponent =
     currentMatch?.mode === "pvp" && !!currentMatch?.opponent_id;
   const canVote =
-    !!currentMatch &&
-    votingUnlocked &&
+    isVotingPhase &&
+    !!session?.user?.id &&
     (
       isSolo
-        ? true // everyone in solo match can vote
-        : session.user.id !== currentMatch.creator_id &&
-        session.user.id !== currentMatch.opponent_id
+        ? true
+        : session.user.id !== currentMatch?.creator_id &&
+        session.user.id !== currentMatch?.opponent_id
     );
 
   const filteredLeaderboard = leaderboard
@@ -501,11 +518,15 @@ export default function Home() {
   const fillPercent = 50 + (soloDiff / totalVotes) * 50;
 
 
-  const soloWinnerId =
+  const soloResult =
     isSolo && currentMatch
-      ? voteCount.a >= voteCount.b
-        ? currentMatch.creator_id // WIN
-        : null // LOSE (no winner)
+      ? {
+        winner: voteCount.b > voteCount.a ? "WIN" : "LOSE",
+        winnerId:
+          voteCount.b > voteCount.a
+            ? currentMatch.creator_id
+            : null,
+      }
       : null;
 
 
@@ -574,6 +595,11 @@ export default function Home() {
       ? getUsername(leftUser)
       : getUsername(rightUser);
   };
+
+  const winningSide =
+    voteCount.a > voteCount.b ? "A" :
+      voteCount.b > voteCount.a ? "B" :
+        null;
 
   return (
     <main style={{
