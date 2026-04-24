@@ -261,20 +261,19 @@ export default function Home() {
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
 
-          // 🧠 determine correct outcome BEFORE wiping state
-          const isCreatorWinner = match.winner_id === match.creator_id;
-          const correctSide = isCreatorWinner ? "A" : "B";
-
           if (myVote) {
             if (match.mode === "solo") {
-              const correctSide =
-                match.winner_id === match.creator_id ? "A" : "B";
+              const winnerIsCreator = match.winner_id === match.creator_id;
 
-              if (myVote === correctSide) {
-                showPopup("🎉 You voted correctly!");
-              } else {
-                showPopup("❌ You voted wrong!");
-              }
+              const correctVote = winnerIsCreator ? "A" : "B";
+
+              const didWinVote = myVote === correctVote;
+
+              showPopup(
+                didWinVote
+                  ? "🎉 You voted correctly!"
+                  : "❌ You voted wrong!"
+              );
             } else {
               const didWin =
                 session.user.id === match.winner_id;
