@@ -255,15 +255,6 @@ export default function Home() {
         if (!active || !data.data) return;
 
         const match = data.data;
-        console.log("🔥 MATCH SNAPSHOT:", {
-          id: match.id,
-          status: match.status,
-          winner_id: match.winner_id,
-          creator_id: match.creator_id,
-          opponent_id: match.opponent_id,
-        });
-        console.log("🗳 LIVE VOTES:", data);
-
         setCurrentMatch(match);
 
         if (
@@ -286,7 +277,7 @@ export default function Home() {
             if (match.mode === "solo") {
               const creatorWon = match.winner_id === match.creator_id;
 
-              const correctVote = creatorWon ? "B" : "A"; // B = WIN, A = LOSE
+              const correctVote = creatorWon ? "A" : "B";
 
               const didWinVote = vote === correctVote;
 

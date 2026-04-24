@@ -88,7 +88,7 @@ export async function POST(req: Request) {
   });
 
   if (isSolo) {
-    const correctAnswer = winner_id === match.creator_id ? "B" : "A";
+    const correctAnswer = winner_id === match.creator_id ? "A" : "B";
 
     for (const v of votes ?? []) {
       const isCorrect = v.vote === correctAnswer;
