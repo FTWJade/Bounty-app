@@ -69,6 +69,17 @@ export default function Home() {
   const VOTE_CREATOR = "A";
   const VOTE_OPPONENT = "B";
 
+  const resetMatch = (message?: string) => {
+    setCurrentMatch(null);
+    setMatchId("");
+    setDidCreateMatch(false);
+
+    if (message) showPopup(message);
+  };
+
+  const isMatchDead = (match: any) =>
+    ["finished", "cancelled", "expired"].includes(match.status);
+
   const isCreator = session?.user?.id === currentMatch?.creator_id;
   const creatorVotes = voteCount.a;
   const opponentVotes = voteCount.b;
@@ -212,9 +223,7 @@ export default function Home() {
           }),
         });
 
-        setCurrentMatch(null);
-        setMatchId("");
-        setDidCreateMatch(false);
+        resetMatch();
         showPopup("⚠️ Match closed (player left)");
       }
     }, 3000);
@@ -257,11 +266,7 @@ export default function Home() {
           const updatedLeaderboard = await fetch("/api/leaderboard");
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
-
-          setCurrentMatch(null);
-          setMatchId("");
-          setDidCreateMatch(false);
-
+          resetMatch("❌ Match cancelled");
           console.log("🛑 Match ended → UI cleared");
         }
       } catch (err) {
@@ -673,11 +678,7 @@ export default function Home() {
               return;
             }
 
-            showPopup("❌ Match cancelled");
-
-            setCurrentMatch(null);
-            setMatchId("");
-            setDidCreateMatch(false);
+            resetMatch("❌ Match cancelled");
           }}
         >
           ❌ Cancel Match
@@ -755,10 +756,7 @@ export default function Home() {
             const data = await updatedLeaderboard.json();
             setLeaderboard(data.data || []);
 
-            showPopup("🏆 Match finished!");
-            setCurrentMatch(null);
-            setMatchId("");
-            setDidCreateMatch(false);
+            resetMatch("❌ Match cancelled");
           }}
         >
           🏆 Declare Winner (Me)
@@ -788,10 +786,7 @@ export default function Home() {
 
               await loadUser(session.user.id);
               showPopup("🏆 You WON");
-
-              setCurrentMatch(null);
-              setMatchId("");
-              setDidCreateMatch(false);
+              resetMatch();
             }}
           >
             🏆 Win
@@ -817,10 +812,7 @@ export default function Home() {
 
               await loadUser(session.user.id);
               showPopup("💀 You LOST");
-
-              setCurrentMatch(null);
-              setMatchId("");
-              setDidCreateMatch(false);
+              resetMatch();
             }}
           >
             💀 Lose
