@@ -260,14 +260,14 @@ export default function Home() {
           const updatedLeaderboard = await fetch("/api/leaderboard");
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
-
-          if (myVote) {
+          const vote = voteRef.current;
+          if (vote) {
             if (match.mode === "solo") {
               const winnerIsCreator = match.winner_id === match.creator_id;
 
               const correctVote = winnerIsCreator ? "A" : "B";
 
-              const didWinVote = myVote === correctVote;
+              const didWinVote = vote === correctVote;
 
               showPopup(
                 didWinVote
@@ -508,10 +508,11 @@ export default function Home() {
         : null // LOSE (no winner)
       : null;
 
-
+const voteRef = useRef<"A" | "B" | null>(null);
   const handleVote = async (voteKey: "A" | "B", targetUser: any) => {
     if (!currentMatch || !session?.user?.id) return;
-
+    voteRef.current = voteKey;
+    setMyVote(voteKey);
     const res = await fetch("/api/match/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
