@@ -27,9 +27,12 @@ export async function POST(req: Request) {
   const last = new Date(match.last_activity_at).getTime();
 
   // ✅ If activity is recent → do nothing
-  if (now - last < TIMEOUT) {
-    return Response.json({ ok: true });
-  }
+  await supabaseAdmin
+    .from("matches")
+    .update({
+      status: "cancelled",
+    })
+    .eq("id", match_id);
 
   // 🏆 Decide winner = caller (the one still here)
   const winner_id = caller_id;
