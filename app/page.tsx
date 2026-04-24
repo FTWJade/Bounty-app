@@ -261,27 +261,25 @@ export default function Home() {
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
 
-          // detect result
+          // 🧠 determine correct outcome BEFORE wiping state
+          const isCreatorWinner = match.winner_id === match.creator_id;
+          const correctSide = isCreatorWinner ? "A" : "B";
+
           if (myVote) {
-            if (match.mode === "pvp") {
-              const winnerSide =
-                match.winner_id === match.creator_id ? "A" : "B";
-
-              if (myVote === winnerSide) {
-                showPopup("✅ Correct vote!");
-              } else {
-                showPopup("❌ Wrong vote");
-              }
-            }
-
             if (match.mode === "solo") {
-              const correctAnswer =
-                match.winner_id === match.creator_id ? "B" : "A";
-
-              if (myVote === correctAnswer) {
-                showPopup("🎯 You predicted correctly!");
+              if (myVote === correctSide) {
+                showPopup("🎉 You voted correctly!");
               } else {
-                showPopup("💀 Wrong prediction");
+                showPopup("❌ You voted wrong!");
+              }
+            } else {
+              const didWin =
+                session.user.id === match.winner_id;
+
+              if (didWin) {
+                showPopup("🏆 You won!");
+              } else {
+                showPopup("💀 You lost");
               }
             }
           }
