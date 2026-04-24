@@ -69,7 +69,14 @@ export default function Home() {
     a: 0,
     b: 0,
   });
+  const getVoteLabel = (side: "A" | "B") => {
+    if (isSolo) {
+      return side === "A" ? "Lose" : "Win";
+    }
 
+    // PvP mode → show player names
+    return getSideName(side) || side;
+  };
   const users = {
     A: currentMatch?.creator,
     B: currentMatch?.opponent,
@@ -271,9 +278,9 @@ export default function Home() {
 
           if (vote) {
             if (match.mode === "solo") {
-              const winnerIsCreator = match.winner_id === match.creator_id;
+              const creatorWon = match.winner_id === match.creator_id;
 
-              const correctVote = winnerIsCreator ? "A" : "B";
+              const correctVote = creatorWon ? "B" : "A"; // B = WIN, A = LOSE
 
               const didWinVote = vote === correctVote;
 
@@ -960,17 +967,17 @@ export default function Home() {
               {canVote && (
                 <>
                   <button
-                    style={{ ...btn, background: "blue", color: "white" }}
+                    style={{ ...btn, background: "red", color: "white" }}
                     onClick={() => handleVote("A")}
                   >
-                    Vote {getSideName("A")}
+                    Vote {getVoteLabel("A")}
                   </button>
 
                   <button
-                    style={{ ...btn, background: "red", color: "white" }}
+                    style={{ ...btn, background: "green", color: "white" }}
                     onClick={() => handleVote("B")}
                   >
-                    Vote {getSideName("B")}
+                    Vote {getVoteLabel("B")}
                   </button>
                 </>
               )}
