@@ -251,8 +251,7 @@ export default function Home() {
 
 
   useEffect(() => {
-    if (!currentMatch?.id || currentMatch.status === "finished") return;
-    if (!session?.user?.id) return;
+    if (!currentMatch?.id || !session?.user?.id) return;
 
     let active = true;
 
@@ -262,56 +261,40 @@ export default function Home() {
         if (!res.ok) return;
 
         const data = await res.json();
-        if (!active || !data.data) return;
-
         const match = data.data;
+        if (!match || !active) return;
 
-        console.log("🗳 LIVE VOTES:", data);
+        setCurrentMatch(match);
 
-        if (active) setCurrentMatch(match);
-
-        if (
+        // handle match end ONCE
+        const ended =
           match.status === "finished" ||
-          match.status === "expired" ||
-          match.status === "cancelled"
-        ) {
+          match.status === "cancelled" ||
+          match.status === "expired";
+
+        if (ended) {
           clearInterval(interval);
           active = false;
 
-          // 🔥 refresh user + leaderboard ONCE
           await loadUser(session.user.id);
 
-          const updatedLeaderboard = await fetch("/api/leaderboard");
-          const lb = await updatedLeaderboard.json();
+          const lb = await fetch("/api/leaderboard").then(r => r.json());
           setLeaderboard(lb.data || []);
 
-
-          let message = "";
-
           if (match.status === "finished") {
-            if (match.mode === "solo") {
-              const won = match.winner_id === session.user.id;
+            const won =
+              match.winner_id === session.user.id;
 
-              message = won ? "🏆 You WON!" : "💀 You lost!";
-            } else {
-              const isWinner = match.winner_id === session.user.id;
-              message = isWinner ? "🏆 You WON!" : "💀 You lost!";
-            }
+            resetMatch(won ? "🏆 You WON!" : "💀 You lost!");
+          } else if (match.status === "cancelled") {
+            resetMatch("⚠️ Match cancelled");
+          } else {
+            resetMatch("⌛ Match expired");
           }
-
-          if (match.status === "cancelled") {
-            message = "⚠️ Match cancelled";
-          }
-
-          if (match.status === "expired") {
-            message = "⌛ Match expired";
-          }
-
-          resetMatch(message);
-          console.log("🛑 Match ended → UI cleared");
         }
+
       } catch (err) {
-        console.warn("Polling failed:", err);
+        console.warn("match poll error", err);
       }
     }, 3000);
 
@@ -854,7 +837,16 @@ export default function Home() {
               }
 
               await loadUser(session.user.id);
-              resetMatch("🏆 You won!");
+              const resJson = await res.json();
+
+              const updated = await fetch(`/api/match/get?id=${currentMatch.id}`);
+              const data = await updated.json();
+
+              const match = data.data;
+
+              const isWinner = match.winner_id === session.user.id;
+
+              resetMatch(isWinner ? "🏆 You WON!" : "💀 You lost!");
             }}
           >
             🏆 Win
