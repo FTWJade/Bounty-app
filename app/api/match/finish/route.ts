@@ -77,21 +77,6 @@ export async function POST(req: Request) {
 
   const winnerLevel = Math.floor((winner?.points ?? 0) / 100) + 1;
 
-  // TRY TO CLAIM THE MATCH FIRST (prevents double processing)
-  const { data: claimed, error: claimError } = await supabaseAdmin
-    .from("matches")
-    .update({ status: "processing" })
-    .eq("id", match_id)
-    .eq("status", "active")
-    .select()
-    .single();
-
-  if (!claimed || claimError) {
-    return Response.json({
-      error: "Match already being processed or finished"
-    }, { status: 400 });
-  }
-
   const loserLevel =
     loser_id && loser
       ? Math.floor((loser.points ?? 0) / 100) + 1
