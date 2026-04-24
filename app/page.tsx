@@ -818,7 +818,7 @@ const handleVote = async (voteKey: "A" | "B", targetUser: any) => {
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote === "A" ? "WIN" : "LOSE"}
+                        You voted: {myVote === "A" ? "LOSE" : "WIN"}
                       </p>
                     )}
                     <div
