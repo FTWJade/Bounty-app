@@ -23,6 +23,11 @@ type Match = {
   opponent?: any;
   created_at?: string; // ✅ add this
 };
+type MatchResult = {
+  winner_id: string | null;
+  status: "open" | "active" | "finished" | "expired" | "cancelled";
+};
+
 export default function Home() {
 
   const { data: session, status } = useSession();
