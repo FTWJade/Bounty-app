@@ -283,7 +283,8 @@ export default function Home() {
 
           if (match.status === "finished") {
             const won =
-              match.winner_id === session.user.id;
+              match.winner_id &&
+              String(match.winner_id) === String(session.user.id);
 
             resetMatch(won ? "🏆 You WON!" : "💀 You lost!");
           } else if (match.status === "cancelled") {
