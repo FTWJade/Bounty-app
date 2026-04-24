@@ -745,7 +745,16 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
       )}
 
       {isMatchVisible && (
-        <div style={{ marginTop: 20, padding: 10, border: "1px solid #ccc" }}>
+        <div
+          style={{
+            marginTop: 20,
+            padding: 10,
+            border: "1px solid #ccc",
+            width: 340,
+            textAlign: "center",
+            borderRadius: 8,
+          }}
+          >
           <h3>🎮 Match</h3>
 
           <p>ID: {currentMatch.id}</p>
