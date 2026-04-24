@@ -466,8 +466,8 @@ export default function Home() {
   const diff = right - left;
 
   // normalize between 0 - 100 (center = 50)
-const soloDiff = voteCount.b - voteCount.a;
-const fillPercent = 50 + (soloDiff / totalVotes) * 50;
+  const soloDiff = voteCount.b - voteCount.a;
+  const fillPercent = 50 + (soloDiff / totalVotes) * 50;
 
 
   const soloWinnerId =
@@ -754,7 +754,7 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
             textAlign: "center",
             borderRadius: 8,
           }}
-          >
+        >
           <h3>🎮 Match</h3>
 
           <p>ID: {currentMatch.id}</p>
@@ -809,24 +809,6 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
                       </span>
                     </div>
                     <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      width: 300,
-                      margin: "0 auto 6px auto",
-                      fontSize: 12,
-                      color: "#aaa",
-                    }}
-                  >
-                    <span>
-                      ❌ LOSE — {voteCount.a}
-                    </span>
-
-                    <span>
-                      {voteCount.b} — WIN ✅
-                    </span>
-                  </div>
-                    <div
                       style={{
                         position: "relative",
                         width: 300,
@@ -864,6 +846,7 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
                     </div>
                   </div>
                 ) : (
+
                   // KEEP YOUR SOLO UI EXACTLY AS IS
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
                     {myVote && (
@@ -871,6 +854,24 @@ const fillPercent = 50 + (soloDiff / totalVotes) * 50;
                         You voted: {myVote === "A" ? "LOSE" : "WIN"}
                       </p>
                     )}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        width: 300,
+                        margin: "0 auto 6px auto",
+                        fontSize: 12,
+                        color: "#aaa",
+                      }}
+                    >
+                      <span>
+                        ❌ LOSE — {voteCount.a}
+                      </span>
+
+                      <span>
+                        {voteCount.b} — WIN ✅
+                      </span>
+                    </div>
                     <div
                     >
                       <div
