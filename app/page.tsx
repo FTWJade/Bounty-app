@@ -266,7 +266,25 @@ export default function Home() {
           const updatedLeaderboard = await fetch("/api/leaderboard");
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
-          resetMatch("❌ Match cancelled");
+          let message = "❌ Match ended";
+
+          if (match.status === "finished") {
+            const isWinner = match.winner_id === session.user.id;
+
+            message = isWinner
+              ? "🏆 You WON!"
+              : "💀 You lost!";
+          }
+
+          if (match.status === "cancelled") {
+            message = "⚠️ Match cancelled";
+          }
+
+          if (match.status === "expired") {
+            message = "⌛ Match expired";
+          }
+
+          resetMatch(message);
           console.log("🛑 Match ended → UI cleared");
         }
       } catch (err) {
