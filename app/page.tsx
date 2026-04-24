@@ -522,7 +522,7 @@ export default function Home() {
     showPopup(`Voted ${targetName}`);
   };
 
-
+    const canCancel = session.user.id === currentMatch?.creator_id;
 
   return (
     <main style={{
@@ -555,45 +555,125 @@ export default function Home() {
         </a>
       </div>
 
-      {!mode && (
-        <div>
-          <h2>Choose Mode</h2>
+      {!mode && !currentMatch && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            marginTop: 40,
+            gap: 12,
+          }}
+        >
+          <h2 style={{ marginBottom: 10 }}>Choose Mode</h2>
 
-          <button onClick={() => setMode("pvp")} style={btn}>
+          <button
+            onClick={() => setMode("pvp")}
+            style={{
+              ...btn,
+              width: 220,
+              background: "#2d6cdf",
+              color: "white",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+            }}
+          >
             🆚 1v1 PvP
           </button>
 
-          <button onClick={() => setMode("solo")} style={btn}>
+          <button
+            onClick={() => setMode("solo")}
+            style={{
+              ...btn,
+              width: 220,
+              background: "#9b59b6",
+              color: "white",
+              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+            }}
+          >
             🎲 Solo Prediction
           </button>
         </div>
       )}
       {mode && (
-        <button
-          style={{ ...btn, background: "#444", color: "white" }}
-          onClick={async () => {
-            const res = await fetch("/api/match/create", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                user_id: session.user.id,
-                mode,
-              }),
-            });
-            setMode(null);
-            const result = await res.json();
-
-            if (result.data) {
-              const full = await fetch(`/api/match/get?id=${result.data.id}`).then(r => r.json());
-
-              setCurrentMatch(full.data);
-              setMatchId(full.data.id);
-              setDidCreateMatch(true);
-            }
+        <div
+          style={{
+            display: "flex",
+            gap: 10,
+            marginTop: 20,
           }}
         >
-          🎮 Create Match
-        </button>
+          <button
+            style={{ ...btn, background: "#444", color: "white" }}
+            onClick={async () => {
+              const res = await fetch("/api/match/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: session.user.id,
+                  mode,
+                }),
+              });
+
+              setMode(null);
+
+              const result = await res.json();
+
+              if (result.data) {
+                const full = await fetch(`/api/match/get?id=${result.data.id}`)
+                  .then(r => r.json());
+
+                setCurrentMatch(full.data);
+                setMatchId(full.data.id);
+                setDidCreateMatch(true);
+              }
+            }}
+          >
+
+            {currentMatch && canCancel && (
+              <button
+                style={{ ...btn, background: "#e74c3c", color: "white" }}
+                onClick={async () => {
+                  const confirmCancel = confirm("Cancel this match for everyone?");
+                  if (!confirmCancel) return;
+
+                  const res = await fetch("/api/match/force-close", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      match_id: currentMatch.id,
+                      caller_id: session.user.id,
+                    }),
+                  });
+
+                  if (!res.ok) {
+                    showPopup("Failed to cancel match");
+                    return;
+                  }
+
+                  showPopup("❌ Match cancelled");
+
+                  setCurrentMatch(null);
+                  setMatchId("");
+                  setDidCreateMatch(false);
+                }}
+              >
+                ❌ Cancel Match
+              </button>
+            )}
+
+            🎮 Create Match
+          </button>
+
+          <button
+            style={{ ...btn, background: "#999", color: "white" }}
+            onClick={() => setMode(null)}
+          >
+            ❌ Cancel
+          </button>
+        </div>
       )}
 
       {currentMatch && (
@@ -909,43 +989,43 @@ export default function Home() {
                   </div>
                 )}
               </div>
-{canVote && (
-  <div
-    style={{
-      display: "flex",
-      justifyContent: "space-between",
-      width: 300,
-      margin: "10px auto",
-      gap: 10, // nice spacing
-    }}
-  >
-    {/* LEFT */}
-    <button
-      style={{
-        ...btn,
-        flex: 1,
-        background: getUserColor(currentMatch.creator_id),
-        color: "white",
-      }}
-      onClick={() => handleVote("A", leftUser)}
-    >
-      {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
-    </button>
+              {canVote && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    width: 300,
+                    margin: "10px auto",
+                    gap: 10, // nice spacing
+                  }}
+                >
+                  {/* LEFT */}
+                  <button
+                    style={{
+                      ...btn,
+                      flex: 1,
+                      background: getUserColor(currentMatch.creator_id),
+                      color: "white",
+                    }}
+                    onClick={() => handleVote("A", leftUser)}
+                  >
+                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
+                  </button>
 
-    {/* RIGHT */}
-    <button
-      style={{
-        ...btn,
-        flex: 1,
-        background: getUserColor(currentMatch.opponent_id),
-        color: "white",
-      }}
-      onClick={() => handleVote("B", rightUser)}
-    >
-      {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
-    </button>
-  </div>
-)}
+                  {/* RIGHT */}
+                  <button
+                    style={{
+                      ...btn,
+                      flex: 1,
+                      background: getUserColor(currentMatch.opponent_id),
+                      color: "white",
+                    }}
+                    onClick={() => handleVote("B", rightUser)}
+                  >
+                    {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
