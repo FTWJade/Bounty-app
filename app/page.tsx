@@ -522,7 +522,9 @@ export default function Home() {
     showPopup(`Voted ${targetName}`);
   };
 
-    const canCancel = session.user.id === currentMatch?.creator_id;
+  const canCancel =
+    session.user.id === currentMatch?.creator_id &&
+    (!currentMatch?.opponent_id || currentMatch.opponent_id === "");
 
   return (
     <main style={{
@@ -554,6 +556,40 @@ export default function Home() {
           About
         </a>
       </div>
+
+      {currentMatch && canCancel && (
+        <button
+          style={{ ...btn, background: "#e74c3c", color: "white" }}
+          onClick={async () => {
+            const confirmCancel = confirm("Cancel this match for everyone?");
+            if (!confirmCancel) return;
+
+            const res = await fetch("/api/match/force-close", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                match_id: currentMatch.id,
+                caller_id: session.user.id,
+              }),
+            });
+
+            if (!res.ok) {
+              showPopup("Failed to cancel match");
+              return;
+            }
+
+            showPopup("❌ Match cancelled");
+
+            setCurrentMatch(null);
+            setMatchId("");
+            setDidCreateMatch(false);
+          }}
+        >
+          ❌ Cancel Match
+        </button>
+      )}
 
       {!mode && !currentMatch && (
         <div
@@ -629,40 +665,6 @@ export default function Home() {
               }
             }}
           >
-
-            {currentMatch && canCancel && (
-              <button
-                style={{ ...btn, background: "#e74c3c", color: "white" }}
-                onClick={async () => {
-                  const confirmCancel = confirm("Cancel this match for everyone?");
-                  if (!confirmCancel) return;
-
-                  const res = await fetch("/api/match/force-close", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      match_id: currentMatch.id,
-                      caller_id: session.user.id,
-                    }),
-                  });
-
-                  if (!res.ok) {
-                    showPopup("Failed to cancel match");
-                    return;
-                  }
-
-                  showPopup("❌ Match cancelled");
-
-                  setCurrentMatch(null);
-                  setMatchId("");
-                  setDidCreateMatch(false);
-                }}
-              >
-                ❌ Cancel Match
-              </button>
-            )}
 
             🎮 Create Match
           </button>
