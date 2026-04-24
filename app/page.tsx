@@ -63,31 +63,37 @@ export default function Home() {
     a: 0,
     b: 0,
   });
+  const creator = currentMatch?.creator;
+  const opponent = currentMatch?.opponent;
+
+  const VOTE_CREATOR = "A";
+  const VOTE_OPPONENT = "B";
+
+  const creatorVotes = voteCount.a;
+  const opponentVotes = voteCount.b;
+  const totalVotes = creatorVotes + opponentVotes || 1;
+
+  const creatorColor = "blue";
+  const opponentColor = "red";
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
+    
   const isCreator = session?.user?.id === currentMatch?.creator_id;
 
-  const leftUser = isCreator
-    ? currentMatch?.opponent
-    : currentMatch?.creator;
+  const leftUser = currentMatch?.creator;
+  const rightUser = currentMatch?.opponent;
 
-  const rightUser = isCreator
-    ? currentMatch?.creator
-    : currentMatch?.opponent;
+  const leftColor =
+    leftUser?.id === currentMatch?.creator_id ? "red" : "blue";
 
-const leftColor =
-  leftUser?.id === currentMatch?.creator_id ? "red" : "blue";
-
-const rightColor =
-  rightUser?.id === currentMatch?.creator_id ? "red" : "blue";
-  const leftVotes = isCreator ? voteCount.b : voteCount.a;
-  const rightVotes = isCreator ? voteCount.a : voteCount.b;
+  const rightColor =
+    rightUser?.id === currentMatch?.creator_id ? "red" : "blue";
+  const leftVotes = creatorVotes;
+  const rightVotes = opponentVotes;
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
-  const leftVoteKey = isSolo ? "B" : (isCreator ? "B" : "A");
-  const rightVoteKey = isSolo ? "A" : (isCreator ? "A" : "B");
   const canFinishMatch =
     currentMatch?.mode === "pvp"
       ? isParticipant
@@ -435,9 +441,6 @@ const rightColor =
       user.username?.toLowerCase().includes(search.toLowerCase())
     );
 
-
-  const totalVotes = voteCount.a + voteCount.b || 1;
-
   // map LEFT side to correct vote source
   const leftWidth = isCreator
     ? voteCount.b / totalVotes   // creator sees opponent on left
@@ -447,13 +450,13 @@ const rightColor =
     ? voteCount.a / totalVotes   // creator is right
     : voteCount.b / totalVotes;  // opponent is right
 
-const left = isCreator ? voteCount.b : voteCount.a;
-const right = isCreator ? voteCount.a : voteCount.b;
+  const left = isCreator ? voteCount.b : voteCount.a;
+  const right = isCreator ? voteCount.a : voteCount.b;
 
-const diff = left - right;
+  const diff = left - right;
 
-// normalize between 0 - 100 (center = 50)
-const fillPercent = 50 + (diff / totalVotes) * 50;
+  // normalize between 0 - 100 (center = 50)
+  const fillPercent = 50 + (diff / totalVotes) * 50;
 
 
   const soloWinnerId =
@@ -462,6 +465,51 @@ const fillPercent = 50 + (diff / totalVotes) * 50;
         ? currentMatch.creator_id // WIN
         : null // LOSE (no winner)
       : null;
+
+
+const handleVote = async (voteKey: "A" | "B", targetUser: any) => {
+  if (!currentMatch || !session?.user?.id) return;
+
+  const res = await fetch("/api/match/vote", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      match_id: currentMatch.id,
+      user_id: session.user.id,
+      vote: voteKey,
+    }),
+  });
+
+  const result = await res.json();
+
+  if (!res.ok) {
+    if (result.remaining) {
+      const mins = Math.floor(result.remaining / 60);
+      const secs = result.remaining % 60;
+      showPopup(`⏳ ${mins}m ${secs}s`);
+    } else {
+      showPopup(result.error || "Unable to vote");
+    }
+    return;
+  }
+
+  const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`)
+    .then(r => r.json());
+
+  setVoteCount({
+    a: data.a ?? 0,
+    b: data.b ?? 0,
+  });
+
+  setMyVote(voteKey);
+
+  const targetName =
+    voteKey === "A" ? getUsername(leftUser) : getUsername(rightUser);
+
+  showPopup(`Voted ${targetName}`);
+};
+      
+      
 
   return (
     <main style={{
@@ -730,34 +778,37 @@ const fillPercent = 50 + (diff / totalVotes) * 50;
                     </div>
                     <div
                       style={{
+                        position: "relative",
                         width: 300,
                         height: 10,
-                        background: "#333",
+                        background: "#222",
                         borderRadius: 5,
-                        margin: "10px auto",
-                        position: "relative",
                         overflow: "hidden",
                       }}
                     >
+                      {/* BLUE (creator) */}
                       <div
                         style={{
-                          width: `${leftWidth * 100}%`,
-                          height: "100%",
-                          background: leftColor,
                           position: "absolute",
                           left: 0,
                           top: 0,
+                          height: "100%",
+                          width: `${(creatorVotes / totalVotes) * 100}%`,
+                          background: "blue",
+                          transition: "width 0.3s ease",
                         }}
                       />
 
+                      {/* RED (opponent) */}
                       <div
                         style={{
-                          width: `${rightWidth * 100}%`,
-                          height: "100%",
-                          background: rightColor,
                           position: "absolute",
                           right: 0,
                           top: 0,
+                          height: "100%",
+                          width: `${(opponentVotes / totalVotes) * 100}%`,
+                          background: "red",
+                          transition: "width 0.3s ease",
                         }}
                       />
                     </div>
@@ -801,92 +852,24 @@ const fillPercent = 50 + (diff / totalVotes) * 50;
                 )}
               </div>
               {canVote && (
-                <>
-                  {/* LEFT BUTTON */}
-                  <button
-                    style={{ ...btn, background: leftColor, color: "white" }}
-                    onClick={async () => {
-                      const res = await fetch("/api/match/vote", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          match_id: currentMatch.id,
-                          user_id: session.user.id,
-                          vote: leftVoteKey,
-                        }),
-                      });
+  <>
+                {/* LEFT */}
+                <button
+                  style={{ ...btn, background: leftColor, color: "white" }}
+                  onClick={() => handleVote("A", leftUser)}
+                >
+                  {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
+                </button>
 
-                      const result = await res.json();
-
-                      if (!res.ok) {
-                        if (result.remaining) {
-                          const mins = Math.floor(result.remaining / 60);
-                          const secs = result.remaining % 60;
-                          showPopup(`⏳ ${mins}m ${secs}s`);
-                        } else {
-                          showPopup(result.error || "Unable to vote");
-                        }
-                        return;
-                      }
-
-                      const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-
-                      setVoteCount({
-                        a: data.a ?? 0,
-                        b: data.b ?? 0,
-                      });
-
-                      setMyVote(leftVoteKey);
-
-                      showPopup(`Voted ${getUsername(leftUser)}`);
-                    }}
-                  >
-                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
-                  </button>
-
-                  {/* RIGHT BUTTON */}
-                  <button
-                    style={{ ...btn, background: rightColor, color: "white" }}
-                    onClick={async () => {
-                      const res = await fetch("/api/match/vote", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          match_id: currentMatch.id,
-                          user_id: session.user.id,
-                          vote: rightVoteKey,
-                        }),
-                      });
-
-                      const result = await res.json();
-
-                      if (!res.ok) {
-                        if (result.remaining) {
-                          const mins = Math.floor(result.remaining / 60);
-                          const secs = result.remaining % 60;
-                          showPopup(`⏳ ${mins}m ${secs}s`);
-                        } else {
-                          showPopup(result.error || "Unable to vote");
-                        }
-                        return;
-                      }
-
-                      const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-
-                      setVoteCount({
-                        a: data.a ?? 0,
-                        b: data.b ?? 0,
-                      });
-
-                      setMyVote(rightVoteKey);
-
-                      showPopup(`Voted ${getUsername(rightUser)}`);
-                    }}
-                  >
-                    {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
-                  </button>
-                </>
-              )}
+                {/* RIGHT */}
+                <button
+                  style={{ ...btn, background: rightColor, color: "white" }}
+                  onClick={() => handleVote("B", rightUser)}
+                >
+                  {isSolo ? "Vote WIN" : `Vote ${getUsername(rightUser)}`}
+                </button>
+              </>
+            )}
             </div>
           )}
 
