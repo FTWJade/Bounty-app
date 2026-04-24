@@ -80,6 +80,8 @@ export default function Home() {
   const rightColor = isCreator ? "blue" : "red";
   const leftVotes = isCreator ? voteCount.b : voteCount.a;
   const rightVotes = isCreator ? voteCount.a : voteCount.b;
+  const leftVoteKey = isCreator ? "B" : "A";
+  const rightVoteKey = isCreator ? "A" : "B";
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
@@ -829,7 +831,7 @@ export default function Home() {
                         body: JSON.stringify({
                           match_id: currentMatch.id,
                           user_id: session.user.id,
-                          vote: "B",
+                          vote: leftVoteKey, // ✅ FIXED
                         }),
                       });
 
@@ -839,7 +841,6 @@ export default function Home() {
                         if (result.remaining) {
                           const mins = Math.floor(result.remaining / 60);
                           const secs = result.remaining % 60;
-
                           showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
                         } else {
                           showPopup(result.error || "Unable to vote");
@@ -848,22 +849,21 @@ export default function Home() {
                       }
 
                       const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-                      setVoteCount((prev) => ({
-                        a: data.a ?? prev.a,
-                        b: data.b ?? prev.b,
-                      }));
-                      setMyVote("B");
-                      showPopup(
-                        isSolo
-                          ? "Voted LOSE"
-                          : "Voted Opponent"
-                      );
+
+                      setVoteCount({
+                        a: data.a ?? 0,
+                        b: data.b ?? 0,
+                      });
+
+                      setMyVote(leftVoteKey); // ✅ FIXED
+
+                      showPopup("Voted LEFT");
                     }}
                   >
-                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(currentMatch.opponent)}`}
+                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
                   </button>
                   <button
-                    style={{ ...btn, background: "blue", color: "white" }}
+                    style={{ ...btn, background: "red", color: "white" }}
                     onClick={async () => {
                       const res = await fetch("/api/match/vote", {
                         method: "POST",
@@ -871,16 +871,16 @@ export default function Home() {
                         body: JSON.stringify({
                           match_id: currentMatch.id,
                           user_id: session.user.id,
-                          vote: "A",
+                          vote: leftVoteKey, // ✅ FIXED
                         }),
                       });
 
                       const result = await res.json();
+
                       if (!res.ok) {
                         if (result.remaining) {
                           const mins = Math.floor(result.remaining / 60);
                           const secs = result.remaining % 60;
-
                           showPopup(`⏳ You can vote again in ${mins}m ${secs}s`);
                         } else {
                           showPopup(result.error || "Unable to vote");
@@ -889,19 +889,18 @@ export default function Home() {
                       }
 
                       const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`).then(r => r.json());
-                      setVoteCount((prev) => ({
-                        a: data.a ?? prev.a,
-                        b: data.b ?? prev.b,
-                      }));
-                      setMyVote("A");
-                      showPopup(
-                        isSolo
-                          ? "Voted WIN"
-                          : `Voted ${getUsername(currentMatch.creator)}`
-                      );
+
+                      setVoteCount({
+                        a: data.a ?? 0,
+                        b: data.b ?? 0,
+                      });
+
+                      setMyVote(leftVoteKey); // ✅ FIXED
+
+                      showPopup("Voted LEFT");
                     }}
                   >
-                    {isSolo ? "Vote WIN" : `Vote ${getUsername(currentMatch.creator)}`}
+                    {isSolo ? "Vote LOSE" : `Vote ${getUsername(leftUser)}`}
                   </button>
                 </>
               )}
