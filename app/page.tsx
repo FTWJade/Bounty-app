@@ -250,7 +250,7 @@ export default function Home() {
 
         console.log("🗳 LIVE VOTES:", data);
 
-        setCurrentMatch(match);
+        if (active) setCurrentMatch(match);
 
         if (
           match.status === "finished" ||
@@ -785,8 +785,7 @@ export default function Home() {
               }
 
               await loadUser(session.user.id);
-              showPopup("🏆 You WON");
-              resetMatch();
+              resetMatch("🏆 You won!");
             }}
           >
             🏆 Win
@@ -811,8 +810,7 @@ export default function Home() {
               }
 
               await loadUser(session.user.id);
-              showPopup("💀 You LOST");
-              resetMatch();
+              resetMatch("💀 You lost");
             }}
           >
             💀 Lose
