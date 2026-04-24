@@ -29,7 +29,8 @@ type MatchResult = {
 };
 
 export default function Home() {
-
+  const SOLO_LOSE = "A";
+  const SOLO_WIN = "B";
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
@@ -265,16 +266,10 @@ export default function Home() {
 
           if (vote) {
             if (match.mode === "solo") {
-              const winnerIsCreator = match.winner_id === match.creator_id;
-
-              const correctVote = winnerIsCreator ? "A" : "B";
-
-              const didWinVote = vote === correctVote;
+              const didWinVote = vote === SOLO_WIN;
 
               showPopup(
-                didWinVote
-                  ? "🎉 You voted correctly!"
-                  : "❌ You voted wrong!"
+                didWinVote ? "🎉 You voted WIN!" : "❌ You voted LOSE!"
               );
             } else {
               const didWin =
