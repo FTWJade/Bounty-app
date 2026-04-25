@@ -17,21 +17,6 @@ export async function POST(req: Request) {
     .select()
     .single();
 
-  console.log(
-    calculateVoteBasedRewards({
-      votesA: 5,
-      votesB: 3,
-      betAmount: 10,
-      creatorId: "A",
-      opponentId: "B",
-      winnerId: "A",
-      votes: [
-        { user_id: "u1", vote: "A" },
-        { user_id: "u2", vote: "B" },
-      ],
-    })
-  );
-
   if (!claimed || claimError) {
     return Response.json({ error: "Already processing or finished" }, { status: 400 });
   }
@@ -48,6 +33,21 @@ export async function POST(req: Request) {
     .from("match_votes")
     .select("user_id, vote")
     .eq("match_id", match_id);
+
+      console.log(
+    calculateVoteBasedRewards({
+      votesA: 5,
+      votesB: 3,
+      betAmount: 10,
+      creatorId: "A",
+      opponentId: "B",
+      winnerId: "A",
+      votes: [
+        { user_id: "u1", vote: "A" },
+        { user_id: "u2", vote: "B" },
+      ],
+    })
+  );
 
   if (!match || error) {
     return Response.json({ error: "Match not found" }, { status: 404 });
