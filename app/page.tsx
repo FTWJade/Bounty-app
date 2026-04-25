@@ -48,10 +48,10 @@ export default function Home() {
     }, duration);
   };
   const [betAmount, setBetAmount] = useState<number>(0);
-  const [pendingJoin, setPendingJoin] = useState<null | {
+  const [pendingJoin, setPendingJoin] = useState<{
     matchId: string;
     betAmount: number;
-  }>(null);
+  } | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
   const prevLevel = useRef(level);
@@ -782,7 +782,7 @@ export default function Home() {
                   body: JSON.stringify({
                     user_id: session.user.id,
                     match_id: pendingJoin.matchId,
-                    bet_amount: currentMatch?.bounty_pool,
+                    bet_amount: pendingJoin.betAmount,
                   }),
                 });
 
