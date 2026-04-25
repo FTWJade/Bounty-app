@@ -118,7 +118,8 @@ export async function POST(req: Request) {
     correctSide = creatorWon ? "B" : "A";
   }
 
-  // 5. Apply XP + bounty (PVP ONLY)
+if (match.mode === "pvp") {
+  // full rewards
   await supabaseAdmin.rpc("increment_xp", {
     uid: winner_id,
     amount: rewards.winnerXP,
@@ -128,6 +129,29 @@ export async function POST(req: Request) {
     uid: winner_id,
     amount: rewards.bountyGain,
   });
+
+  if (loser_id) {
+    await supabaseAdmin.rpc("increment_xp", {
+      uid: loser_id,
+      amount: rewards.loserXP,
+    });
+  }
+
+} else {
+  // SOLO → reduced / controlled rewards
+  const SOLO_XP = 10;        // tune this
+  const SOLO_BOUNTY = 1;     // tune this
+
+  await supabaseAdmin.rpc("increment_xp", {
+    uid: match.creator_id,
+    amount: SOLO_XP,
+  });
+
+  await supabaseAdmin.rpc("increment_bounty", {
+    uid: match.creator_id,
+    amount: SOLO_BOUNTY,
+  });
+}
 
   if (loser_id) {
     await supabaseAdmin.rpc("increment_xp", {
