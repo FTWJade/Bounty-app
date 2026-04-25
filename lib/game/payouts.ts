@@ -37,8 +37,9 @@ export function calculateVoteBasedRewards({
     const wrongVoters = realVoters.filter(v => v.vote !== correctSide);
 
     // 🔥 4. Voter pools
-    const correctPool = Math.floor(pool * 0.3);
-    const wrongPool = Math.floor(pool * 0.1);
+    const voterPool = Math.floor(pool * 0.4);
+    const correctPool = Math.floor(voterPool * 0.75);
+    const wrongPool = Math.floor(voterPool * 0.25);
 
     const rewards: Record<string, { xp: number; bounty: number }> = {};
 
