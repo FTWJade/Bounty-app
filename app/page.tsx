@@ -47,6 +47,10 @@ export default function Home() {
     }, duration);
   };
   const [betAmount, setBetAmount] = useState<number>(0);
+  const [pendingJoin, setPendingJoin] = useState<null | {
+    matchId: string;
+    betAmount: number;
+  }>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
   const prevLevel = useRef(level);
@@ -739,35 +743,79 @@ export default function Home() {
 
           <button
             style={{ ...btn, background: "purple", color: "white" }}
-            onClick={async () => {
-              const res = await fetch("/api/match/join", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  user_id: session.user.id,
-                  match_id: matchId,
-                  bet_amount: betAmount,
-                }),
+            onClick={() => {
+              setPendingJoin({
+                matchId,
+                betAmount,
               });
-
-              const text = await res.text();
-
-              if (!res.ok) {
-                showPopup(text);
-
-              } else {
-                showPopup("Joined match!");
-              }
-              const updated = await fetch(`/api/match/get?id=${matchId}`);
-              const data = await updated.json();
-
-              if (data.data) {
-                setCurrentMatch(data.data);
-              }
             }}
           >
             Join Match
           </button>
+        </div>
+      )}
+
+      {pendingJoin && (
+        <div
+          style={{
+            marginTop: 15,
+            padding: 12,
+            border: "1px solid #444",
+            borderRadius: 8,
+            width: 300,
+            textAlign: "center",
+            background: "#111",
+          }}
+        >
+          <p style={{ marginBottom: 10 }}>
+            ⚠️ You must confirm a <b>${pendingJoin.betAmount}</b> bounty fee to join this match
+          </p>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button
+              style={{ ...btn, background: "green", color: "white" }}
+              onClick={async () => {
+                const res = await fetch("/api/match/join", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    user_id: session.user.id,
+                    match_id: pendingJoin.matchId,
+                    bet_amount: pendingJoin.betAmount,
+                  }),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                  showPopup(data.error || "Failed to join");
+                  return;
+                }
+
+                showPopup("Joined match!");
+
+                const updated = await fetch(
+                  `/api/match/get?id=${pendingJoin.matchId}`
+                );
+                const matchData = await updated.json();
+
+                if (matchData.data) {
+                  setCurrentMatch(matchData.data);
+                }
+
+                setPendingJoin(null);
+              }}
+            >
+              Confirm Join
+            </button>
+
+            <button
+              style={{ ...btn, background: "red", color: "white" }}
+              onClick={() => setPendingJoin(null)}
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
