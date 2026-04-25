@@ -768,8 +768,8 @@ export default function Home() {
             background: "#111",
           }}
         >
-          <p style={{ marginBottom: 10 }}>
-            ⚠️ You must confirm a <b>${pendingJoin.betAmount}</b> bounty fee to join this match
+          <p>
+            ⚠️ You must confirm a <b>${currentMatch?.bounty_pool}</b> bounty fee to join this match
           </p>
 
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
@@ -781,7 +781,7 @@ export default function Home() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     user_id: session.user.id,
-                    match_id: pendingJoin.matchId,
+                    match_id: currentMatch?.id || pendingJoin.matchId,
                     bet_amount: pendingJoin.betAmount,
                   }),
                 });
