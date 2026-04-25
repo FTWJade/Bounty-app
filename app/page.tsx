@@ -275,6 +275,12 @@ export default function Home() {
 
           if (vote) {
             if (match.mode === "solo") {
+
+              // 🚫 skip creator entirely
+              if (session.user.id === match.creator_id) {
+                return;
+              }
+
               const creatorWon = match.winner_id === match.creator_id;
 
               const correctVote = creatorWon ? "B" : "A";
