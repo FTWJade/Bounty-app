@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     .eq("id", match_id)
     .single();
 
+
   const { data: votes } = await supabaseAdmin
     .from("match_votes")
     .select("user_id, vote")
@@ -178,17 +179,21 @@ export async function POST(req: Request) {
 
     const isCorrect = v.vote === correctSide;
 
+    const pool = match.bounty_pool ?? 0;
+
+    const voterReward = isCorrect
+      ? Math.max(1, Math.floor(pool * 0.05))
+      : 1;
+
     await supabaseAdmin.rpc("increment_xp", {
       uid: v.user_id,
       amount: isCorrect ? 10 : 3,
     });
 
-    if (isCorrect) {
-      await supabaseAdmin.rpc("increment_bounty", {
-        uid: v.user_id,
-        amount: 2,
-      });
-    }
+    await supabaseAdmin.rpc("increment_bounty", {
+      uid: v.user_id,
+      amount: voterReward,
+    });
   }
   // 6. Update match (THIS IS THE KEY FIX)
   const { data: updated } = await supabaseAdmin
