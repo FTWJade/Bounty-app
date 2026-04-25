@@ -747,7 +747,7 @@ export default function Home() {
             onClick={() => {
               setPendingJoin({
                 matchId,
-                betAmount,
+                betAmount: betAmount
               });
             }}
           >
