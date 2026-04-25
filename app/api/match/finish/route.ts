@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { calculateMatchRewards } from "@/lib/game/rewards";
+import { calculateVoteBasedRewards } from "@/lib/game/payouts";
 
 export async function POST(req: Request) {
   const { match_id, winner_id, caller_id } = await req.json();
@@ -15,6 +16,21 @@ export async function POST(req: Request) {
     .in("status", ["active", "open", "waiting", "lobby"])
     .select()
     .single();
+
+  console.log(
+    calculateVoteBasedRewards({
+      votesA: 5,
+      votesB: 3,
+      betAmount: 10,
+      creatorId: "A",
+      opponentId: "B",
+      winnerId: "A",
+      votes: [
+        { user_id: "u1", vote: "A" },
+        { user_id: "u2", vote: "B" },
+      ],
+    })
+  );
 
   if (!claimed || claimError) {
     return Response.json({ error: "Already processing or finished" }, { status: 400 });
@@ -209,6 +225,9 @@ export async function POST(req: Request) {
   if (!updated) {
     return Response.json({ error: "Already finished" }, { status: 400 });
   }
+
+
+
   return Response.json({
     ok: true,
     rewards,
