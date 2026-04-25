@@ -124,7 +124,12 @@ export default function Home() {
   const isOpponent = userId === currentMatch?.opponent_id;
 
   const canFinishMatch =
-    currentMatch?.mode === "pvp" && (isCreator || isOpponent);
+    currentMatch &&
+    (
+      currentMatch.mode === "solo"
+        ? isCreator
+        : isCreator || isOpponent
+    );
 
   const animateXP = (target: number) => {
     let start = displayPoints;
