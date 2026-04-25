@@ -137,6 +137,11 @@ export async function POST(req: Request) {
   }
 
   for (const v of votes ?? []) {
+    // ❌ Skip creator in solo mode
+    if (match.mode === "solo" && v.user_id === match.creator_id) {
+      continue;
+    }
+
     const isCorrect = v.vote === correctSide;
 
     await supabaseAdmin.rpc("increment_xp", {
