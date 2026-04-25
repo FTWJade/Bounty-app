@@ -274,17 +274,18 @@ export default function Home() {
           const vote = voteRef.current;
 
           if (vote) {
-            if (match.mode === "solo") {
+            const userId = session.user.id;
+            const isParticipant =
+              userId === match.creator_id || userId === match.opponent_id;
 
+            if (match.mode === "solo") {
               // 🚫 skip creator entirely
-              if (session.user.id === match.creator_id) {
+              if (userId === match.creator_id) {
                 return;
               }
 
               const creatorWon = match.winner_id === match.creator_id;
-
               const correctVote = creatorWon ? "B" : "A";
-
               const didWinVote = vote === correctVote;
 
               showPopup(
@@ -296,13 +297,31 @@ export default function Home() {
               // PvP MODE
               const userId = session.user.id;
 
+              if (!isParticipant) {
+                if (!match.winner_id) {
+                  showPopup("⏳ Match ended with no result");
+                  return;
+                }
+
+                const didVoteForWinner =
+                  (vote === "A" && match.winner_id === match.creator_id) ||
+                  (vote === "B" && match.winner_id === match.opponent_id);
+
+                showPopup(
+                  didVoteForWinner
+                    ? "🎉 You voted correctly!"
+                    : "❌ Your vote was wrong"
+                );
+
+                return;
+              }
+
               if (!match.winner_id) {
                 showPopup("⏳ Match ended with no result");
                 return;
               }
 
               const didWin = userId === match.winner_id;
-
               showPopup(didWin ? "🏆 You won!" : "💀 You lost");
             }
           }
