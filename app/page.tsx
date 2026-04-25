@@ -744,10 +744,18 @@ export default function Home() {
 
           <button
             style={{ ...btn, background: "purple", color: "white" }}
-            onClick={() => {
+            onClick={async () => {
+              const res = await fetch(`/api/match/get?id=${matchId}`);
+              const data = await res.json();
+
+              if (!data.data) {
+                showPopup("Match not found");
+                return;
+              }
+
               setPendingJoin({
                 matchId,
-                betAmount: betAmount
+                betAmount: data.data.bounty_pool, // 👈 THIS is the creator bet
               });
             }}
           >
