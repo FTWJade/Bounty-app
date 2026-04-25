@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     .from("matches")
     .update({ status: "processing" })
     .eq("id", match_id)
-    .eq("status", "active")
+    .in("status", ["active", "open", "waiting", "lobby"])
     .select()
     .single();
 
@@ -102,55 +102,55 @@ export async function POST(req: Request) {
     loserLevel,
   });
 
-let correctSide: "A" | "B" | null = null;
+  let correctSide: "A" | "B" | null = null;
 
-if (match.mode === "pvp") {
-  correctSide = winner_id === match.creator_id ? "A" : "B";
-}
+  if (match.mode === "pvp") {
+    correctSide = winner_id === match.creator_id ? "A" : "B";
+  }
 
-if (match.mode === "solo") {
-  // SOLO RULE:
-  // creator_id is the "truth source"
-  // A = LOSE, B = WIN (from your UI logic)
+  if (match.mode === "solo") {
+    // SOLO RULE:
+    // creator_id is the "truth source"
+    // A = LOSE, B = WIN (from your UI logic)
 
-  const creatorWon = winner_id === match.creator_id;
+    const creatorWon = winner_id === match.creator_id;
 
-  correctSide = creatorWon ? "B" : "A";
-}
+    correctSide = creatorWon ? "B" : "A";
+  }
 
   // 5. Apply XP + bounty (PVP ONLY)
+  await supabaseAdmin.rpc("increment_xp", {
+    uid: winner_id,
+    amount: rewards.winnerXP,
+  });
+
+  await supabaseAdmin.rpc("increment_bounty", {
+    uid: winner_id,
+    amount: rewards.bountyGain,
+  });
+
+  if (loser_id) {
     await supabaseAdmin.rpc("increment_xp", {
-      uid: winner_id,
-      amount: rewards.winnerXP,
+      uid: loser_id,
+      amount: rewards.loserXP,
+    });
+  }
+
+  for (const v of votes ?? []) {
+    const isCorrect = v.vote === correctSide;
+
+    await supabaseAdmin.rpc("increment_xp", {
+      uid: v.user_id,
+      amount: isCorrect ? 10 : 3,
     });
 
-    await supabaseAdmin.rpc("increment_bounty", {
-      uid: winner_id,
-      amount: rewards.bountyGain,
-    });
-
-    if (loser_id) {
-      await supabaseAdmin.rpc("increment_xp", {
-        uid: loser_id,
-        amount: rewards.loserXP,
-      });
-    }
-
-    for (const v of votes ?? []) {
-      const isCorrect = v.vote === correctSide;
-
-      await supabaseAdmin.rpc("increment_xp", {
+    if (isCorrect) {
+      await supabaseAdmin.rpc("increment_bounty", {
         uid: v.user_id,
-        amount: isCorrect ? 10 : 3,
+        amount: 2,
       });
-
-      if (isCorrect) {
-        await supabaseAdmin.rpc("increment_bounty", {
-          uid: v.user_id,
-          amount: 2,
-        });
-      }
     }
+  }
   // 6. Update match (THIS IS THE KEY FIX)
   const { data: updated } = await supabaseAdmin
     .from("matches")
