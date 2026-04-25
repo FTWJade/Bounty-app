@@ -117,7 +117,8 @@ export default function Home() {
   const isSolo = currentMatch?.mode === "solo";
   const canFinishMatch =
     currentMatch?.mode === "pvp"
-      ? isParticipant
+      ? session?.user?.id === currentMatch?.creator_id ||
+      session?.user?.id === currentMatch?.opponent_id
       : session?.user?.id === currentMatch?.creator_id;
 
   const animateXP = (target: number) => {
@@ -497,7 +498,8 @@ export default function Home() {
 
   const canViewVotes = !!currentMatch;
   const showOpponent =
-    currentMatch?.mode === "pvp" && !!currentMatch?.opponent_id;
+    currentMatch?.mode === "pvp" &&
+    (currentMatch?.opponent_id !== null && currentMatch?.opponent_id !== undefined);
   const canVote =
     !!currentMatch &&
     votingUnlocked &&
