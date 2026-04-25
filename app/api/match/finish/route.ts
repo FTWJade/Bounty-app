@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { calculateMatchRewards } from "@/lib/game/rewards";
 
 export async function POST(req: Request) {
-  const { match_id, winner_id } = await req.json();
+  const { match_id, winner_id, caller_id } = await req.json();
 
   if (!match_id) {
     return Response.json({ error: "Missing match_id" }, { status: 400 });
@@ -45,6 +45,20 @@ export async function POST(req: Request) {
     .select("user_id, vote")
     .eq("match_id", match_id);
 
+  const isParticipant =
+    caller_id === match.creator_id ||
+    caller_id === match.opponent_id;
+  if (match.mode === "pvp" && !isParticipant) {
+    return Response.json({ error: "Not allowed" }, { status: 403 });
+  }
+
+  if (match.mode === "pvp" && caller_id !== winner_id) {
+    return Response.json(
+      { error: "You can only declare yourself as winner" },
+      { status: 403 }
+    );
+  }
+
   // 2. Determine loser
   let loser_id: string | null = null;
   const isSolo = match.mode === "solo";
@@ -61,11 +75,13 @@ export async function POST(req: Request) {
   }
 
   // 3. Get levels
-  const { data: winner } = await supabaseAdmin
-    .from("bounties")
-    .select("points")
-    .eq("user_id", winner_id)
-    .single();
+  const { data: winner } = winner_id
+    ? await supabaseAdmin
+      .from("bounties")
+      .select("points")
+      .eq("user_id", winner_id)
+      .single()
+    : { data: null };
 
   const { data: loser } = loser_id
     ? await supabaseAdmin
@@ -97,10 +113,11 @@ export async function POST(req: Request) {
       ? Math.floor((loser.points ?? 0) / 100) + 1
       : winnerLevel; // fallback for solo
   // 4. Rewards
-  const rewards = calculateMatchRewards({
-    winnerLevel,
-    loserLevel,
-  });
+  const rewards = {
+    winnerXP: 25,
+    loserXP: 10,
+    bountyGain: 5,
+  };
 
   let correctSide: "A" | "B" | null = null;
 
@@ -118,45 +135,38 @@ export async function POST(req: Request) {
     correctSide = creatorWon ? "B" : "A";
   }
 
-if (match.mode === "pvp") {
-  // full rewards
-  await supabaseAdmin.rpc("increment_xp", {
-    uid: winner_id,
-    amount: rewards.winnerXP,
-  });
-
-  await supabaseAdmin.rpc("increment_bounty", {
-    uid: winner_id,
-    amount: rewards.bountyGain,
-  });
-
-  if (loser_id) {
+  if (match.mode === "pvp") {
+    // full rewards
     await supabaseAdmin.rpc("increment_xp", {
-      uid: loser_id,
-      amount: rewards.loserXP,
+      uid: winner_id,
+      amount: rewards.winnerXP,
     });
-  }
 
-} else {
-  // SOLO → reduced / controlled rewards
-  const SOLO_XP = 10;        // tune this
-  const SOLO_BOUNTY = 1;     // tune this
+    await supabaseAdmin.rpc("increment_bounty", {
+      uid: winner_id,
+      amount: rewards.bountyGain,
+    });
 
-  await supabaseAdmin.rpc("increment_xp", {
-    uid: match.creator_id,
-    amount: SOLO_XP,
-  });
+    if (loser_id) {
+      await supabaseAdmin.rpc("increment_xp", {
+        uid: loser_id,
+        amount: rewards.loserXP,
+      });
+    }
 
-  await supabaseAdmin.rpc("increment_bounty", {
-    uid: match.creator_id,
-    amount: SOLO_BOUNTY,
-  });
-}
+  } else {
+    // SOLO → reduced / controlled rewards
+    const SOLO_XP = 10;        // tune this
+    const SOLO_BOUNTY = 1;     // tune this
 
-  if (loser_id) {
     await supabaseAdmin.rpc("increment_xp", {
-      uid: loser_id,
-      amount: rewards.loserXP,
+      uid: match.creator_id,
+      amount: SOLO_XP,
+    });
+
+    await supabaseAdmin.rpc("increment_bounty", {
+      uid: match.creator_id,
+      amount: SOLO_BOUNTY,
     });
   }
 
