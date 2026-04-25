@@ -46,6 +46,7 @@ export default function Home() {
       setPopup(null);
     }, duration);
   };
+  const [betAmount, setBetAmount] = useState<number>(0);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
   const prevLevel = useRef(level);
@@ -653,31 +654,66 @@ export default function Home() {
         </div>
       )}
       {mode && (
-        <button
-          style={{ ...btn, background: "#444", color: "white" }}
-          onClick={async () => {
-            const res = await fetch("/api/match/create", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                user_id: session.user.id,
-                mode,
-              }),
-            });
-            setMode(null);
-            const result = await res.json();
-
-            if (result.data) {
-              const full = await fetch(`/api/match/get?id=${result.data.id}`).then(r => r.json());
-
-              setCurrentMatch(full.data);
-              setMatchId(full.data.id);
-              setDidCreateMatch(true);
-            }
+        <div
+          style={{
+            marginTop: 15,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
           }}
         >
-          🎮 Create Match
-        </button>
+          <p style={{ marginBottom: 2 }}>Input bet:</p>
+
+          <input
+            type="number"
+            value={betAmount}
+            onChange={(e) => setBetAmount(Number(e.target.value))}
+            placeholder="Enter bounty bet"
+            style={{
+              padding: "10px",
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              width: 200,
+              textAlign: "center",
+            }}
+          />
+
+          <button
+            style={{
+              ...btn,
+              background: "#444",
+              color: "white",
+              width: 200,
+            }}
+            onClick={async () => {
+              const res = await fetch("/api/match/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: session.user.id,
+                  mode,
+                  bet_amount: betAmount,
+                }),
+              });
+
+              const result = await res.json();
+
+              setMode(null);
+
+              if (result.data) {
+                const full = await fetch(`/api/match/get?id=${result.data.id}`)
+                  .then(r => r.json());
+
+                setCurrentMatch(full.data);
+                setMatchId(full.data.id);
+                setDidCreateMatch(true);
+              }
+            }}
+          >
+            🎮 Create Match
+          </button>
+        </div>
       )}
 
       {currentMatch && (
@@ -708,6 +744,7 @@ export default function Home() {
                 body: JSON.stringify({
                   user_id: session.user.id,
                   match_id: matchId,
+                  bet_amount: betAmount,
                 }),
               });
 
