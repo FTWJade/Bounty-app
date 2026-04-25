@@ -21,7 +21,8 @@ type Match = {
   opponent_id?: string;
   creator?: any;
   opponent?: any;
-  created_at?: string; // ✅ add this
+  created_at?: string;
+  bounty_pool?: number; // ✅ ADD THIS
 };
 type MatchResult = {
   winner_id: string | null;
@@ -781,7 +782,7 @@ export default function Home() {
                   body: JSON.stringify({
                     user_id: session.user.id,
                     match_id: pendingJoin.matchId,
-                    bet_amount: pendingJoin.betAmount,
+                    bet_amount: currentMatch?.bounty_pool,
                   }),
                 });
 
