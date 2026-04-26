@@ -33,11 +33,8 @@ export async function POST(req: Request) {
     return Response.json({ error: "Match not found" }, { status: 404 });
   }
 
-  const isSolo = match.mode === "solo";
-  const finalWinnerId =
-    isSolo
-      ? (winner_id ? match.creator_id : null)
-      : winner_id;
+
+  const finalWinnerId = winner_id;
 
   // 📦 Get votes
   const { data: votes } = await supabaseAdmin
@@ -81,10 +78,9 @@ export async function POST(req: Request) {
     const result = calculateSoloRewards({
       betAmount: match.bounty_pool ?? 0,
       creatorId: match.creator_id,
-      winnerId: finalWinnerId,
+      creatorOutcome: winner_id === match.creator_id ? "WIN" : "LOSE",
       votes: voteData,
     });
-
     rewards = result.rewards;
 
   } else {
