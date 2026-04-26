@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { calculateVoteBasedRewards } from "@/lib/game/payouts";
+import { calculateSoloRewards } from "@/lib/game/soloRewards";
 
 export async function POST(req: Request) {
   const { match_id, winner_id, caller_id } = await req.json();
@@ -65,15 +66,32 @@ export async function POST(req: Request) {
   const votesB = voteData.filter(v => v.vote === "B").length;
 
   // 💰 Calculate rewards
-  const { rewards } = calculateVoteBasedRewards({
-    votesA,
-    votesB,
-    betAmount: match.bounty_pool ?? 0,
-    creatorId: match.creator_id,
-    opponentId: match.opponent_id,
-    winnerId: winner_id,
-    votes: voteData,
-  });
+  let rewards;
+
+  if (match.mode === "solo") {
+    const result = calculateSoloRewards({
+      votesA,
+      votesB,
+      betAmount: match.bounty_pool ?? 0,
+      creatorId: match.creator_id,
+      winnerId: winner_id,
+      votes: voteData,
+    });
+
+    rewards = result.rewards;
+  } else {
+    const result = calculateVoteBasedRewards({
+      votesA,
+      votesB,
+      betAmount: match.bounty_pool ?? 0,
+      creatorId: match.creator_id,
+      opponentId: match.opponent_id,
+      winnerId: winner_id,
+      votes: voteData,
+    });
+
+    rewards = result.rewards;
+  }
 
   // 💸 Pay everyone
   for (const userId in rewards) {
