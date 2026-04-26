@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { calculateVoteBasedRewards } from "@/lib/game/payouts";
 import { calculateSoloRewards } from "@/lib/game/soloRewards";
+import { calculatePvPRewards } from "@/lib/game/payoutsPvp";
 
 export async function POST(req: Request) {
   const { match_id, winner_id, caller_id } = await req.json();
@@ -8,6 +8,8 @@ export async function POST(req: Request) {
   if (!match_id || !caller_id) {
     return Response.json({ error: "Missing fields" }, { status: 400 });
   }
+
+  const finalWinnerId = winner_id;
 
   // 🔒 Lock match
   const { data: claimed, error: claimError } = await supabaseAdmin
@@ -39,15 +41,20 @@ export async function POST(req: Request) {
     .select("user_id, vote")
     .eq("match_id", match_id);
 
+  const allVotes = votes ?? [];
+
+  const voteData = match.mode === "solo"
+    ? allVotes.filter(v => v.user_id !== match.creator_id)
+    : allVotes;
 
   // 🔐 Validation
-  if (match.mode === "pvp" && !match.opponent_id) {
-    return Response.json({ error: "No opponent" }, { status: 400 });
-  }
-
   const isParticipant =
     caller_id === match.creator_id ||
     caller_id === match.opponent_id;
+
+  if (match.mode === "pvp" && !match.opponent_id) {
+    return Response.json({ error: "No opponent" }, { status: 400 });
+  }
 
   if (match.mode === "pvp" && !isParticipant) {
     return Response.json({ error: "Not allowed" }, { status: 403 });
@@ -59,78 +66,30 @@ export async function POST(req: Request) {
       { status: 403 }
     );
   }
-  const isSolo = match.mode === "solo";
 
-  // 🧮 Count votes
-  // 💰 Calculate rewards
-  const allVotes = votes ?? [];
-
-  const voteData = isSolo
-    ? allVotes.filter(v => v.user_id !== match.creator_id)
-    : allVotes;
-
-  // 🧮 Count votes
   const votesA = voteData.filter(v => v.vote === "A").length;
   const votesB = voteData.filter(v => v.vote === "B").length;
-
-  // ✅ DETERMINE VOID
-  const creatorWon =
-    match.mode === "solo"
-      ? winner_id === match.creator_id
-      : winner_id === match.creator_id;
-
-  const correctVoteSide = creatorWon ? "B" : "A";
-
-  const isVoid = voteData.filter(
-    v => v.vote === correctVoteSide
-  ).length === 0;
-
-  const finalWinnerId = isVoid ? null : winner_id;
-
 
   // 💰 Rewards
   let rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  if (isVoid) {
-    for (const v of voteData) {
-      rewards[v.user_id] = {
-        xp: 3,
-        bounty: match.bounty_pool ?? 0,
-      };
-    }
+  if (match.mode === "solo") {
+    const result = calculateSoloRewards({
+      betAmount: match.bounty_pool ?? 0,
+      creatorId: match.creator_id,
+      winnerId: finalWinnerId,
+      votes: voteData,
+    });
 
-  } else if (match.mode === "solo") {
-
-    if (isVoid) {
-      rewards = {};
-      for (const v of voteData) {
-        rewards[v.user_id] = {
-          xp: 3,
-          bounty: 0,
-        };
-      }
-    }
-    else {
-      const result = calculateSoloRewards({
-        betAmount: match.bounty_pool ?? 0,
-        creatorId: match.creator_id,
-        winnerId: finalWinnerId,
-        votes: voteData,
-      });
-
-      rewards = result.rewards;
-    }
+    rewards = result.rewards;
 
   } else {
-
-    const result = calculateVoteBasedRewards({
-      votesA,
-      votesB,
-      betAmount: match.bounty_pool ?? 0,
+    const result = calculatePvPRewards({
+      votes: voteData,
       creatorId: match.creator_id,
       opponentId: match.opponent_id,
       winnerId: finalWinnerId,
-      votes: voteData,
+      betAmount: match.bounty_pool ?? 0,
     });
 
     rewards = result.rewards;
