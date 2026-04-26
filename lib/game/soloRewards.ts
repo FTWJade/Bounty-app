@@ -9,13 +9,8 @@ export function calculateSoloRewards({
     winnerId: string;
     votes: { user_id: string; vote: "A" | "B" }[];
 }) {
-    const totalParticipants = new Set([
-        creatorId,
-        ...votes.map(v => v.user_id),
-    ]).size;
-
-    // 💰 total pool (creator + voters)
-    const pool = betAmount * (1 + votes.length);
+    const participantCount = 1 + votes.length;
+    const pool = betAmount * participantCount;
 
     const creatorWon = winnerId === creatorId;
 
