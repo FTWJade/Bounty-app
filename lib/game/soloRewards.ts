@@ -11,11 +11,7 @@ export function calculateSoloRewards({
 }) {
   const voters = votes.filter(v => v.user_id !== creatorId);
 
-  // 💰 REAL pool (creator + voters)
   const pool = betAmount * (1 + voters.length);
-
-  const creatorCut = Math.floor(pool * 0.4);
-  const voterPool = pool - creatorCut;
 
   const correctSide = creatorOutcome === "WIN" ? "B" : "A";
 
@@ -24,32 +20,55 @@ export function calculateSoloRewards({
 
   const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  // 👑 creator always gets cut
+  // base splits
+  let creatorCut = Math.floor(pool * 0.4);
+  let voterPool = pool - creatorCut;
+
+  let distributed = 0;
+
+  // creator
   rewards[creatorId] = {
     xp: 30,
     bounty: creatorCut,
   };
+  distributed += creatorCut;
+
+  // voters
+  const correctTotal = Math.floor(voterPool * 0.8);
+  const wrongTotal = voterPool - correctTotal;
 
   const eachCorrect = correct.length
-    ? Math.floor((voterPool * 0.8) / correct.length)
+    ? Math.floor(correctTotal / correct.length)
     : 0;
 
   const eachWrong = wrong.length
-    ? Math.floor((voterPool * 0.2) / wrong.length)
+    ? Math.floor(wrongTotal / wrong.length)
     : 0;
 
+  // pay correct
   for (const v of correct) {
     rewards[v.user_id] = {
       xp: 10,
       bounty: eachCorrect,
     };
+    distributed += eachCorrect;
   }
 
+  // pay wrong
   for (const v of wrong) {
     rewards[v.user_id] = {
       xp: 3,
       bounty: eachWrong,
     };
+    distributed += eachWrong;
+  }
+
+  // 🧠 FIX: distribute leftover
+  const remainder = pool - distributed;
+
+  if (remainder > 0) {
+    // give remainder to creator (simplest + stable)
+    rewards[creatorId].bounty += remainder;
   }
 
   return { pool, rewards };
