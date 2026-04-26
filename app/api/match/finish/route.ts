@@ -5,7 +5,7 @@ import { calculateSoloRewards } from "@/lib/game/soloRewards";
 export async function POST(req: Request) {
   const { match_id, winner_id, caller_id } = await req.json();
 
-  if (!match_id || !winner_id || !caller_id) {
+  if (!match_id || !caller_id) {
     return Response.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -74,11 +74,16 @@ export async function POST(req: Request) {
   const votesB = voteData.filter(v => v.vote === "B").length;
 
   // ✅ DETERMINE VOID
-  const isVoid = (() => {
-    const testSide = winner_id === match.creator_id ? "B" : "A";
-    const correctVotes = voteData.filter(v => v.vote === testSide);
-    return correctVotes.length === 0;
-  })();
+  const creatorWon =
+    match.mode === "solo"
+      ? winner_id === match.creator_id
+      : winner_id === match.creator_id;
+
+  const correctVoteSide = creatorWon ? "B" : "A";
+
+  const isVoid = voteData.filter(
+    v => v.vote === correctVoteSide
+  ).length === 0;
 
   const finalWinnerId = isVoid ? null : winner_id;
 

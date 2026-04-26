@@ -917,7 +917,7 @@ export default function Home() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   match_id: currentMatch.id,
-                  winner_id: "nulll", // or "DRAW"
+                  winner_id: null,
                   caller_id: session.user.id,
                 }),
               });
