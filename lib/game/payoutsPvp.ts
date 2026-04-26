@@ -16,7 +16,7 @@ export function calculatePvPRewards({
         v => v.user_id !== creatorId
     );
 
-    const pool = betAmount * (1 + voters.length);
+    const pool = betAmount * (2 + voters.length);
 
     const correctSide = winnerId === creatorId ? "A" : "B";
 
