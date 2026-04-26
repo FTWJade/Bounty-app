@@ -1,67 +1,56 @@
 export function calculateSoloRewards({
-    betAmount,
-    creatorId,
-    winnerId,
-    votes,
+  betAmount,
+  creatorId,
+  winnerId,
+  votes,
 }: {
-    betAmount: number;
-    creatorId: string;
-    winnerId: string;
-    votes: { user_id: string; vote: "A" | "B" }[];
+  betAmount: number;
+  creatorId: string;
+  winnerId: string | null;
+  votes: { user_id: string; vote: "A" | "B" }[];
 }) {
-    const participantCount = 1 + votes.length;
-    const pool = betAmount * participantCount;
+  const pool = betAmount;
 
-    const creatorWon = winnerId === creatorId;
-    const correctSide = winnerId === creatorId ? "B" : "A";
+  const creatorWon = winnerId === creatorId;
+  const correctSide = creatorWon ? "B" : "A";
 
-    const correctVoters = votes.filter(v => v.vote === correctSide);
-    const wrongVoters = votes.filter(v => v.vote !== correctSide);
+  // ✅ include creator as a voter
+  const allVoters = [
+    ...votes,
+    {
+      user_id: creatorId,
+      vote: creatorWon ? "B" : "A", // creator vote auto-matches outcome
+    },
+  ];
 
-    // 💡 FIXED SPLITS (must sum to 1.0)
-    const creatorSharePct = creatorWon ? 0.6 : 0;
-    const voterPoolPct = 1 - creatorSharePct;
+  const correctVoters = allVoters.filter(v => v.vote === correctSide);
 
-    const creatorShare = pool * creatorSharePct;
-    const voterPool = pool * voterPoolPct;
+  const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-    const correctPool = voterPool * 0.7;
-    const wrongPool = voterPool * 0.3;
+  const each =
+    correctVoters.length > 0
+      ? Math.floor(pool / correctVoters.length)
+      : 0;
 
-    const rewards: Record<string, { xp: number; bounty: number }> = {};
-
-    // 👤 creator
-    rewards[creatorId] = {
-        xp: creatorWon ? 50 : 10,
-        bounty: Math.floor(creatorShare),
+  for (const v of correctVoters) {
+    rewards[v.user_id] = {
+      xp: 10,
+      bounty: each,
     };
+  }
 
-    const eachCorrect =
-        correctVoters.length > 0
-            ? Math.floor(correctPool / correctVoters.length)
-            : 0;
-
-    const eachWrong =
-        wrongVoters.length > 0
-            ? Math.floor(wrongPool / wrongVoters.length)
-            : 0;
-
-    for (const v of correctVoters) {
-        rewards[v.user_id] = {
-            xp: 10,
-            bounty: eachCorrect,
-        };
+  // ❌ wrong voters get nothing
+  for (const v of allVoters) {
+    if (!rewards[v.user_id]) {
+      rewards[v.user_id] = {
+        xp: 3,
+        bounty: 0,
+      };
     }
+  }
 
-    for (const v of wrongVoters) {
-        rewards[v.user_id] = {
-            xp: 3,
-            bounty: eachWrong,
-        };
-    }
-
-    return {
-        pool,
-        rewards,
-    };
+  return {
+    pool,
+    rewards,
+  };
 }
