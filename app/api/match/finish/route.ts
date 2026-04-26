@@ -60,90 +60,96 @@ export async function POST(req: Request) {
     );
   }
   const isSolo = match.mode === "solo";
-  const allVotes = votes ?? [];
-
-  const voteData = isSolo
-    ? allVotes.filter(v => v.user_id !== match.creator_id) // creator ignored in solo
-    : allVotes;
 
   // 🧮 Count votes
-  const votesA = voteData.filter(v => v.vote === "A").length;
-  const votesB = voteData.filter(v => v.vote === "B").length;
+  // 💰 Calculate rewards
+const allVotes = votes ?? [];
 
-  const correctVotes = voteData.filter(v => {
-    const correctSide = winner_id === match.creator_id ? "B" : "A";
-    return v.vote === correctSide;
+const voteData = isSolo
+  ? allVotes.filter(v => v.user_id !== match.creator_id)
+  : allVotes;
+
+// 🧮 Count votes
+const votesA = voteData.filter(v => v.vote === "A").length;
+const votesB = voteData.filter(v => v.vote === "B").length;
+
+// ✅ DETERMINE VOID
+const correctSide = winner_id === match.creator_id ? "B" : "A";
+const correctVotes = voteData.filter(v => v.vote === correctSide);
+const isVoid = correctVotes.length === 0;
+
+const finalWinnerId = isVoid ? null : winner_id;
+
+// 💰 Rewards
+let rewards: Record<string, { xp: number; bounty: number }> = {};
+
+if (isVoid) {
+  for (const v of voteData) {
+    rewards[v.user_id] = {
+      xp: 3,
+      bounty: match.bounty_pool ?? 0,
+    };
+  }
+
+} else if (match.mode === "solo") {
+
+  const result = calculateSoloRewards({
+    betAmount: match.bounty_pool ?? 0,
+    creatorId: match.creator_id,
+    winnerId: finalWinnerId,
+    votes: voteData,
   });
 
-  // 🚨 VOID CASE (must happen BEFORE rewards)
-  const isVoid = correctVotes.length === 0;
+  rewards = result.rewards;
 
-  let rewards: Record<string, { xp: number; bounty: number }> = {};
+} else {
 
-  if (isVoid) {
-    for (const v of voteData) {
-      rewards[v.user_id] = {
-        xp: 3,
-        bounty: match.bounty_pool ?? 0, // full refund
-      };
-    }
-  } else {
-    if (match.mode === "solo") {
-      const result = calculateSoloRewards({
-        betAmount: match.bounty_pool ?? 0,
-        creatorId: match.creator_id,
-        winnerId: winner_id,
-        votes: voteData,
-      });
+  const result = calculateVoteBasedRewards({
+    votesA,
+    votesB,
+    betAmount: match.bounty_pool ?? 0,
+    creatorId: match.creator_id,
+    opponentId: match.opponent_id,
+    winnerId: finalWinnerId,
+    votes: voteData,
+  });
 
-      rewards = result.rewards;
-    } else {
-      const result = calculateVoteBasedRewards({
-        votesA,
-        votesB,
-        betAmount: match.bounty_pool ?? 0,
-        creatorId: match.creator_id,
-        opponentId: match.opponent_id,
-        winnerId: winner_id,
-        votes: voteData,
-      });
+  rewards = result.rewards;
+}
 
-      rewards = result.rewards;
-    }
+  // 💸 Pay everyone
+  for (const userId in rewards) {
+    const reward = rewards[userId];
 
-    // 💸 Pay everyone
-    for (const userId in rewards) {
-      const reward = rewards[userId];
+    await supabaseAdmin.rpc("increment_xp", {
+      uid: userId,
+      amount: reward.xp,
+    });
 
-      await supabaseAdmin.rpc("increment_xp", {
-        uid: userId,
-        amount: reward.xp,
-      });
-
-      await supabaseAdmin.rpc("increment_bounty", {
-        uid: userId,
-        amount: reward.bounty,
-      });
-    }
-
-    // ✅ Finish match
-    const { data: updated } = await supabaseAdmin
-      .from("matches")
-      .update({
-        status: "finished",
-        winner_id,
-      })
-      .eq("id", match_id)
-      .neq("status", "finished")
-      .select()
-      .single();
-
-    if (!updated) {
-      return Response.json({ error: "Already finished" }, { status: 400 });
-    }
-
-    return Response.json({
-      ok: true,
-      rewards,
+    await supabaseAdmin.rpc("increment_bounty", {
+      uid: userId,
+      amount: reward.bounty,
     });
   }
+
+  // ✅ Finish match
+  const { data: updated } = await supabaseAdmin
+    .from("matches")
+    .update({
+      status: "finished",
+      winner_id,
+    })
+    .eq("id", match_id)
+    .neq("status", "finished")
+    .select()
+    .single();
+
+  if (!updated) {
+    return Response.json({ error: "Already finished" }, { status: 400 });
+  }
+
+  return Response.json({
+    ok: true,
+    rewards,
+  });
+}
