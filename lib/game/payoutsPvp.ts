@@ -11,21 +11,30 @@ export function calculatePvPRewards({
     winnerId: string;
     betAmount: number;
 }) {
-
     const voters = votes.filter(
-        v => v.user_id !== creatorId
+        v => v.user_id !== creatorId && v.user_id !== opponentId
     );
 
-    const pool = betAmount * (2 + voters.length);
+    const participants = [
+        creatorId,
+        opponentId,
+        ...new Set(votes.map(v => v.user_id)),
+    ];
+
+    const pool = betAmount * participants.length;
 
     const correctSide = winnerId === creatorId ? "A" : "B";
 
-    const correct = voters.filter(v => v.vote === correctSide);
+    const uniqueVotes = [
+        ...new Map(votes.map(v => [v.user_id, v])).values(),
+    ];
+
+    const correct = uniqueVotes.filter(v => v.vote === correctSide);
 
     const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-    // 🧨 EDGE CASE: no voters at all → winner gets everything
-    if (voters.length === 0) {
+    // 🧨 EDGE CASE: no voters
+    if (correct.length === 0) {
         rewards[winnerId] = {
             xp: 50,
             bounty: pool,
@@ -33,17 +42,17 @@ export function calculatePvPRewards({
         return { pool, rewards };
     }
 
-    const winnerCut = Math.floor(pool * 0.6);
-    const voterPool = pool - winnerCut;
-
+    // 🏆 winner base cut
+    const winnerShare = Math.floor(pool * 0.5);
     rewards[winnerId] = {
         xp: 50,
-        bounty: winnerCut,
+        bounty: winnerShare,
     };
 
-    const each = correct.length
-        ? Math.floor(voterPool / correct.length)
-        : 0;
+    // 🧠 remaining pool to correct voters
+    const remaining = pool - winnerShare;
+
+    const each = Math.floor(remaining / correct.length);
 
     for (const v of correct) {
         rewards[v.user_id] = {
