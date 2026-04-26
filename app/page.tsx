@@ -291,14 +291,11 @@ export default function Home() {
               userId === match.creator_id || userId === match.opponent_id;
 
             if (match.mode === "solo") {
-              // 🚫 skip creator entirely
-              if (userId === match.creator_id) {
-                return;
-              }
+              if (userId === match.creator_id) return;
 
               const creatorWon = match.winner_id === match.creator_id;
-              const correctVote =
-                match.winner_id === match.creator_id ? "A" : "B";
+
+              const correctVote = creatorWon ? "B" : "A";
 
               const didVoteCorrectly = vote === correctVote;
 
@@ -307,6 +304,8 @@ export default function Home() {
                   ? "🎉 You voted correctly!"
                   : "❌ You voted wrong!"
               );
+
+              return;
             } else {
               // PvP MODE
               const userId = session.user.id;
