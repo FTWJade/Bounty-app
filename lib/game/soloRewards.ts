@@ -15,7 +15,8 @@ export function calculateSoloRewards({
     const creatorCut = Math.floor(pool * 0.4);
     const voterPool = Math.floor(pool * 0.6);
 
-    const correctSide = winnerId ? "B" : "A";
+    const creatorWon = winnerId === creatorId;
+    const correctSide = creatorWon ? "B" : "A";
 
 
     const correct = realVoters.filter(v => v.vote === correctSide);

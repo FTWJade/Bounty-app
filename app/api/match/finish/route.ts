@@ -9,8 +9,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const finalWinnerId = winner_id;
-
   // 🔒 Lock match
   const { data: claimed, error: claimError } = await supabaseAdmin
     .from("matches")
@@ -34,6 +32,12 @@ export async function POST(req: Request) {
   if (!match || error) {
     return Response.json({ error: "Match not found" }, { status: 404 });
   }
+
+  const isSolo = match.mode === "solo";
+  const finalWinnerId =
+    isSolo
+      ? (winner_id ? match.creator_id : null)
+      : winner_id;
 
   // 📦 Get votes
   const { data: votes } = await supabaseAdmin
