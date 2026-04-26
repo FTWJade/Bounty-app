@@ -1,72 +1,53 @@
 export function calculateSoloRewards({
     votes,
     creatorId,
+    creatorOutcome,
     betAmount,
 }: {
     votes: { user_id: string; vote: "A" | "B" }[];
     creatorId: string;
+    creatorOutcome: "WIN" | "LOSE";
     betAmount: number;
 }) {
+    // remove creator completely
     const voters = votes.filter(v => v.user_id !== creatorId);
 
-    const votesA = voters.filter(v => v.vote === "A").length;
-    const votesB = voters.filter(v => v.vote === "B").length;
-
-    const majoritySide = votesA > votesB ? "A" : "B";
-    const creatorSide = majoritySide === "A" ? "B" : "A";
-
-    // 🔥 TEMP: replace with real outcome later
-    const creatorWins = Math.random() < 0.5;
-
-    const winningSide = creatorWins ? creatorSide : majoritySide;
-
+    // 💰 full pool (creator + voters)
     const pool = betAmount * (1 + voters.length);
+
+    // 🧠 outcome decided by creator button
+    const correctSide = creatorOutcome === "WIN" ? "B" : "A";
+
+    const correct = voters.filter(v => v.vote === correctSide);
+    const wrong = voters.filter(v => v.vote !== correctSide);
 
     const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-    const winners = voters.filter(v => v.vote === winningSide);
-    const losers = voters.filter(v => v.vote !== winningSide);
+    // split pool
+    const winnerPool = Math.floor(pool * 0.8);
+    const loserPool = pool - winnerPool; // ensures exact total
 
-    if (creatorWins) {
-        // 👑 creator wins WITH minority voters
+    const eachWinner = correct.length
+        ? Math.floor(winnerPool / correct.length)
+        : 0;
 
-        const creatorCut = Math.floor(pool * 0.5);
-        const remaining = pool - creatorCut;
+    const eachLoser = wrong.length
+        ? Math.floor(loserPool / wrong.length)
+        : 0;
 
-        rewards[creatorId] = {
-            xp: 50,
-            bounty: creatorCut,
+    // 🏆 winners
+    for (const v of correct) {
+        rewards[v.user_id] = {
+            xp: 10,
+            bounty: eachWinner,
         };
+    }
 
-        const each = winners.length
-            ? Math.floor(remaining / winners.length)
-            : 0;
-
-        for (const v of winners) {
-            rewards[v.user_id] = {
-                xp: 10,
-                bounty: each,
-            };
-        }
-
-    } else {
-        // 🧠 voters win (majority correct)
-
-        const each = winners.length
-            ? Math.floor(pool / winners.length)
-            : 0;
-
-        for (const v of winners) {
-            rewards[v.user_id] = {
-                xp: 10,
-                bounty: each,
-            };
-        }
-
-        // creator loses → no payout
-        rewards[creatorId] = {
-            xp: 5,
-            bounty: 0,
+    // 🎖 losers (still get something)
+    for (const v of wrong) {
+        rewards[v.user_id] = {
+            xp: 3,
+            bounty: eachLoser,
         };
     }
 

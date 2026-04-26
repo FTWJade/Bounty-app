@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       betAmount: match.bounty_pool ?? 0,
       creatorId: match.creator_id,
       votes: voteData,
+      creatorOutcome: winner_id ? "WIN" : "LOSE",
     });
     rewards = result.rewards;
 
