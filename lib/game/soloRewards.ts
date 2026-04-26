@@ -13,30 +13,33 @@ export function calculateSoloRewards({
   winnerId: string;
   votes: { user_id: string; vote: "A" | "B" }[];
 }) {
-  const pool = (votesA + votesB + 1) * betAmount;
+  // 💰 REAL MONEY ONLY
+  const pool = betAmount * 2;
 
   const creatorWon = winnerId === creatorId;
 
-  // 🎯 Creator reward
-  const creatorReward = creatorWon
-    ? Math.floor(pool * 0.6)
-    : Math.floor(pool * 0.1);
-
-  // 🗳️ Split voters
+  // 🎯 decide correct side
   const correctSide = creatorWon ? "B" : "A";
 
   const correctVoters = votes.filter(v => v.vote === correctSide);
   const wrongVoters = votes.filter(v => v.vote !== correctSide);
 
-  const correctPool = Math.floor(pool * 0.3);
-  const wrongPool = Math.floor(pool * 0.1);
+  // 🧠 include creator as "participant"
+  const totalParticipants = correctVoters.length + wrongVoters.length + 1;
+
+  // 💡 split pool based on participants
+  const creatorShare = Math.floor(pool * (creatorWon ? 0.6 : 0.2));
+  const voterPool = pool - creatorShare;
+
+  const correctPool = Math.floor(voterPool * 0.7);
+  const wrongPool = voterPool - correctPool;
 
   const rewards: Record<string, { xp: number; bounty: number }> = {};
 
   // 👤 creator
   rewards[creatorId] = {
     xp: creatorWon ? 50 : 10,
-    bounty: creatorReward,
+    bounty: creatorShare,
   };
 
   // 🟢 correct voters
