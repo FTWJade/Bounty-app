@@ -78,7 +78,6 @@ export async function POST(req: Request) {
     const result = calculateSoloRewards({
       betAmount: match.bounty_pool ?? 0,
       creatorId: match.creator_id,
-      creatorOutcome: winner_id === match.creator_id ? "WIN" : "LOSE",
       votes: voteData,
     });
     rewards = result.rewards;
