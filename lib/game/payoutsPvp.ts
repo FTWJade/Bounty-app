@@ -39,7 +39,7 @@ export function calculatePvPRewards({
     }
 
     // 🏆 winner base cut
-    const winnerShare = Math.floor(pool * 0.5);
+    const winnerShare = Math.floor(pool * 0.65);
 
     rewards[winnerId] = {
         xp: 50,
