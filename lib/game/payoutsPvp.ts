@@ -1,48 +1,51 @@
 export function calculatePvPRewards({
-  votes,
-  creatorId,
-  opponentId,
-  winnerId,
-  betAmount,
+    votes,
+    creatorId,
+    opponentId,
+    winnerId,
+    betAmount,
 }: {
-  votes: { user_id: string; vote: "A" | "B" }[];
-  creatorId: string;
-  opponentId: string;
-  winnerId: string;
-  betAmount: number;
+    votes: { user_id: string; vote: "A" | "B" }[];
+    creatorId: string;
+    opponentId: string;
+    winnerId: string;
+    betAmount: number;
 }) {
-  const pool = betAmount * 2; // 2 players
+    const voterContribution = votes.length * betAmount;
+    const playerContribution = 2 * betAmount;
 
-  const winnerReward = Math.floor(pool * 0.8);
-  const voterPool = Math.floor(pool * 0.2);
+    const pool = voterContribution + playerContribution;
 
-  const correctSide = winnerId === creatorId ? "A" : "B";
+    const winnerReward = Math.floor(pool * 0.8);
+    const voterPool = Math.floor(pool * 0.2);
 
-  const realVoters = votes.filter(
-    v => v.user_id !== creatorId && v.user_id !== opponentId
-  );
+    const correctSide = winnerId === creatorId ? "A" : "B";
 
-  const correct = realVoters.filter(v => v.vote === correctSide);
+    const realVoters = votes.filter(
+        v => v.user_id !== creatorId && v.user_id !== opponentId
+    );
 
-  const each = correct.length
-    ? Math.floor(voterPool / correct.length)
-    : 0;
+    const correct = realVoters.filter(v => v.vote === correctSide);
 
-  const rewards: Record<string, { xp: number; bounty: number }> = {};
+    const each = correct.length
+        ? Math.floor(voterPool / correct.length)
+        : 0;
 
-  // winner
-  rewards[winnerId] = {
-    xp: 50,
-    bounty: winnerReward,
-  };
+    const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  // voters
-  for (const v of correct) {
-    rewards[v.user_id] = {
-      xp: 10,
-      bounty: each,
+    // winner
+    rewards[winnerId] = {
+        xp: 50,
+        bounty: winnerReward,
     };
-  }
 
-  return { pool, rewards };
+    // voters
+    for (const v of correct) {
+        rewards[v.user_id] = {
+            xp: 10,
+            bounty: each,
+        };
+    }
+
+    return { pool, rewards };
 }
