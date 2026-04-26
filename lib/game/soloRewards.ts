@@ -13,13 +13,13 @@ export function calculateSoloRewards({
     const pool = betAmount * participantCount;
 
     const creatorWon = winnerId === creatorId;
-    const correctSide = winnerId === creatorId ? "A" : "B";
+    const correctSide = winnerId === creatorId ? "B" : "A";
 
     const correctVoters = votes.filter(v => v.vote === correctSide);
     const wrongVoters = votes.filter(v => v.vote !== correctSide);
 
     // 💡 FIXED SPLITS (must sum to 1.0)
-    const creatorSharePct = creatorWon ? 0.6 : 0.2;
+    const creatorSharePct = creatorWon ? 0.6 : 0;
     const voterPoolPct = 1 - creatorSharePct;
 
     const creatorShare = pool * creatorSharePct;
