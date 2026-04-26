@@ -1,57 +1,74 @@
 export function calculateSoloRewards({
-  votes,
-  creatorId,
-  betAmount,
+    votes,
+    creatorId,
+    betAmount,
 }: {
-  votes: { user_id: string; vote: "A" | "B" }[];
-  creatorId: string;
-  betAmount: number;
+    votes: { user_id: string; vote: "A" | "B" }[];
+    creatorId: string;
+    betAmount: number;
 }) {
-  const voters = votes.filter(v => v.user_id !== creatorId);
+    const voters = votes.filter(v => v.user_id !== creatorId);
 
-  const pool = betAmount * (1 + voters.length);
+    const votesA = voters.filter(v => v.vote === "A").length;
+    const votesB = voters.filter(v => v.vote === "B").length;
 
-  const votesA = voters.filter(v => v.vote === "A");
-  const votesB = voters.filter(v => v.vote === "B");
+    const majoritySide = votesA > votesB ? "A" : "B";
+    const creatorSide = majoritySide === "A" ? "B" : "A";
 
-  // determine majority
-  let majoritySide: "A" | "B" = "A";
-  if (votesB.length > votesA.length) majoritySide = "B";
+    // 🔥 TEMP: replace with real outcome later
+    const creatorWins = Math.random() < 0.5;
 
-  const minoritySide = majoritySide === "A" ? "B" : "A";
+    const winningSide = creatorWins ? creatorSide : majoritySide;
 
-  // winners = minority voters + creator
-  const winningVoters = voters.filter(v => v.vote === minoritySide);
+    const pool = betAmount * (1 + voters.length);
 
-  const winnersCount = winningVoters.length + 1; // + creator
+    const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  const rewards: Record<string, { xp: number; bounty: number }> = {};
+    const winners = voters.filter(v => v.vote === winningSide);
+    const losers = voters.filter(v => v.vote !== winningSide);
 
-  const each = Math.floor(pool / winnersCount);
+    if (creatorWins) {
+        // 👑 creator wins WITH minority voters
 
-  let distributed = 0;
+        const creatorCut = Math.floor(pool * 0.5);
+        const remaining = pool - creatorCut;
 
-  // creator
-  rewards[creatorId] = {
-    xp: 30,
-    bounty: each,
-  };
-  distributed += each;
+        rewards[creatorId] = {
+            xp: 50,
+            bounty: creatorCut,
+        };
 
-  // winning voters
-  for (const v of winningVoters) {
-    rewards[v.user_id] = {
-      xp: 10,
-      bounty: each,
-    };
-    distributed += each;
-  }
+        const each = winners.length
+            ? Math.floor(remaining / winners.length)
+            : 0;
 
-  // remainder fix
-  const remainder = pool - distributed;
-  if (remainder > 0) {
-    rewards[creatorId].bounty += remainder;
-  }
+        for (const v of winners) {
+            rewards[v.user_id] = {
+                xp: 10,
+                bounty: each,
+            };
+        }
 
-  return { pool, rewards };
+    } else {
+        // 🧠 voters win (majority correct)
+
+        const each = winners.length
+            ? Math.floor(pool / winners.length)
+            : 0;
+
+        for (const v of winners) {
+            rewards[v.user_id] = {
+                xp: 10,
+                bounty: each,
+            };
+        }
+
+        // creator loses → no payout
+        rewards[creatorId] = {
+            xp: 5,
+            bounty: 0,
+        };
+    }
+
+    return { pool, rewards };
 }
