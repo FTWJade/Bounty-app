@@ -11,24 +11,35 @@ export function calculateSoloRewards({
 }) {
   const pool = betAmount;
 
-  const creatorWon = winnerId === creatorId;
-  const correctSide = creatorWon ? "B" : "A";
-
   const creatorCut = Math.floor(pool * 0.25);
   const remainingPool = pool - creatorCut;
 
   const voterOnly = votes.filter(v => v.user_id !== creatorId);
-  const correctVoters = voterOnly.filter(v => v.vote === correctSide);
 
   const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  // 👑 creator always gets fixed cut
+  // 👑 creator base reward ALWAYS
   rewards[creatorId] = {
     xp: 10,
     bounty: creatorCut,
   };
 
-  // 💸 if no correct voters → creator keeps ONLY base cut
+  // 🚨 VOID CASE HANDLED OUTSIDE — so treat winnerId null as no payout pool
+  if (!winnerId) {
+    for (const v of voterOnly) {
+      rewards[v.user_id] = {
+        xp: 3,
+        bounty: 0,
+      };
+    }
+    return { pool, rewards };
+  }
+
+  const correctSide = winnerId === creatorId ? "B" : "A";
+
+  const correctVoters = voterOnly.filter(v => v.vote === correctSide);
+
+  // ❌ no correct voters → NO pool distribution
   if (correctVoters.length === 0) {
     for (const v of voterOnly) {
       rewards[v.user_id] = {
@@ -50,7 +61,6 @@ export function calculateSoloRewards({
     };
   }
 
-  // ❌ wrong voters
   for (const v of voterOnly) {
     if (!rewards[v.user_id]) {
       rewards[v.user_id] = {

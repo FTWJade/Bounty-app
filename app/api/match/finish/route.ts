@@ -63,59 +63,62 @@ export async function POST(req: Request) {
 
   // 🧮 Count votes
   // 💰 Calculate rewards
-const allVotes = votes ?? [];
+  const allVotes = votes ?? [];
 
-const voteData = isSolo
-  ? allVotes.filter(v => v.user_id !== match.creator_id)
-  : allVotes;
+  const voteData = isSolo
+    ? allVotes.filter(v => v.user_id !== match.creator_id)
+    : allVotes;
 
-// 🧮 Count votes
-const votesA = voteData.filter(v => v.vote === "A").length;
-const votesB = voteData.filter(v => v.vote === "B").length;
+  // 🧮 Count votes
+  const votesA = voteData.filter(v => v.vote === "A").length;
+  const votesB = voteData.filter(v => v.vote === "B").length;
 
-// ✅ DETERMINE VOID
-const correctSide = winner_id === match.creator_id ? "B" : "A";
-const correctVotes = voteData.filter(v => v.vote === correctSide);
-const isVoid = correctVotes.length === 0;
+  // ✅ DETERMINE VOID
+  const isVoid = (() => {
+    const testSide = winner_id === match.creator_id ? "B" : "A";
+    const correctVotes = voteData.filter(v => v.vote === testSide);
+    return correctVotes.length === 0;
+  })();
 
-const finalWinnerId = isVoid ? null : winner_id;
+  const finalWinnerId = isVoid ? null : winner_id;
 
-// 💰 Rewards
-let rewards: Record<string, { xp: number; bounty: number }> = {};
 
-if (isVoid) {
-  for (const v of voteData) {
-    rewards[v.user_id] = {
-      xp: 3,
-      bounty: match.bounty_pool ?? 0,
-    };
+  // 💰 Rewards
+  let rewards: Record<string, { xp: number; bounty: number }> = {};
+
+  if (isVoid) {
+    for (const v of voteData) {
+      rewards[v.user_id] = {
+        xp: 3,
+        bounty: match.bounty_pool ?? 0,
+      };
+    }
+
+  } else if (match.mode === "solo") {
+
+    const result = calculateSoloRewards({
+      betAmount: match.bounty_pool ?? 0,
+      creatorId: match.creator_id,
+      winnerId: finalWinnerId,
+      votes: voteData,
+    });
+
+    rewards = result.rewards;
+
+  } else {
+
+    const result = calculateVoteBasedRewards({
+      votesA,
+      votesB,
+      betAmount: match.bounty_pool ?? 0,
+      creatorId: match.creator_id,
+      opponentId: match.opponent_id,
+      winnerId: finalWinnerId,
+      votes: voteData,
+    });
+
+    rewards = result.rewards;
   }
-
-} else if (match.mode === "solo") {
-
-  const result = calculateSoloRewards({
-    betAmount: match.bounty_pool ?? 0,
-    creatorId: match.creator_id,
-    winnerId: finalWinnerId,
-    votes: voteData,
-  });
-
-  rewards = result.rewards;
-
-} else {
-
-  const result = calculateVoteBasedRewards({
-    votesA,
-    votesB,
-    betAmount: match.bounty_pool ?? 0,
-    creatorId: match.creator_id,
-    opponentId: match.opponent_id,
-    winnerId: finalWinnerId,
-    votes: voteData,
-  });
-
-  rewards = result.rewards;
-}
 
   // 💸 Pay everyone
   for (const userId in rewards) {
@@ -137,7 +140,7 @@ if (isVoid) {
     .from("matches")
     .update({
       status: "finished",
-      winner_id,
+      winner_id: finalWinnerId,
     })
     .eq("id", match_id)
     .neq("status", "finished")
