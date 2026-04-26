@@ -297,11 +297,13 @@ export default function Home() {
               }
 
               const creatorWon = match.winner_id === match.creator_id;
-              const correctVote = creatorWon ? "B" : "A";
-              const didWinVote = vote === correctVote;
+              const correctVote =
+                match.winner_id === match.creator_id ? "A" : "B";
+
+              const didVoteCorrectly = vote === correctVote;
 
               showPopup(
-                didWinVote
+                didVoteCorrectly
                   ? "🎉 You voted correctly!"
                   : "❌ You voted wrong!"
               );
@@ -915,7 +917,7 @@ export default function Home() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   match_id: currentMatch.id,
-                  winner_id: "NONE", // or "DRAW"
+                  winner_id: "nulll", // or "DRAW"
                   caller_id: session.user.id,
                 }),
               });
