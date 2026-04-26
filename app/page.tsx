@@ -329,6 +329,13 @@ export default function Home() {
               }
 
               if (!match.winner_id) {
+                if (match.mode === "solo") {
+                  // solo loss is valid outcome
+                  const didLose = voteRef.current === "A";
+                  showPopup(didLose ? "💀 You lost" : "🎉 You won");
+                  return;
+                }
+
                 showPopup("⏳ Match ended with no result");
                 return;
               }
@@ -908,7 +915,7 @@ export default function Home() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   match_id: currentMatch.id,
-                  winner_id: null,
+                  winner_id: "NONE", // or "DRAW"
                   caller_id: session.user.id,
                 }),
               });
