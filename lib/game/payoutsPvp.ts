@@ -13,7 +13,7 @@ export function calculatePvPRewards({
 }) {
 
     const voters = votes.filter(
-        v => v.user_id !== creatorId && v.user_id !== opponentId
+        v => v.user_id !== creatorId
     );
 
     const pool = betAmount * (1 + voters.length);
