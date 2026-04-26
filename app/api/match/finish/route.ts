@@ -96,14 +96,25 @@ export async function POST(req: Request) {
 
   } else if (match.mode === "solo") {
 
-    const result = calculateSoloRewards({
-      betAmount: match.bounty_pool ?? 0,
-      creatorId: match.creator_id,
-      winnerId: finalWinnerId,
-      votes: voteData,
-    });
+    if (isVoid) {
+      rewards = {};
+      for (const v of voteData) {
+        rewards[v.user_id] = {
+          xp: 3,
+          bounty: 0,
+        };
+      }
+    }
+    else {
+      const result = calculateSoloRewards({
+        betAmount: match.bounty_pool ?? 0,
+        creatorId: match.creator_id,
+        winnerId: finalWinnerId,
+        votes: voteData,
+      });
 
-    rewards = result.rewards;
+      rewards = result.rewards;
+    }
 
   } else {
 
