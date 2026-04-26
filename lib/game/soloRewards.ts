@@ -13,9 +13,7 @@ export function calculateSoloRewards({
     const pool = betAmount * participantCount;
 
     const creatorWon = winnerId === creatorId;
-
-    // 🎯 correct side
-    const correctSide = creatorWon ? "A" : "B";
+    const correctSide = winnerId === creatorId ? "A" : "B";
 
     const correctVoters = votes.filter(v => v.vote === correctSide);
     const wrongVoters = votes.filter(v => v.vote !== correctSide);
