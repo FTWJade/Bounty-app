@@ -15,7 +15,7 @@ export function calculateSoloRewards({
     ]).size;
 
     // 💰 total pool (creator + voters)
-    const pool = betAmount * (1 + votes.length + 1);
+    const pool = betAmount * (1 + votes.length);
 
     const creatorWon = winnerId === creatorId;
 
