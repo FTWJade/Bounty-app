@@ -39,7 +39,6 @@ export async function POST(req: Request) {
     .select("user_id, vote")
     .eq("match_id", match_id);
 
-  const voteData = votes ?? [];
 
   // 🔐 Validation
   if (match.mode === "pvp" && !match.opponent_id) {
@@ -60,10 +59,17 @@ export async function POST(req: Request) {
       { status: 403 }
     );
   }
+  const isSolo = match.mode === "solo";
+  const allVotes = votes ?? [];
+
+  const voteData = isSolo
+    ? allVotes.filter(v => v.user_id !== match.creator_id) // creator ignored in solo
+    : allVotes;
 
   // 🧮 Count votes
   const votesA = voteData.filter(v => v.vote === "A").length;
   const votesB = voteData.filter(v => v.vote === "B").length;
+
 
   // 💰 Calculate rewards
   let rewards;
