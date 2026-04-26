@@ -35,6 +35,16 @@ export function calculateSoloRewards({
         ? Math.floor(loserPool / wrong.length)
         : 0;
 
+    // 🧨 if nobody was correct → creator wins everything
+    if (correct.length === 0) {
+        rewards[creatorId] = {
+            xp: 50,
+            bounty: pool,
+        };
+
+        return { pool, rewards };
+    }
+
     // 🏆 winners
     for (const v of correct) {
         rewards[v.user_id] = {
@@ -45,6 +55,7 @@ export function calculateSoloRewards({
 
     // 🎖 losers (still get something)
     for (const v of wrong) {
+        votes.filter(v => v.user_id !== creatorId)
         rewards[v.user_id] = {
             xp: 3,
             bounty: eachLoser,
