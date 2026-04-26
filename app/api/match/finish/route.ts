@@ -70,66 +70,80 @@ export async function POST(req: Request) {
   const votesA = voteData.filter(v => v.vote === "A").length;
   const votesB = voteData.filter(v => v.vote === "B").length;
 
-
-  // 💰 Calculate rewards
-  let rewards;
-
-  if (match.mode === "solo") {
-    const result = calculateSoloRewards({
-      betAmount: match.bounty_pool ?? 0,
-      creatorId: match.creator_id,
-      winnerId: winner_id,
-      votes: voteData,
-    });
-
-    rewards = result.rewards;
-  } else {
-    const result = calculateVoteBasedRewards({
-      votesA,
-      votesB,
-      betAmount: match.bounty_pool ?? 0,
-      creatorId: match.creator_id,
-      opponentId: match.opponent_id,
-      winnerId: winner_id,
-      votes: voteData,
-    });
-
-    rewards = result.rewards;
-  }
-
-  // 💸 Pay everyone
-  for (const userId in rewards) {
-    const reward = rewards[userId];
-
-    await supabaseAdmin.rpc("increment_xp", {
-      uid: userId,
-      amount: reward.xp,
-    });
-
-    await supabaseAdmin.rpc("increment_bounty", {
-      uid: userId,
-      amount: reward.bounty,
-    });
-  }
-
-  // ✅ Finish match
-  const { data: updated } = await supabaseAdmin
-    .from("matches")
-    .update({
-      status: "finished",
-      winner_id,
-    })
-    .eq("id", match_id)
-    .neq("status", "finished")
-    .select()
-    .single();
-
-  if (!updated) {
-    return Response.json({ error: "Already finished" }, { status: 400 });
-  }
-
-  return Response.json({
-    ok: true,
-    rewards,
+  const correctVotes = voteData.filter(v => {
+    const correctSide = winner_id === match.creator_id ? "B" : "A";
+    return v.vote === correctSide;
   });
-}
+
+  // 🚨 VOID CASE (must happen BEFORE rewards)
+  const isVoid = correctVotes.length === 0;
+
+  let rewards: Record<string, { xp: number; bounty: number }> = {};
+
+  if (isVoid) {
+    for (const v of voteData) {
+      rewards[v.user_id] = {
+        xp: 3,
+        bounty: match.bounty_pool ?? 0, // full refund
+      };
+    }
+  } else {
+    if (match.mode === "solo") {
+      const result = calculateSoloRewards({
+        betAmount: match.bounty_pool ?? 0,
+        creatorId: match.creator_id,
+        winnerId: winner_id,
+        votes: voteData,
+      });
+
+      rewards = result.rewards;
+    } else {
+      const result = calculateVoteBasedRewards({
+        votesA,
+        votesB,
+        betAmount: match.bounty_pool ?? 0,
+        creatorId: match.creator_id,
+        opponentId: match.opponent_id,
+        winnerId: winner_id,
+        votes: voteData,
+      });
+
+      rewards = result.rewards;
+    }
+
+    // 💸 Pay everyone
+    for (const userId in rewards) {
+      const reward = rewards[userId];
+
+      await supabaseAdmin.rpc("increment_xp", {
+        uid: userId,
+        amount: reward.xp,
+      });
+
+      await supabaseAdmin.rpc("increment_bounty", {
+        uid: userId,
+        amount: reward.bounty,
+      });
+    }
+
+    // ✅ Finish match
+    const { data: updated } = await supabaseAdmin
+      .from("matches")
+      .update({
+        status: "finished",
+        winner_id,
+      })
+      .eq("id", match_id)
+      .neq("status", "finished")
+      .select()
+      .single();
+
+    if (!updated) {
+      return Response.json({ error: "Already finished" }, { status: 400 });
+    }
+
+    return Response.json({
+      ok: true,
+      rewards,
+    });
+  }
