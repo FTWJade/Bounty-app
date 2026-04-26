@@ -1,32 +1,33 @@
 export function calculateSoloRewards({
-    votesA,
-    votesB,
     betAmount,
     creatorId,
     winnerId,
     votes,
 }: {
-    votesA: number;
-    votesB: number;
     betAmount: number;
     creatorId: string;
     winnerId: string;
     votes: { user_id: string; vote: "A" | "B" }[];
 }) {
-    const participantCount = 2 + votes.length;
-    const pool = betAmount * participantCount;
+    const totalParticipants = 1 + votes.length;
+
+    // 💰 total pool (creator + voters)
+    const pool = betAmount * totalParticipants;
 
     const creatorWon = winnerId === creatorId;
+
+    // 🎯 correct side
     const correctSide = creatorWon ? "B" : "A";
 
     const correctVoters = votes.filter(v => v.vote === correctSide);
     const wrongVoters = votes.filter(v => v.vote !== correctSide);
 
-    const creatorShare = creatorWon
-        ? pool * 0.6
-        : pool * 0.2;
+    // 💡 FIXED SPLITS (must sum to 1.0)
+    const creatorSharePct = creatorWon ? 0.6 : 0.2;
+    const voterPoolPct = 1 - creatorSharePct;
 
-    const voterPool = pool - creatorShare;
+    const creatorShare = pool * creatorSharePct;
+    const voterPool = pool * voterPoolPct;
 
     const correctPool = voterPool * 0.7;
     const wrongPool = voterPool * 0.3;
