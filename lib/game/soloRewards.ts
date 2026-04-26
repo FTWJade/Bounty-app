@@ -9,13 +9,10 @@ export function calculateSoloRewards({
     winnerId: string | null;
     betAmount: number;
 }) {
-    const voterContribution = votes.length * betAmount;
-    const playerContribution = betAmount;
+    const pool = betAmount + votes.length * betAmount;
 
-    const pool = voterContribution + playerContribution;
-
-    const creatorCut = Math.floor(pool * 0.25);
-    const voterPool = Math.floor(pool * 0.75);
+    const creatorCut = Math.floor(pool * 0.4);
+    const voterPool = Math.floor(pool * 0.6);
 
     const correctSide = winnerId ? "B" : "A";
     // A = LOSE, B = WIN (your UI logic)
