@@ -14,28 +14,22 @@ export function calculateSoloRewards({
   const creatorWon = winnerId === creatorId;
   const correctSide = creatorWon ? "B" : "A";
 
-  // 💰 Creator ALWAYS gets 25%
   const creatorCut = Math.floor(pool * 0.25);
   const remainingPool = pool - creatorCut;
 
-  // 🚫 exclude creator from voter distribution
   const voterOnly = votes.filter(v => v.user_id !== creatorId);
-
   const correctVoters = voterOnly.filter(v => v.vote === correctSide);
 
   const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  // 👑 creator base reward
+  // 👑 creator always gets fixed cut
   rewards[creatorId] = {
     xp: 10,
     bounty: creatorCut,
   };
 
-  // 🧠 if no correct voters → creator gets everything
+  // 💸 if no correct voters → creator keeps ONLY base cut
   if (correctVoters.length === 0) {
-    rewards[creatorId].bounty = pool;
-
-    // wrong voters still get XP only
     for (const v of voterOnly) {
       rewards[v.user_id] = {
         xp: 3,
@@ -46,7 +40,7 @@ export function calculateSoloRewards({
     return { pool, rewards };
   }
 
-  // 💸 split remaining pool among correct voters
+  // 💸 split remaining pool
   const each = Math.floor(remainingPool / correctVoters.length);
 
   for (const v of correctVoters) {
@@ -66,8 +60,5 @@ export function calculateSoloRewards({
     }
   }
 
-  return {
-    pool,
-    rewards,
-  };
+  return { pool, rewards };
 }
