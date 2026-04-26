@@ -1,73 +1,55 @@
 export function calculateSoloRewards({
   votes,
   creatorId,
-  creatorOutcome,
   betAmount,
 }: {
   votes: { user_id: string; vote: "A" | "B" }[];
   creatorId: string;
-  creatorOutcome: "WIN" | "LOSE";
   betAmount: number;
 }) {
   const voters = votes.filter(v => v.user_id !== creatorId);
 
   const pool = betAmount * (1 + voters.length);
 
-  const correctSide = creatorOutcome === "WIN" ? "B" : "A";
+  const votesA = voters.filter(v => v.vote === "A");
+  const votesB = voters.filter(v => v.vote === "B");
 
-  const correct = voters.filter(v => v.vote === correctSide);
-  const wrong = voters.filter(v => v.vote !== correctSide);
+  // determine majority
+  let majoritySide: "A" | "B" = "A";
+  if (votesB.length > votesA.length) majoritySide = "B";
+
+  const minoritySide = majoritySide === "A" ? "B" : "A";
+
+  // winners = minority voters + creator
+  const winningVoters = voters.filter(v => v.vote === minoritySide);
+
+  const winnersCount = winningVoters.length + 1; // + creator
 
   const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-  // base splits
-  let creatorCut = Math.floor(pool * 0.4);
-  let voterPool = pool - creatorCut;
+  const each = Math.floor(pool / winnersCount);
 
   let distributed = 0;
 
   // creator
   rewards[creatorId] = {
     xp: 30,
-    bounty: creatorCut,
+    bounty: each,
   };
-  distributed += creatorCut;
+  distributed += each;
 
-  // voters
-  const correctTotal = Math.floor(voterPool * 0.8);
-  const wrongTotal = voterPool - correctTotal;
-
-  const eachCorrect = correct.length
-    ? Math.floor(correctTotal / correct.length)
-    : 0;
-
-  const eachWrong = wrong.length
-    ? Math.floor(wrongTotal / wrong.length)
-    : 0;
-
-  // pay correct
-  for (const v of correct) {
+  // winning voters
+  for (const v of winningVoters) {
     rewards[v.user_id] = {
       xp: 10,
-      bounty: eachCorrect,
+      bounty: each,
     };
-    distributed += eachCorrect;
+    distributed += each;
   }
 
-  // pay wrong
-  for (const v of wrong) {
-    rewards[v.user_id] = {
-      xp: 3,
-      bounty: eachWrong,
-    };
-    distributed += eachWrong;
-  }
-
-  // 🧠 FIX: distribute leftover
+  // remainder fix
   const remainder = pool - distributed;
-
   if (remainder > 0) {
-    // give remainder to creator (simplest + stable)
     rewards[creatorId].bounty += remainder;
   }
 
