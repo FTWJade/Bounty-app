@@ -852,7 +852,7 @@ export default function Home() {
         </p>
       )}
 
-      {!currentMatch && canCancelMatch && (
+      {!currentMatch && (
         <div style={{ marginTop: 10 }}>
           <input
             value={matchId}
