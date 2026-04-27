@@ -838,6 +838,7 @@ export default function Home() {
                 setCurrentMatch(full.data);
                 setMatchId(full.data.id);
                 setDidCreateMatch(true);
+                setBounty((prev) => prev - betAmount);
               }
             }}
           >
