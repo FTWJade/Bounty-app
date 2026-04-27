@@ -7,21 +7,29 @@ export default function MatchView({
   voteCount,
   handleVote,
   isSolo,
-  getUsername,
   getUserColor,
   getSideName,
   votes,
-  leftVotes,
-  rightVotes,
   creatorVotes,
   opponentVotes,
   totalVotes,
   fillPercent,
   canVote,
   getVoteLabel,
-  session,
+  isCoolingDown,
+  isSoloCreator,
   btn,
 }: any) {
+  const getVotedUsername = (vote: "A" | "B" | null) => {
+    if (!vote || !currentMatch) return null;
+
+    const user =
+      vote === "A"
+        ? currentMatch.creator
+        : currentMatch.opponent;
+
+    return user?.username || (vote === "A" ? "Creator" : "Opponent");
+  };
   return (
     <div>
       {isMatchVisible && (
@@ -49,9 +57,7 @@ export default function MatchView({
 
                     {myVote && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote === "A"
-                          ? getUsername(currentMatch.creator)
-                          : getUsername(currentMatch.opponent)}
+                        You voted: {myVote}
                       </p>
                     )}
 
@@ -179,22 +185,42 @@ export default function MatchView({
                   </div>
                 )}
               </div>
-              {canVote && (
-                <>
-                  <button
-                    style={{ ...btn, background: "red", color: "white" }}
-                    onClick={() => handleVote("A")}
-                  >
-                    Vote {getVoteLabel("A")}
-                  </button>
+              {canVote && !isSoloCreator &&(
+                isCoolingDown ? (
+                  <p style={{ marginTop: 10, color: "#888" }}>
+                    ⏳ You voted:    <b>
+                      {isSolo
+                        ? myVote === "A"
+                          ? "LOSE"
+                          : "WIN"
+                        : getVotedUsername(myVote)}
+                    </b>
+                  </p>
+                ) : (
+                  <>
+                    <button
+                      style={{
+                        ...btn,
+                        background: "red",
+                        color: "white",
+                      }}
+                      onClick={() => handleVote("A")}
+                    >
+                      Vote {getVoteLabel("A")}
+                    </button>
 
-                  <button
-                    style={{ ...btn, background: "green", color: "white" }}
-                    onClick={() => handleVote("B")}
-                  >
-                    Vote {getVoteLabel("B")}
-                  </button>
-                </>
+                    <button
+                      style={{
+                        ...btn,
+                        background: "green",
+                        color: "white",
+                      }}
+                      onClick={() => handleVote("B")}
+                    >
+                      Vote {getVoteLabel("B")}
+                    </button>
+                  </>
+                )
               )}
             </div>
           )}

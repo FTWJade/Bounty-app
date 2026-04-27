@@ -30,6 +30,14 @@ type MatchResult = {
 };
 
 export default function Home() {
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const isCoolingDown =
+    cooldownUntil !== null && Date.now() < cooldownUntil;
+
+  const cooldownRemaining =
+    cooldownUntil ? Math.max(0, cooldownUntil - Date.now()) : 0;
+
+  const canVoteNow = !isCoolingDown;
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
   const [input, setInput] = useState<string>("");
@@ -115,6 +123,7 @@ export default function Home() {
   const leftVotes = creatorVotes;
   const rightVotes = opponentVotes;
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
+  const [myVoteResolved, setMyVoteResolved] = useState<"WIN" | "LOSE" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
   const userId = session?.user?.id;
@@ -173,7 +182,7 @@ export default function Home() {
     if (!currentMatch?.id || !session?.user?.id) return;
 
     const interval = setInterval(async () => {
-      await fetch("/api/match/heartbeat", {
+      const res = await fetch("/api/match/heartbeat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -181,7 +190,19 @@ export default function Home() {
           user_id: session.user.id,
         }),
       });
-    }, 5000); // ping every 5 sec
+
+      const data = await res.json();
+
+      // 🧠 sync vote from server
+      if (data.vote) {
+        setMyVote(data.vote);
+      }
+
+      // ⏳ sync cooldown from server
+      if (data.cooldown_end) {
+        setCooldownUntil(data.cooldown_end);
+      }
+    }, 5000);
 
     return () => clearInterval(interval);
   }, [currentMatch?.id, session?.user?.id]);
@@ -214,7 +235,11 @@ export default function Home() {
       const res = await fetch(`/api/match/get?id=${currentMatch.id}`);
       const data = await res.json();
 
-      const match = data.data;
+      const updatedMatch = await fetch(`/api/match/get?id=${currentMatch.id}`)
+        .then(r => r.json());
+
+      const match = updatedMatch.data;
+
       if (!match) return;
 
       if (match.status !== "active" && match.status !== "open") return;
@@ -344,8 +369,6 @@ export default function Home() {
               showPopup(didWin ? "🏆 You won!" : "💀 You lost");
             }
           }
-          setMyVote(null);
-
           setCurrentMatch(null);
           setMatchId("");
           setDidCreateMatch(false);
@@ -522,11 +545,11 @@ export default function Home() {
     votingUnlocked &&
     (
       isSolo
-        ? true // everyone in solo match can vote
+        ? session.user.id !== currentMatch.creator_id // 👈 creator cannot vote in solo
         : session.user.id !== currentMatch.creator_id &&
         session.user.id !== currentMatch.opponent_id
     );
-
+  const isSoloCreator = isSolo && isCreator;
   const filteredLeaderboard = leaderboard
     .map((user, index) => ({ ...user, realRank: index + 1 }))
     .filter((user) =>
@@ -567,13 +590,16 @@ export default function Home() {
         ? currentMatch.creator_id // WIN
         : null // LOSE (no winner)
       : null;
-
   const handleVote = async (voteKey: "A" | "B") => {
     if (!currentMatch || !session?.user?.id) return;
 
-    voteRef.current = voteKey;
-    setMyVote(voteKey);
+    // 🚫 client-side block
+    if (isCoolingDown) {
+      showPopup(`⏳ Wait ${Math.ceil(cooldownRemaining / 1000)}s`);
+      return;
+    }
 
+    voteRef.current = voteKey;
     const res = await fetch("/api/match/vote", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -586,13 +612,30 @@ export default function Home() {
 
     const result = await res.json();
 
+    // ❌ cooldown from server
+    if (res.status === 429) {
+      if (result.cooldown_end) {
+        setCooldownUntil(result.cooldown_end);
+      }
+
+      showPopup(
+        `⏳ Cooldown: ${Math.ceil(
+          (result.cooldown_end - Date.now()) / 1000
+
+        )}s`
+      );
+
+      return;
+    }
+
     if (!res.ok) {
       showPopup(result.error || "Unable to vote");
       return;
     }
-
-    const data = await fetch(`/api/match/votes?match_id=${currentMatch.id}`)
-      .then(r => r.json());
+    // refresh votes
+    const data = await fetch(
+      `/api/match/votes?match_id=${currentMatch.id}`
+    ).then(r => r.json());
 
     setVoteCount({
       a: data.a ?? 0,
@@ -812,9 +855,7 @@ export default function Home() {
                   showPopup(data.error || "Failed to join");
                   return;
                 }
-
                 showPopup("Joined match!");
-
                 const updated = await fetch(
                   `/api/match/get?id=${pendingJoin.matchId}`
                 );
@@ -823,7 +864,6 @@ export default function Home() {
                 if (matchData.data) {
                   setCurrentMatch(matchData.data);
                 }
-
                 setPendingJoin(null);
               }}
             >
@@ -957,8 +997,12 @@ export default function Home() {
           totalVotes={totalVotes}
           fillPercent={fillPercent}
           canVote={canVote}
+          isSoloCreator={isSoloCreator}
           getVoteLabel={getVoteLabel}
           session={session}
+          isCoolingDown={isCoolingDown}
+          cooldownRemaining={cooldownRemaining}
+          votingUnlocked={votingUnlocked}
           btn={btn}
         />
       )}
