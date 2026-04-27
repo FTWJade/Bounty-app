@@ -37,7 +37,8 @@ export async function POST(request: Request) {
 
   // 3. user check
   const { data: user } = await supabaseAdmin
-    .from("users")
+    .from("bounties")
+
     .select("bounty")
     .eq("id", user_id)
     .single();
@@ -67,7 +68,8 @@ export async function POST(request: Request) {
   // 5. only charge on FIRST vote
   if (!existing) {
     await supabaseAdmin
-      .from("users")
+      .from("bounties")
+
       .update({
         bounty: user.bounty - BET_COST,
       })
