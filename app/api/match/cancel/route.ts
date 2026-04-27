@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Get match
-    const { data: match, error: matchError } = await supabase
+    const { data: match, error: matchError } = await supabaseAdmin
       .from("matches")
       .select("*")
       .eq("id", match_id)
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     }
 
     // 5. Cancel match
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from("matches")
       .update({
         status: "cancelled",

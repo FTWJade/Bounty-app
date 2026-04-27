@@ -139,6 +139,37 @@ export default function Home() {
         : isCreator || isOpponent
     );
 
+  const handleCancelMatch = async () => {
+    if (!currentMatch?.id || !session?.user?.id) {
+      console.warn("❌ Missing match_id or user");
+      return;
+    }
+
+    const res = await fetch("/api/match/cancel", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: currentMatch.id,
+        user_id: session.user.id,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.log("❌ Cancel failed:", data);
+      showPopup(data.error || "Failed to cancel match");
+      return;
+    }
+
+    showPopup("❌ Match cancelled");
+
+    setCurrentMatch(null);
+    setMatchId("");
+    setDidCreateMatch(false);
+    setMode(null);
+  };
+
   const animateXP = (target: number) => {
     let start = displayPoints;
     let diff = target - start;
@@ -645,7 +676,13 @@ export default function Home() {
     showPopup(`Voted ${voteKey === "A" ? "A" : "B"}`);
   };
 
+  const canCancelMatch =
+    currentMatch &&
+    session?.user?.id === currentMatch.creator_id &&
+    !currentMatch.opponent_id &&
+    ["open", "lobby", "waiting"].includes(currentMatch.status);
 
+  const showModeSelect = !isMatchVisible && !currentMatch;
 
   return (
     <main style={{
@@ -677,8 +714,39 @@ export default function Home() {
           About
         </a>
       </div>
+      {canCancelMatch && (
+        <button
+          onClick={handleCancelMatch}
+          style={{
+            ...btn,
+            background: "#ff4444",
+            color: "white",
+            marginTop: 10,
+          }}
+        >
 
-      {!mode && (
+          ❌ Cancel Match
+        </button>
+      )}
+      {!currentMatch && mode && (
+        <button
+          onClick={() => {
+            setCurrentMatch(null);
+            setMatchId("");
+            setDidCreateMatch(false);
+            setMode(null);
+          }}
+          style={{
+            ...btn,
+            background: "#333",
+            color: "white",
+            marginTop: 10,
+          }}
+        >
+          ⬅ Back
+        </button>
+      )}
+      {!mode && showModeSelect && (
         <div>
           <h2>Choose Mode</h2>
           <div
@@ -777,14 +845,13 @@ export default function Home() {
           </button>
         </div>
       )}
-
       {currentMatch && (
         <p style={{ marginTop: 10 }}>
           Match ID: <b>{currentMatch.id}</b>
         </p>
       )}
 
-      {!currentMatch && (
+      {!currentMatch && canCancelMatch && (
         <div style={{ marginTop: 10 }}>
           <input
             value={matchId}
