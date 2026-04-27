@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           error: "Cooldown active",
-          remaining: Math.ceil((THREE_MINUTES - diff) / 1000),
+          cooldown_end: lastTime + THREE_MINUTES,
         },
         { status: 429 }
       );
