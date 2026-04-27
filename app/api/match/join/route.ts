@@ -27,21 +27,6 @@ export async function POST(req: Request) {
       .eq("id", user_id)
       .single();
 
-    if (!user || user.bounty < match.bounty_pool) {
-      return Response.json(
-        { error: "Not enough bounty" },
-        { status: 400 }
-      );
-    }
-
-    await supabaseAdmin
-      .from("bounties")
-
-      .update({
-        bounty: user.bounty - match.bounty_pool,
-      })
-      .eq("id", user_id);
-
     const { data } = await supabaseAdmin
       .from("matches")
       .update({
