@@ -77,7 +77,7 @@ export default function Home() {
     if (Array.isArray(user)) return user[0]?.username || null;
     return user.username || null;
   };
-
+  const [pendingVote, setPendingVote] = useState<"A" | "B" | null>(null);
   const [voteCount, setVoteCount] = useState({
     a: 0,
     b: 0,
@@ -624,56 +624,12 @@ export default function Home() {
   const handleVote = async (voteKey: "A" | "B") => {
     if (!currentMatch || !session?.user?.id) return;
 
-    // 🚫 client-side block
     if (isCoolingDown) {
       showPopup(`⏳ Wait ${Math.ceil(cooldownRemaining / 1000)}s`);
       return;
     }
 
-    voteRef.current = voteKey;
-    const res = await fetch("/api/match/vote", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        match_id: currentMatch.id,
-        user_id: session.user.id,
-        vote: voteKey,
-      }),
-    });
-
-    const result = await res.json();
-
-    // ❌ cooldown from server
-    if (res.status === 429) {
-      if (result.cooldown_end) {
-        setCooldownUntil(result.cooldown_end);
-      }
-
-      showPopup(
-        `⏳ Cooldown: ${Math.ceil(
-          (result.cooldown_end - Date.now()) / 1000
-
-        )}s`
-      );
-
-      return;
-    }
-
-    if (!res.ok) {
-      showPopup(result.error || "Unable to vote");
-      return;
-    }
-    // refresh votes
-    const data = await fetch(
-      `/api/match/votes?match_id=${currentMatch.id}`
-    ).then(r => r.json());
-
-    setVoteCount({
-      a: data.a ?? 0,
-      b: data.b ?? 0,
-    });
-
-    showPopup(`Voted ${voteKey === "A" ? "A" : "B"}`);
+    setPendingVote(voteKey);
   };
 
   const canCancelMatch =
@@ -683,7 +639,6 @@ export default function Home() {
     ["open", "lobby", "waiting"].includes(currentMatch.status);
 
   const showModeSelect = !isMatchVisible && !currentMatch;
-
   return (
     <main style={{
       display: "flex",
@@ -851,7 +806,70 @@ export default function Home() {
           Match ID: <b>{currentMatch.id}</b>
         </p>
       )}
+      {pendingVote && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 20,
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "#111",
+            border: "1px solid #444",
+            padding: 12,
+            borderRadius: 10,
+            zIndex: 999,
+            textAlign: "center",
+            width: 280,
+          }}
+        >
+          <p>Confirm vote for <b>{pendingVote}</b>?</p>
 
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button
+              style={{ ...btn, background: "green", color: "white" }}
+              onClick={async () => {
+                const res = await fetch("/api/match/vote", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    match_id: currentMatch!.id,
+                    user_id: session!.user.id,
+                    vote: pendingVote,
+                  }),
+                });
+
+                const result = await res.json();
+
+                if (!res.ok) {
+                  showPopup(result.error || "Unable to vote");
+                  return;
+                }
+
+                const data = await fetch(
+                  `/api/match/votes?match_id=${currentMatch!.id}`
+                ).then(r => r.json());
+
+                setVoteCount({
+                  a: data.a ?? 0,
+                  b: data.b ?? 0,
+                });
+
+                showPopup(`Voted ${pendingVote}`);
+                setPendingVote(null);
+              }}
+            >
+              Confirm
+            </button>
+
+            <button
+              style={{ ...btn, background: "red", color: "white" }}
+              onClick={() => setPendingVote(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
       {!currentMatch && (
         <div style={{ marginTop: 10 }}>
           <input
@@ -876,221 +894,186 @@ export default function Home() {
                 return;
               }
 
-              setPendingJoin({
-                matchId,
-                betAmount: data.data.bounty_pool, // 👈 THIS is the creator bet
+              const joinRes = await fetch("/api/match/join", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: session.user.id,
+                  match_id: matchId,
+                }),
               });
+
+              const joinData = await joinRes.json();
+
+              if (!joinRes.ok) {
+                showPopup(joinData.error || "Failed to join match");
+                return;
+              }
+
+              setCurrentMatch(joinData.data);
+              setMatchId("");
+              showPopup("✅ Joined match!");
             }}
           >
-            Join Match
-          </button>
-        </div>
-      )}
 
-      {pendingJoin && (
-        <div
-          style={{
-            marginTop: 15,
-            padding: 12,
-            border: "1px solid #444",
-            borderRadius: 8,
-            width: 300,
-            textAlign: "center",
-            background: "#111",
-          }}
-        >
-          <p>
-            ⚠️ You must confirm a <b>${pendingJoin?.betAmount}</b> bounty fee to join this match
-          </p>
-
-          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-            <button
-              style={{ ...btn, background: "green", color: "white" }}
-              onClick={async () => {
-                const res = await fetch("/api/match/join", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    user_id: session.user.id,
-                    match_id: pendingJoin.matchId,
-                    bet_amount: pendingJoin.betAmount,
-                  }),
-                });
-
-                const data = await res.json();
-
-                if (!res.ok) {
-                  showPopup(data.error || "Failed to join");
-                  return;
-                }
-                showPopup("Joined match!");
-                const updated = await fetch(
-                  `/api/match/get?id=${pendingJoin.matchId}`
-                );
-                const matchData = await updated.json();
-
-                if (matchData.data) {
-                  setCurrentMatch(matchData.data);
-                }
-                setPendingJoin(null);
-              }}
-            >
-              Confirm Join
-            </button>
-
-            <button
-              style={{ ...btn, background: "red", color: "white" }}
-              onClick={() => setPendingJoin(null)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {currentMatch?.mode === "pvp" && canFinishMatch && (
-        <button
-          style={{ ...btn, background: "green", color: "white" }}
-          onClick={async () => {
-            const res = await fetch("/api/match/finish", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                match_id: currentMatch.id,
-                winner_id: session.user.id,
-                caller_id: session.user.id,
-              }),
-            });
-
-            if (!res.ok) {
-              showPopup("Failed to finish match");
-              return;
-            }
-
-            await loadUser(session.user.id);
-
-            const updatedLeaderboard = await fetch("/api/leaderboard");
-            const data = await updatedLeaderboard.json();
-            setLeaderboard(data.data || []);
-
-            showPopup("🏆 Match finished!");
-            setCurrentMatch(null);
-            setMatchId("");
-            setDidCreateMatch(false);
-          }}
-        >
-          🏆 Declare Winner (Me)
+          Join Match
         </button>
-      )}
-
-
-      {currentMatch?.mode === "solo" && canFinishMatch && (
-        <>
-          <button
-            style={{ ...btn, background: "green", color: "white" }}
-            onClick={async () => {
-              const res = await fetch("/api/match/finish", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  match_id: currentMatch.id,
-                  winner_id: currentMatch.creator_id,
-                  caller_id: session.user.id,
-                }),
-              });
-
-              if (!res.ok) {
-                showPopup("Failed to finish match");
-                return;
-              }
-
-              await loadUser(session.user.id);
-              showPopup("🏆 You WON");
-
-              setCurrentMatch(null);
-              setMatchId("");
-              setDidCreateMatch(false);
-            }}
-          >
-            🏆 Win
-          </button>
-
-          <button
-            style={{ ...btn, background: "red", color: "white" }}
-            onClick={async () => {
-              const res = await fetch("/api/match/finish", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  match_id: currentMatch.id,
-                  winner_id: null,
-                  caller_id: session.user.id,
-                }),
-              });
-
-              if (!res.ok) {
-                showPopup("Failed to finish match");
-                return;
-              }
-
-              await loadUser(session.user.id);
-              showPopup("💀 You LOST");
-
-              setCurrentMatch(null);
-              setMatchId("");
-              setDidCreateMatch(false);
-            }}
-          >
-            💀 Lose
-          </button>
-        </>
-      )}
-      {isMatchVisible && (
-        <MatchView
-          currentMatch={currentMatch}
-          isMatchVisible={isMatchVisible}
-          canViewVotes={canViewVotes}
-          myVote={myVote}
-          voteCount={voteCount}
-          handleVote={handleVote}
-          isSolo={isSolo}
-          getUsername={getUsername}
-          getUserColor={getUserColor}
-          getSideName={getSideName}
-          votes={votes}
-          leftVotes={leftVotes}
-          rightVotes={rightVotes}
-          creatorVotes={creatorVotes}
-          opponentVotes={opponentVotes}
-          totalVotes={totalVotes}
-          fillPercent={fillPercent}
-          canVote={canVote}
-          isSoloCreator={isSoloCreator}
-          getVoteLabel={getVoteLabel}
-          session={session}
-          isCoolingDown={isCoolingDown}
-          cooldownRemaining={cooldownRemaining}
-          votingUnlocked={votingUnlocked}
-          btn={btn}
-        />
-      )}
-
-      {popup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 20,
-            right: 20,
-            background: "#222",
-            color: "white",
-            padding: "12px 16px",
-            borderRadius: 8,
-            zIndex: 999,
-          }}
-        >
-          {popup}
         </div>
-      )}
+  )
+}
+
+{
+  currentMatch?.mode === "pvp" && canFinishMatch && (
+    <button
+      style={{ ...btn, background: "green", color: "white" }}
+      onClick={async () => {
+        const res = await fetch("/api/match/finish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            match_id: currentMatch.id,
+            winner_id: session.user.id,
+            caller_id: session.user.id,
+          }),
+        });
+
+        if (!res.ok) {
+          showPopup("Failed to finish match");
+          return;
+        }
+
+        await loadUser(session.user.id);
+
+        const updatedLeaderboard = await fetch("/api/leaderboard");
+        const data = await updatedLeaderboard.json();
+        setLeaderboard(data.data || []);
+
+        showPopup("🏆 Match finished!");
+        setCurrentMatch(null);
+        setMatchId("");
+        setDidCreateMatch(false);
+      }}
+    >
+      🏆 Declare Winner (Me)
+    </button>
+  )
+}
+
+
+{
+  currentMatch?.mode === "solo" && canFinishMatch && (
+    <>
+      <button
+        style={{ ...btn, background: "green", color: "white" }}
+        onClick={async () => {
+          const res = await fetch("/api/match/finish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              match_id: currentMatch.id,
+              winner_id: currentMatch.creator_id,
+              caller_id: session.user.id,
+            }),
+          });
+
+          if (!res.ok) {
+            showPopup("Failed to finish match");
+            return;
+          }
+
+          await loadUser(session.user.id);
+          showPopup("🏆 You WON");
+
+          setCurrentMatch(null);
+          setMatchId("");
+          setDidCreateMatch(false);
+        }}
+      >
+        🏆 Win
+      </button>
+
+      <button
+        style={{ ...btn, background: "red", color: "white" }}
+        onClick={async () => {
+          const res = await fetch("/api/match/finish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              match_id: currentMatch.id,
+              winner_id: null,
+              caller_id: session.user.id,
+            }),
+          });
+
+          if (!res.ok) {
+            showPopup("Failed to finish match");
+            return;
+          }
+
+          await loadUser(session.user.id);
+          showPopup("💀 You LOST");
+
+          setCurrentMatch(null);
+          setMatchId("");
+          setDidCreateMatch(false);
+        }}
+      >
+        💀 Lose
+      </button>
+    </>
+  )
+}
+{
+  isMatchVisible && (
+    <MatchView
+      currentMatch={currentMatch}
+      isMatchVisible={isMatchVisible}
+      canViewVotes={canViewVotes}
+      myVote={myVote}
+      voteCount={voteCount}
+      handleVote={handleVote}
+      isSolo={isSolo}
+      getUsername={getUsername}
+      getUserColor={getUserColor}
+      getSideName={getSideName}
+      votes={votes}
+      leftVotes={leftVotes}
+      rightVotes={rightVotes}
+      creatorVotes={creatorVotes}
+      opponentVotes={opponentVotes}
+      totalVotes={totalVotes}
+      fillPercent={fillPercent}
+      canVote={canVote}
+      isSoloCreator={isSoloCreator}
+      getVoteLabel={getVoteLabel}
+      session={session}
+      isCoolingDown={isCoolingDown}
+      cooldownRemaining={cooldownRemaining}
+      votingUnlocked={votingUnlocked}
+      pendingVote={pendingVote}
+      btn={btn}
+    />
+  )
+}
+
+{
+  popup && (
+    <div
+      style={{
+        position: "fixed",
+        top: 20,
+        right: 20,
+        background: "#222",
+        color: "white",
+        padding: "12px 16px",
+        borderRadius: 8,
+        zIndex: 999,
+      }}
+    >
+      {popup}
+    </div>
+  )
+}
 
       <h1>Welcome {session.user?.name}</h1>
       <h2>Level {level}</h2>
@@ -1184,6 +1167,6 @@ export default function Home() {
       >
         Logout
       </button>
-    </main>
+    </main >
   );
 }

@@ -18,18 +18,19 @@ export default function MatchView({
   getVoteLabel,
   isCoolingDown,
   isSoloCreator,
+  pendingVote,
   btn,
 }: any) {
   const getVotedUsername = (vote: "A" | "B" | null) => {
     if (!vote || !currentMatch) return null;
-
     const user =
-      vote === "A"
-        ? currentMatch.creator
-        : currentMatch.opponent;
-
+    vote === "A"
+    ? currentMatch.creator
+    : currentMatch.opponent;
+    
     return user?.username || (vote === "A" ? "Creator" : "Opponent");
   };
+  const displayedVote = myVote ?? pendingVote;
   return (
     <div>
       {isMatchVisible && (
@@ -55,9 +56,9 @@ export default function MatchView({
                 {!isSolo ? (
                   <div style={{ textAlign: "center", marginBottom: 10 }}>
 
-                    {myVote && (
+                    {(myVote || pendingVote) && (
                       <p style={{ fontSize: 12, color: "#aaa" }}>
-                        You voted: {myVote}
+                        You voted: {displayedVote}
                       </p>
                     )}
 
@@ -185,7 +186,7 @@ export default function MatchView({
                   </div>
                 )}
               </div>
-              {canVote && !isSoloCreator &&(
+              {canVote && !isSoloCreator && (
                 isCoolingDown ? (
                   <p style={{ marginTop: 10, color: "#888" }}>
                     ⏳ You voted:    <b>
