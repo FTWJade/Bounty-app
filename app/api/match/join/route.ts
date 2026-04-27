@@ -49,6 +49,36 @@ export async function POST(req: Request) {
     user_id,
   });
 
+  // check bounty
+  const { data: user } = await supabaseAdmin
+    .from("users")
+    .select("bounty")
+    .eq("id", user_id)
+    .single();
+
+  if (!user || user.bounty < bet_amount) {
+    return Response.json({ error: "Not enough bounty" }, { status: 400 });
+  }
+
+  // deduct
+  await supabaseAdmin
+    .from("users")
+    .update({
+      bounty: user.bounty - bet_amount
+    })
+    .eq("id", user_id);
+
+  // add to pool
+  await supabaseAdmin
+    .from("matches")
+    .update({
+      opponent_id: user_id,
+      bounty_pool: supabaseAdmin.rpc("increment", {
+        x: bet_amount
+      })
+    })
+    .eq("id", match_id);
+
   return Response.json({
     success: true,
     role: "voter",

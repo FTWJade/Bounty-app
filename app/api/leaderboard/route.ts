@@ -8,5 +8,13 @@ export async function GET() {
     .order("points", { ascending: false })
     .limit(10);
 
-  return NextResponse.json({ data, error });
+  if (error) {
+    console.error("Leaderboard error:", error);
+    return NextResponse.json(
+      { data: [], error: error.message },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({ data });
 }
