@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     .from("bounties")
 
     .select("bounty")
-    .eq("id", user_id)
+    .eq("user_id", user_id)
     .single();
 
   if (!user) {
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       .update({
         bounty: user.bounty - BET_COST,
       })
-      .eq("id", user_id);
+      .eq("user_id", user_id)
 
     await supabaseAdmin
       .from("matches")

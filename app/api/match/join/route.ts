@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     const { data: user } = await supabaseAdmin
       .from("bounties")
       .select("bounty")
-      .eq("id", user_id)
+      .eq("user_id", user_id)
       .single();
 
     const { data } = await supabaseAdmin
