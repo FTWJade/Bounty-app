@@ -636,6 +636,7 @@ export default function Home() {
         match_id: currentMatch.id,
         user_id: session.user.id,
         vote: voteKey,
+        cost: currentMatch.bounty_pool,
       }),
     });
 

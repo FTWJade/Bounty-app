@@ -33,7 +33,6 @@ export async function POST(request: Request) {
     }
   }
 
-  const BET_COST = 10;
 
   // 3. user check
   const { data: user } = await supabaseAdmin
@@ -47,12 +46,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (user.bounty < BET_COST) {
-    return Response.json(
-      { error: "Not enough bounty to vote" },
-      { status: 400 }
-    );
-  }
 
   // 4. ALWAYS safe match fetch
   const { data: match } = await supabaseAdmin
@@ -64,17 +57,30 @@ export async function POST(request: Request) {
   if (!match) {
     return Response.json({ error: "Match not found" }, { status: 404 });
   }
+  const BET_COST = Number(match.bounty_pool ?? 0);
 
+  if (user.bounty < BET_COST) {
+    return Response.json(
+      { error: "Not enough bounty to vote" },
+      { status: 400 }
+    );
+  }
   // 5. only charge on FIRST vote
   if (!existing) {
-    await supabaseAdmin
+    const { error: deductError } = await supabaseAdmin
       .from("bounties")
-
       .update({
         bounty: user.bounty - BET_COST,
       })
       .eq("user_id", user_id)
+      .gte("bounty", BET_COST);
 
+    if (deductError) {
+      return Response.json(
+        { error: "Failed to deduct bounty" },
+        { status: 500 }
+      );
+    }
     await supabaseAdmin
       .from("matches")
       .update({
@@ -82,6 +88,7 @@ export async function POST(request: Request) {
       })
       .eq("id", match_id);
   }
+
 
   // 6. upsert vote
   const { error } = await supabaseAdmin
