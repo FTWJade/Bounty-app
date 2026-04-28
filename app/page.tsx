@@ -286,20 +286,20 @@ export default function Home() {
       const opponentLeft =
         currentMatch.opponent_id !== null && match.opponent_id === null;
 
-      if (creatorLeft || opponentLeft) {
-        await fetch("/api/match/force-close", {
+      if (creatorLeft && opponentLeft) {
+        await fetch("/api/match/refund-on-abandon", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             match_id: currentMatch.id,
-            caller_id: session.user.id,
           }),
         });
 
         setCurrentMatch(null);
         setMatchId("");
         setDidCreateMatch(false);
-        showPopup("⚠️ Match closed (player left)");
+
+        showPopup("⚠️ Match cancelled + refunds issued");
       }
     }, 3000);
 

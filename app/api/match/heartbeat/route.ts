@@ -24,6 +24,36 @@ export async function POST(request: Request) {
     return Response.json({ error: updateError.message }, { status: 500 });
   }
 
+  const nowISO = new Date().toISOString();
+
+  // fetch match so we know roles
+  const { data: match } = await supabaseAdmin
+    .from("matches")
+    .select("creator_id, opponent_id")
+    .eq("id", match_id)
+    .single();
+
+  if (!match) {
+    return Response.json({ error: "Match not found" }, { status: 404 });
+  }
+
+  const updates: any = {
+    last_activity_at: nowISO, // keep if you want
+  };
+
+  if (user_id === match.creator_id) {
+    updates.creator_last_seen = nowISO;
+  }
+
+  if (user_id === match.opponent_id) {
+    updates.opponent_last_seen = nowISO;
+  }
+
+  await supabaseAdmin
+    .from("matches")
+    .update(updates)
+    .eq("id", match_id);
+
   // 2. fetch user vote
   const { data: voteData, error: voteError } = await supabaseAdmin
     .from("match_votes")
