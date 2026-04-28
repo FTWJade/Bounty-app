@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const { data: match } = await supabaseAdmin
     .from("matches")
     .select("*")
-    .eq("id", match_id)
+    .eq("user_id", match_id)
     .single();
 
   if (!match) {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const { data: user, error: userError } = await supabaseAdmin
       .from("bounties")
       .select("bounty")
-      .eq("id", user_id)
+      .eq("user_id", user_id)
       .single();
 
     if (userError || !user) {
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       .update({
         bounty: bounty - cost,
       })
-      .eq("id", user_id);
+      .eq("user_id", user_id);
 
     if (deductError) {
       return Response.json(
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         status: "active",
         last_activity_at: new Date().toISOString(),
       })
-      .eq("id", match_id)
+      .eq("user_id", match_id)
       .select()
       .single();
 
