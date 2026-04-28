@@ -745,7 +745,6 @@ export default function Home() {
             marginTop: 10,
           }}
         >
-          console.log("hello world");
           ⬅ Back
         </button>
       )}
