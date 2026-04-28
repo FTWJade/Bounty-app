@@ -22,10 +22,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (user.bounty < bet_amount) {
-    return Response.json({ error: "Not enough bounty" }, { status: 400 });
-  }
-
   const matchId = Math.random().toString(36).substring(2, 8).toUpperCase();
 
   const { data: match, error: matchError } = await supabaseAdmin
@@ -44,6 +40,10 @@ export async function POST(req: Request) {
 
   if (matchError || !match) {
     return Response.json({ error: "Failed to create match" }, { status: 500 });
+  }
+  const cost = Number(match?.bounty_pool ?? 0);
+  if (user.bounty < bet_amount) {
+    return Response.json({ error: "Not enough bounty" }, { status: 400 });
   }
 
   await supabaseAdmin

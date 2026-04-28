@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const { data: match } = await supabaseAdmin
     .from("matches")
     .select("*")
-    .eq("user_id", match_id)
+    .eq("id", match_id)
     .single();
 
   if (!match) {
@@ -24,13 +24,13 @@ export async function POST(req: Request) {
     const cost = Number(match.bounty_pool ?? 0);
 
     // 1. get user balance
-    const { data: user, error: userError } = await supabaseAdmin
+    const { data: user, error } = await supabaseAdmin
       .from("bounties")
       .select("bounty")
       .eq("user_id", user_id)
       .single();
 
-    if (userError || !user) {
+    if (error || !user) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
@@ -44,20 +44,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. deduct safely
-    const { error: deductError } = await supabaseAdmin
+    // 3. deduct bounty
+    await supabaseAdmin
       .from("bounties")
       .update({
         bounty: bounty - cost,
       })
       .eq("user_id", user_id);
-
-    if (deductError) {
-      return Response.json(
-        { error: "Failed to deduct bounty" },
-        { status: 500 }
-      );
-    }
 
     // 4. join match
     const { data } = await supabaseAdmin
@@ -67,7 +60,7 @@ export async function POST(req: Request) {
         status: "active",
         last_activity_at: new Date().toISOString(),
       })
-      .eq("user_id", match_id)
+      .eq("id", match_id)
       .select()
       .single();
 
