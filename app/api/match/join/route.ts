@@ -19,14 +19,16 @@ export async function POST(req: Request) {
   }
 
   const isCreator = match.creator_id === user_id;
-
+  const isParticipant =
+    user_id === match.creator_id ||
+    user_id === match.opponent_id;
   // 🚫 prevent joining your own match
   if (isCreator) {
     return Response.json({ error: "Cannot join your own match" }, { status: 400 });
   }
 
   // 🚫 prevent double join
-  if (match.opponent_id) {
+  if (isParticipant) {
     return Response.json({ error: "Match already has opponent" }, { status: 400 });
   }
 
