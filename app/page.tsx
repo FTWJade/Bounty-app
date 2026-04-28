@@ -67,10 +67,10 @@ export default function Home() {
   const [search, setSearch] = useState("");
   const [didCreateMatch, setDidCreateMatch] = useState(false);
   const isMatchVisible =
-    !!currentMatch &&
-    !["finished", "expired", "cancelled", "ended", "complete"].includes(
-      currentMatch.status
-    );
+    currentMatch &&
+    currentMatch.status !== "finished" &&
+    currentMatch.status !== "expired" &&
+    currentMatch.status !== "cancelled";
   const voteRef = useRef<"A" | "B" | null>(null);
   const getUsername = (user: any) => {
     if (!user) return null; // 👈 CHANGE THIS
@@ -682,7 +682,11 @@ export default function Home() {
     !currentMatch.opponent_id &&
     ["open", "lobby", "waiting"].includes(currentMatch.status);
 
-  const showModeSelect = !isMatchVisible && !currentMatch;
+  const showModeSelect =
+    !currentMatch ||
+    currentMatch.status === "finished" ||
+    currentMatch.status === "expired" ||
+    currentMatch.status === "cancelled";
   const previewCost = pendingJoin?.betAmount ?? 0;
   const previewCurrent = bounty ?? 0;
   const previewAfter = Math.max(0, previewCurrent - previewCost);
@@ -730,7 +734,7 @@ export default function Home() {
           ❌ Cancel Match
         </button>
       )}
-      {!currentMatch && mode && (
+      {mode && showModeSelect && (
         <button
           onClick={() => {
             setCurrentMatch(null);
@@ -785,7 +789,7 @@ export default function Home() {
           </div>
         </div>
       )}
-      {mode && (
+      {mode && showModeSelect && (
         <div
           style={{
             marginTop: 15,
@@ -848,7 +852,7 @@ export default function Home() {
           </button>
         </div>
       )}
-      {currentMatch && (
+      {currentMatch && !showModeSelect && (
         <p style={{ marginTop: 10 }}>
           Match ID: <b>{currentMatch.id}</b>
         </p>
@@ -877,6 +881,20 @@ export default function Home() {
                 showPopup("Match not found");
                 return;
               }
+
+              // 👇 KEY FIX: skip confirm UI entirely
+              if (
+                data.data.creator_id === session.user.id ||
+                data.data.opponent_id === session.user.id
+              ) {
+                setCurrentMatch(data.data);
+                setMatchId("");
+                setPendingJoin(null);
+                showPopup("👀 You're already in this match");
+                return;
+              }
+
+              // show confirm modal only if NOT already in match
               setPendingJoin({
                 matchId: data.data.id,
                 betAmount: data.data.bounty_pool ?? 0,
@@ -938,10 +956,16 @@ export default function Home() {
                 setMatchId("");
                 setPendingJoin(null);
 
-                // 🔥 instant UI update (feels good)
-                setBounty((prev) => prev - previewCost);
+                // only subtract if they actually joined just now AND cost applies
+                if (!joinData.alreadyJoined && joinData.role === "opponent") {
+                  setBounty((prev) => prev - previewCost);
+                }
 
-                showPopup("✅ Joined match!");
+                showPopup(
+                  joinData.alreadyJoined
+                    ? "👀 You're already in this match"
+                    : "✅ Joined match!"
+                );
               }}
             >
               Confirm Join

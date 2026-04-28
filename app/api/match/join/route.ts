@@ -18,18 +18,42 @@ export async function POST(req: Request) {
     return new Response("Match not found", { status: 404 });
   }
 
-  const isCreator = match.creator_id === user_id;
-  const isParticipant =
-    user_id === match.creator_id ||
-    user_id === match.opponent_id;
-  // 🚫 prevent joining your own match
-  if (isCreator) {
-    return Response.json({ error: "Cannot join your own match" }, { status: 400 });
+  const isPvP = match.mode === "pvp";
+
+  // 0. check if user already in match
+  const alreadyJoined =
+    match.creator_id === user_id || match.opponent_id === user_id;
+
+  if (alreadyJoined) {
+    return Response.json({
+      data: match,
+      role: match.creator_id === user_id ? "creator" : "opponent",
+      alreadyJoined: true,
+    });
   }
 
-  // 🚫 prevent double join
-  if (isParticipant) {
-    return Response.json({ error: "Match already has opponent" }, { status: 400 });
+  // only assign opponent if slot is empty
+  if (isPvP && !match.opponent_id) {
+    const { data, error: joinError } = await supabaseAdmin
+      .from("matches")
+      .update({
+        opponent_id: user_id,
+        status: "active",
+        last_activity_at: new Date().toISOString(),
+      })
+      .eq("id", match_id)
+      .is("opponent_id", null)
+      .select()
+      .single();
+
+    if (joinError || !data) {
+      return Response.json(
+        { error: "Match already taken" },
+        { status: 400 }
+      );
+    }
+
+    return Response.json({ data, role: "opponent" });
   }
 
   const cost = Number(match.bounty_pool ?? 0);
@@ -43,6 +67,13 @@ export async function POST(req: Request) {
 
   if (userError || !user) {
     return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  // 👀 if opponent already exists → this is a voter
+  if (isPvP && match.opponent_id) {
+    return Response.json({
+      data: match,
+    });
   }
 
   const bounty = Number(user.bounty ?? 0);
