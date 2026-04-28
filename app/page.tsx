@@ -36,7 +36,7 @@ export default function Home() {
 
   const cooldownRemaining =
     cooldownUntil ? Math.max(0, cooldownUntil - Date.now()) : 0;
-
+  const [pendingVote, setPendingVote] = useState<"A" | "B" | null>(null);
   const canVoteNow = !isCoolingDown;
   const { data: session, status } = useSession();
   const [bounty, setBounty] = useState<number>(0);
@@ -627,7 +627,7 @@ export default function Home() {
       showPopup(`⏳ Wait ${Math.ceil(cooldownRemaining / 1000)}s`);
       return;
     }
-
+    setPendingVote(voteKey);
     voteRef.current = voteKey;
     const res = await fetch("/api/match/vote", {
       method: "POST",
