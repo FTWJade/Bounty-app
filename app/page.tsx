@@ -58,6 +58,8 @@ export default function Home() {
   const [pendingJoin, setPendingJoin] = useState<{
     matchId: string;
     betAmount: number;
+    mode: "pvp" | "solo";
+    isParticipant: boolean;
   } | null>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const xpNeeded = 100;
@@ -153,7 +155,6 @@ export default function Home() {
         user_id: session.user.id,
       }),
     });
-
     const data = await res.json();
 
     if (!res.ok) {
@@ -342,8 +343,6 @@ export default function Home() {
 
           if (vote) {
             const userId = session.user.id;
-            const isParticipant =
-              userId === match.creator_id || userId === match.opponent_id;
 
             if (match.mode === "solo") {
               if (userId === match.creator_id) return;
@@ -623,7 +622,6 @@ export default function Home() {
       : null;
   const handleVote = async (voteKey: "A" | "B") => {
     if (!currentMatch || !session?.user?.id) return;
-
     // 🚫 client-side block
     if (isCoolingDown) {
       showPopup(`⏳ Wait ${Math.ceil(cooldownRemaining / 1000)}s`);
@@ -690,6 +688,10 @@ export default function Home() {
   const previewCost = pendingJoin?.betAmount ?? 0;
   const previewCurrent = bounty ?? 0;
   const previewAfter = Math.max(0, previewCurrent - previewCost);
+  const hasVoted = myVote !== null;
+  const shouldShowJoinPrompt =
+    !!pendingJoin &&
+    pendingJoin.mode === "pvp";
   return (
     <main style={{
       display: "flex",
@@ -877,27 +879,50 @@ export default function Home() {
               const res = await fetch(`/api/match/get?id=${matchId}`);
               const data = await res.json();
 
-              if (!data.data) {
+              const match = data.data;
+              if (!match) {
                 showPopup("Match not found");
                 return;
               }
 
-              // 👇 KEY FIX: skip confirm UI entirely
-              if (
-                data.data.creator_id === session.user.id ||
-                data.data.opponent_id === session.user.id
-              ) {
-                setCurrentMatch(data.data);
+              const userId = session?.user?.id;
+
+              const isCreator = userId === match.creator_id;
+              const isOpponent = userId === match.opponent_id;
+              const isParticipant = isCreator || isOpponent;
+
+              const isPvPFull = match.mode === "pvp" && match.opponent_id;
+
+              // 🟢 CASE 1: already participant → open match
+              if (isParticipant) {
+                setCurrentMatch(match);
                 setMatchId("");
                 setPendingJoin(null);
-                showPopup("👀 You're already in this match");
                 return;
               }
 
-              // show confirm modal only if NOT already in match
+              // 🎲 CASE 2: solo → skip everything
+              if (match.mode === "solo") {
+                setCurrentMatch(match);
+                setMatchId("");
+                setPendingJoin(null);
+                return;
+              }
+
+              // 👀 CASE 3: PvP already full → spectator (no join UI)
+              if (isPvPFull) {
+                setCurrentMatch(match);
+                setMatchId("");
+                setPendingJoin(null);
+                return;
+              }
+
+              // 🆕 CASE 4: PvP not full → THIS is join window
               setPendingJoin({
-                matchId: data.data.id,
-                betAmount: data.data.bounty_pool ?? 0,
+                matchId: match.id,
+                betAmount: match.bounty_pool ?? 0,
+                mode: match.mode,
+                isParticipant: false,
               });
             }}
           >
@@ -906,7 +931,7 @@ export default function Home() {
         </div>
       )}
 
-      {pendingJoin && (
+      {shouldShowJoinPrompt && (
         <div
           style={{
             marginTop: 15,
@@ -956,10 +981,8 @@ export default function Home() {
                 setMatchId("");
                 setPendingJoin(null);
 
-                // only subtract if they actually joined just now AND cost applies
-                if (!joinData.alreadyJoined && joinData.role === "opponent") {
-                  setBounty((prev) => prev - previewCost);
-                }
+                // ✅ ADD THIS
+                await loadUser(session.user.id);
 
                 showPopup(
                   joinData.alreadyJoined
