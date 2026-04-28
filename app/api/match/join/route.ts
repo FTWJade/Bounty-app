@@ -21,37 +21,36 @@ export async function POST(req: Request) {
 
   // 🧠 CASE 1: opponent join ONLY
   if (!match.opponent_id && !isCreator) {
-    
-    // 1. fetch user balance
-    const { data: user } = await supabaseAdmin
+    const cost = Number(match.bounty_pool ?? 0);
+
+    // 1. get user balance
+    const { data: user, error: userError } = await supabaseAdmin
       .from("bounties")
       .select("bounty")
       .eq("id", user_id)
       .single();
 
-    if (!user) {
+    if (userError || !user) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
 
-    const cost = Number(match.bounty_pool ?? 0);
     const bounty = Number(user.bounty ?? 0);
 
     // 2. check balance
     if (bounty < cost) {
       return Response.json(
-        { error: "Not enough bounty", required: cost, current: bounty },
+        { error: "Not enough bounty" },
         { status: 400 }
       );
     }
 
-    // 3. atomic deduction (SAFE)
+    // 3. deduct safely
     const { error: deductError } = await supabaseAdmin
       .from("bounties")
       .update({
         bounty: bounty - cost,
       })
-      .eq("id", user_id)
-      .gte("bounty", cost); // prevents race conditions
+      .eq("id", user_id);
 
     if (deductError) {
       return Response.json(
