@@ -24,13 +24,13 @@ export default function MatchView({
   const getVotedUsername = (vote: "A" | "B" | null) => {
     if (!vote || !currentMatch) return null;
     const user =
-    vote === "A"
-    ? currentMatch.creator
-    : currentMatch.opponent;
-    
+      vote === "A"
+        ? currentMatch.creator
+        : currentMatch.opponent;
+
     return user?.username || (vote === "A" ? "Creator" : "Opponent");
   };
-  const displayedVote = myVote ?? pendingVote;
+  const displayedVote = myVote || pendingVote;
   return (
     <div>
       {isMatchVisible && (

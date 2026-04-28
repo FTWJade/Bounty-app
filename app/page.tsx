@@ -77,7 +77,7 @@ export default function Home() {
     if (Array.isArray(user)) return user[0]?.username || null;
     return user.username || null;
   };
-  const [pendingVote, setPendingVote] = useState<"A" | "B" | null>(null);
+
   const [voteCount, setVoteCount] = useState({
     a: 0,
     b: 0,
@@ -624,12 +624,56 @@ export default function Home() {
   const handleVote = async (voteKey: "A" | "B") => {
     if (!currentMatch || !session?.user?.id) return;
 
+    // 🚫 client-side block
     if (isCoolingDown) {
       showPopup(`⏳ Wait ${Math.ceil(cooldownRemaining / 1000)}s`);
       return;
     }
 
-    setPendingVote(voteKey);
+    voteRef.current = voteKey;
+    const res = await fetch("/api/match/vote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        match_id: currentMatch.id,
+        user_id: session.user.id,
+        vote: voteKey,
+      }),
+    });
+
+    const result = await res.json();
+
+    // ❌ cooldown from server
+    if (res.status === 429) {
+      if (result.cooldown_end) {
+        setCooldownUntil(result.cooldown_end);
+      }
+
+      showPopup(
+        `⏳ Cooldown: ${Math.ceil(
+          (result.cooldown_end - Date.now()) / 1000
+
+        )}s`
+      );
+
+      return;
+    }
+
+    if (!res.ok) {
+      showPopup(result.error || "Unable to vote");
+      return;
+    }
+    // refresh votes
+    const data = await fetch(
+      `/api/match/votes?match_id=${currentMatch.id}`
+    ).then(r => r.json());
+
+    setVoteCount({
+      a: data.a ?? 0,
+      b: data.b ?? 0,
+    });
+
+    showPopup(`Voted ${voteKey === "A" ? "A" : "B"}`);
   };
 
   const canCancelMatch =
@@ -639,6 +683,9 @@ export default function Home() {
     ["open", "lobby", "waiting"].includes(currentMatch.status);
 
   const showModeSelect = !isMatchVisible && !currentMatch;
+  const previewCost = pendingJoin?.betAmount ?? 0;
+  const previewCurrent = bounty ?? 0;
+  const previewAfter = Math.max(0, previewCurrent - previewCost);
   return (
     <main style={{
       display: "flex",
@@ -698,6 +745,7 @@ export default function Home() {
             marginTop: 10,
           }}
         >
+          console.log("hello world");
           ⬅ Back
         </button>
       )}
@@ -806,76 +854,7 @@ export default function Home() {
           Match ID: <b>{currentMatch.id}</b>
         </p>
       )}
-      {pendingVote && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "#111",
-            border: "1px solid #444",
-            padding: 12,
-            borderRadius: 10,
-            zIndex: 999,
-            textAlign: "center",
-            width: 280,
-          }}
-        >
-          <p>Confirm vote for <b>{pendingVote}</b>?</p>
 
-          <div
-            style={{
-              display: "flex",
-              gap: 6,
-              justifyContent: "center",
-              marginTop: 6,
-            }}>
-            <button
-              style={{ ...btn, background: "green", color: "white" }}
-              onClick={async () => {
-                const res = await fetch("/api/match/vote", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    match_id: currentMatch!.id,
-                    user_id: session!.user.id,
-                    vote: pendingVote,
-                  }),
-                });
-
-                const result = await res.json();
-
-                if (!res.ok) {
-                  showPopup(result.error || "Unable to vote");
-                  return;
-                }
-
-                const data = await fetch(
-                  `/api/match/votes?match_id=${currentMatch!.id}`
-                ).then(r => r.json());
-
-                setVoteCount({
-                  a: data.a ?? 0,
-                  b: data.b ?? 0,
-                });
-
-                showPopup(`Voted ${pendingVote}`);
-                setPendingVote(null);
-              }}
-            >
-              Confirm
-            </button>
-
-            <button
-              style={{ ...btn, background: "red", color: "white" }}
-              onClick={() => setPendingVote(null)}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
       {!currentMatch && (
         <div style={{ marginTop: 10 }}>
           <input
@@ -899,34 +878,85 @@ export default function Home() {
                 showPopup("Match not found");
                 return;
               }
-
-              const joinRes = await fetch("/api/match/join", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  user_id: session.user.id,
-                  match_id: matchId,
-                }),
+              setPendingJoin({
+                matchId: data.data.id,
+                betAmount: data.data.bounty_pool ?? 0,
               });
-
-              const joinData = await joinRes.json();
-
-              if (!joinRes.ok) {
-                showPopup(joinData.error || "Failed to join match");
-                return;
-              }
-
-              setCurrentMatch(joinData.data);
-              setMatchId("");
-              showPopup("✅ Joined match!");
             }}
           >
-
             Join Match
           </button>
         </div>
-      )
-      }
+      )}
+
+      {pendingJoin && (
+        <div
+          style={{
+            marginTop: 15,
+            padding: 12,
+            border: "1px solid #444",
+            borderRadius: 8,
+            width: 300,
+            textAlign: "center",
+            background: "#111",
+          }}
+        >
+          <p style={{ marginBottom: 10 }}>
+            Join match for <b>{previewCost}</b> bounty?
+          </p>
+
+          <div style={{ fontSize: 13, color: "#aaa", marginBottom: 10 }}>
+            <div>You have: {previewCurrent}</div>
+            <div>Cost: -{previewCost}</div>
+            <div style={{ marginTop: 4 }}>
+              After: <b>{previewAfter}</b>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+            <button
+              style={{ ...btn, background: "green", color: "white" }}
+              onClick={async () => {
+                if (!pendingJoin) return;
+
+                const joinRes = await fetch("/api/match/join", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    user_id: session.user.id,
+                    match_id: pendingJoin.matchId,
+                  }),
+                });
+
+                const joinData = await joinRes.json();
+
+                if (!joinRes.ok) {
+                  showPopup(joinData.error || "Failed to join match");
+                  return;
+                }
+
+                setCurrentMatch(joinData.data);
+                setMatchId("");
+                setPendingJoin(null);
+
+                // 🔥 instant UI update (feels good)
+                setBounty((prev) => prev - previewCost);
+
+                showPopup("✅ Joined match!");
+              }}
+            >
+              Confirm Join
+            </button>
+
+            <button
+              style={{ ...btn, background: "red", color: "white" }}
+              onClick={() => setPendingJoin(null)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {
         currentMatch?.mode === "pvp" && canFinishMatch && (
@@ -1056,7 +1086,6 @@ export default function Home() {
             isCoolingDown={isCoolingDown}
             cooldownRemaining={cooldownRemaining}
             votingUnlocked={votingUnlocked}
-            pendingVote={pendingVote}
             btn={btn}
           />
         )
