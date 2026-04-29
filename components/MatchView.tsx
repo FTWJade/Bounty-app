@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 export default function MatchView({
   currentMatch,
   isMatchVisible,
@@ -9,9 +10,6 @@ export default function MatchView({
   isSolo,
   getUserColor,
   getSideName,
-  votes,
-  creatorVotes,
-  opponentVotes,
   totalVotes,
   fillPercent,
   canVote,
@@ -19,6 +17,7 @@ export default function MatchView({
   isCoolingDown,
   isSoloCreator,
   pendingVote,
+  sides,
   btn,
 }: any) {
   const getVotedUsername = (vote: "A" | "B" | null) => {
@@ -31,6 +30,7 @@ export default function MatchView({
     return user?.username || (vote === "A" ? "Creator" : "Opponent");
   };
   const displayedVote = myVote || pendingVote;
+  const [selectedVote, setSelectedVote] = useState<"A" | "B" | null>(null);
   return (
     <div>
       {isMatchVisible && (
@@ -77,7 +77,7 @@ export default function MatchView({
                         {currentMatch.opponent_id ? (
                           <>
                             <span style={{ color: getUserColor(currentMatch.creator_id) }}>
-                              {getSideName("A")} — {votes.A}
+                              {getSideName("A")} — {sides.A.votes}
                             </span>
                           </>
                         ) : (
@@ -87,7 +87,7 @@ export default function MatchView({
 
                       <span>
                         <span style={{ color: getUserColor(currentMatch.opponent_id) }}>
-                          {getSideName("B")} — {votes.B}
+                          {getSideName("B")} — {sides.B.votes}
                         </span>
                       </span>
                     </div>
@@ -108,7 +108,7 @@ export default function MatchView({
                           left: 0,
                           top: 0,
                           height: "100%",
-                          width: `${(creatorVotes / totalVotes) * 100}%`,
+                          width: `${(sides.A.votes / totalVotes) * 100}%`,
                           background: "blue",
                           transition: "width 0.3s ease",
                         }}
@@ -121,7 +121,7 @@ export default function MatchView({
                           right: 0,
                           top: 0,
                           height: "100%",
-                          width: `${(opponentVotes / totalVotes) * 100}%`,
+                          width: `${(sides.B.votes / totalVotes) * 100}%`,
                           background: "red",
                           transition: "width 0.3s ease",
                         }}
@@ -186,6 +186,36 @@ export default function MatchView({
                   </div>
                 )}
               </div>
+              {selectedVote && (
+                <button
+                  style={{
+                    ...btn,
+                    background: "#222",
+                    color: "white",
+                    marginTop: 10,
+                    border: "1px solid #555",
+                  }}
+                  onClick={() => {
+                    handleVote(selectedVote);
+                    setSelectedVote(null);
+                  }}
+                >
+                  Confirm {getVoteLabel(selectedVote)} (−{currentMatch?.bounty_pool ?? 0} bounty)
+                </button>
+              )}
+              {selectedVote && (
+                <button
+                  style={{
+                    ...btn,
+                    background: "#555",
+                    color: "white",
+                    marginTop: 5,
+                  }}
+                  onClick={() => setSelectedVote(null)}
+                >
+                  Cancel
+                </button>
+              )}
               {canVote && !isSoloCreator && (
                 isCoolingDown ? (
                   <p style={{ marginTop: 10, color: "#888" }}>
@@ -202,23 +232,23 @@ export default function MatchView({
                     <button
                       style={{
                         ...btn,
-                        background: "red",
+                        background: selectedVote === "A" ? "#ff4444" : "red",
                         color: "white",
                       }}
-                      onClick={() => handleVote("A")}
+                      onClick={() => setSelectedVote("A")}
                     >
-                      Vote {getVoteLabel("A")}
+                      Select {getVoteLabel("A")}
                     </button>
 
                     <button
                       style={{
                         ...btn,
-                        background: "green",
+                        background: selectedVote === "B" ? "#44ff44" : "green",
                         color: "white",
                       }}
-                      onClick={() => handleVote("B")}
+                      onClick={() => setSelectedVote("B")}
                     >
-                      Vote {getVoteLabel("B")}
+                      Select {getVoteLabel("B")}
                     </button>
                   </>
                 )

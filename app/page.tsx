@@ -88,30 +88,24 @@ export default function Home() {
     if (isSolo) {
       return side === "A" ? "Lose" : "Win";
     }
-
-    // PvP mode → show player names
-    return getSideName(side) || side;
-  };
-  const users = {
-    A: currentMatch?.creator,
-    B: currentMatch?.opponent,
-  };
-
-  const votes = {
-    A: voteCount.a,
-    B: voteCount.b,
+    return getSideName(side);
   };
   const sides = {
-    A: currentMatch?.creator,
-    B: currentMatch?.opponent,
+    A: {
+      user: currentMatch?.creator,
+      userId: currentMatch?.creator_id,
+      votes: voteCount.a,
+    },
+    B: {
+      user: currentMatch?.opponent,
+      userId: currentMatch?.opponent_id,
+      votes: voteCount.b,
+    },
   };
   const getSideName = (side: "A" | "B") => {
-    const user = sides[side];
-    return getUsername(user) || side;
+    return getUsername(sides[side].user) || side;
   };
-  const creatorVotes = voteCount.a;
-  const opponentVotes = voteCount.b;
-  const totalVotes = creatorVotes + opponentVotes || 1;
+  const totalVotes = sides.A.votes + sides.B.votes || 1;
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
@@ -122,8 +116,6 @@ export default function Home() {
     if (userId === currentMatch.opponent_id) return "red";
     return "gray";
   };
-  const leftVotes = creatorVotes;
-  const rightVotes = opponentVotes;
   const [myVote, setMyVote] = useState<"A" | "B" | null>(null);
   const [myVoteResolved, setMyVoteResolved] = useState<"WIN" | "LOSE" | null>(null);
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
@@ -594,20 +586,6 @@ export default function Home() {
   const rightWidth = isCreator
     ? voteCount.a / totalVotes   // creator is right
     : voteCount.b / totalVotes;  // opponent is right
-
-  const left = isSolo
-    ? voteCount.a // LOSE
-    : isCreator
-      ? voteCount.b
-      : voteCount.a;
-
-  const right = isSolo
-    ? voteCount.b // WIN
-    : isCreator
-      ? voteCount.a
-      : voteCount.b;
-
-  const diff = right - left;
 
   // normalize between 0 - 100 (center = 50)
   const soloDiff = voteCount.b - voteCount.a;
@@ -1116,23 +1094,16 @@ export default function Home() {
             voteCount={voteCount}
             handleVote={handleVote}
             isSolo={isSolo}
-            getUsername={getUsername}
             getUserColor={getUserColor}
             getSideName={getSideName}
-            votes={votes}
-            leftVotes={leftVotes}
-            rightVotes={rightVotes}
-            creatorVotes={creatorVotes}
-            opponentVotes={opponentVotes}
             totalVotes={totalVotes}
             fillPercent={fillPercent}
             canVote={canVote}
-            isSoloCreator={isSoloCreator}
             getVoteLabel={getVoteLabel}
-            session={session}
             isCoolingDown={isCoolingDown}
-            cooldownRemaining={cooldownRemaining}
-            votingUnlocked={votingUnlocked}
+            isSoloCreator={isSoloCreator}
+            pendingVote={pendingVote}
+            sides={sides}
             btn={btn}
           />
         )
