@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import MatchView from "../components/MatchView";
+import { Analytics } from "@vercel/analytics/next"
 type MatchStatus =
   | "open"
   | "active"
