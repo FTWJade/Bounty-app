@@ -13,7 +13,11 @@ export default function UserOverlay({
     const [loading, setLoading] = useState(true);
     const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
     const [winnerMessage, setWinnerMessage] = useState<string | null>(null);
+
     useEffect(() => {
+        let interval: NodeJS.Timeout;
+        let hideTimer: NodeJS.Timeout;
+
         params.then(({ username }) => {
             setUsername(username);
 
@@ -24,25 +28,92 @@ export default function UserOverlay({
                     );
 
                     const data = await response.json();
+                    const latestMatch = data.match ?? null;
 
-                    const activeMatch = data.match ?? null;
+                    console.log("OVERLAY MATCH:", latestMatch);
 
-                    if (activeMatch) {
-                        setMatch(activeMatch);
+                    if (!latestMatch) {
+                        setMatch(null);
+                        setWinnerMessage(null);
+                        return;
+                    }
 
-                        const voteResponse = await fetch(
-                            `/api/match/votes?match_id=${activeMatch.id}`
-                        );
+                    setMatch(latestMatch);
 
-                        const voteData = await voteResponse.json();
+                    // Load votes
+                    const voteResponse = await fetch(
+                        `/api/match/votes?match_id=${latestMatch.id}`
+                    );
 
-                        setVoteCount({
-                            a: voteData.a ?? 0,
-                            b: voteData.b ?? 0,
-                        });
+                    const voteData = await voteResponse.json();
+
+                    setVoteCount({
+                        a: voteData.a ?? 0,
+                        b: voteData.b ?? 0,
+                    });
+
+                    // Match finished
+                    if (latestMatch.status === "finished") {
+                        if (latestMatch.mode === "solo") {
+                            // For solo, winner_id belongs to the creator.
+                            // WIN = creator won, otherwise LOSE.
+                            const message =
+                                latestMatch.winner_id === latestMatch.creator_id
+                                    ? "🏆 WIN!"
+                                    : "💀 LOSE!";
+
+                            setWinnerMessage(message);
+                        } else {
+                            // PvP
+                            let winnerName = "Winner";
+
+                            if (
+                                latestMatch.winner_id ===
+                                latestMatch.creator_id
+                            ) {
+                                const creator = latestMatch.creator;
+
+                                if (Array.isArray(creator)) {
+                                    winnerName =
+                                        creator[0]?.username || "Winner";
+                                } else {
+                                    winnerName =
+                                        creator?.username || "Winner";
+                                }
+                            } else if (
+                                latestMatch.winner_id ===
+                                latestMatch.opponent_id
+                            ) {
+                                const opponent = latestMatch.opponent;
+
+                                if (Array.isArray(opponent)) {
+                                    winnerName =
+                                        opponent[0]?.username || "Winner";
+                                } else {
+                                    winnerName =
+                                        opponent?.username || "Winner";
+                                }
+                            }
+
+                            setWinnerMessage(`🏆 ${winnerName} won!`);
+                        }
+
+                        // Give the winner message a few seconds,
+                        // then clear the overlay.
+                        clearTimeout(hideTimer);
+
+                        hideTimer = setTimeout(() => {
+                            setMatch(null);
+                            setWinnerMessage(null);
+                        }, 4000);
+                    } else {
+                        setWinnerMessage(null);
                     }
                 } catch (error) {
-                    console.error("Failed to load active match:", error);
+                    console.error(
+                        "Failed to load overlay match:",
+                        error
+                    );
                 } finally {
                     setLoading(false);
                 }
@@ -50,10 +121,13 @@ export default function UserOverlay({
 
             loadMatch();
 
-            const interval = setInterval(loadMatch, 1000);
-
-            return () => clearInterval(interval);
+            interval = setInterval(loadMatch, 1000);
         });
+
+        return () => {
+            clearInterval(interval);
+            clearTimeout(hideTimer);
+        };
     }, [params]);
 
     if (loading) {
@@ -63,6 +137,52 @@ export default function UserOverlay({
     if (!match) {
         return null;
     }
+
+    const isSolo = match.mode === "solo";
+
+    const sides = {
+        A: {
+            user: match.creator,
+            userId: match.creator_id,
+            votes: voteCount.a,
+        },
+        B: {
+            user: match.opponent,
+            userId: match.opponent_id,
+            votes: voteCount.b,
+        },
+    };
+
+    const getSideName = (side: "A" | "B") => {
+        const user = sides[side].user;
+
+        if (Array.isArray(user)) {
+            return user[0]?.username || side;
+        }
+
+        return user?.username || side;
+    };
+
+    const getUserColor = (userId?: string) => {
+        if (userId === match.creator_id) {
+            return "blue";
+        }
+
+        if (userId === match.opponent_id) {
+            return "red";
+        }
+
+        return "gray";
+    };
+
+    const totalVotes = Math.max(
+        voteCount.a + voteCount.b,
+        1
+    );
+
+    const fillPercent =
+        50 +
+        ((voteCount.b - voteCount.a) / totalVotes) * 50;
 
     return (
         <div
@@ -88,55 +208,43 @@ export default function UserOverlay({
                     textAlign: "center",
                 }}
             >
-                <h3>🗳 {username}'s Live Match</h3>
+                {winnerMessage ? (
+                    <div
+                        style={{
+                            fontSize: 28,
+                            fontWeight: "bold",
+                            color: "gold",
+                            padding: "20px 10px",
+                        }}
+                    >
+                        {winnerMessage}
+                    </div>
+                ) : (
+                    <>
+                        <h3>
+                            🗳 {username}'s Live Match
+                        </h3>
 
-                <p>Match #{match.id}</p>
+                        <p>Match #{match.id}</p>
 
-                <p>💰 Bounty Pool: {match.bounty_pool}</p>
+                        <p>
+                            💰 Bounty Pool: {match.bounty_pool}
+                        </p>
 
-                <VoteBar
-                    isSolo={match.mode === "solo"}
-                    currentMatch={match}
-                    voteCount={voteCount}
-                    sides={{
-                        A: {
-                            user: match.creator,
-                            userId: match.creator_id,
-                            votes: voteCount.a,
-                        },
-                        B: {
-                            user: match.opponent,
-                            userId: match.opponent_id,
-                            votes: voteCount.b,
-                        },
-                    }}
-                    totalVotes={Math.max(voteCount.a + voteCount.b, 1)}
-                    fillPercent={
-                        50 +
-                        ((voteCount.b - voteCount.a) /
-                            Math.max(voteCount.a + voteCount.b, 1)) *
-                        50
-                    }
-                    getSideName={(side) => {
-                        const user =
-                            side === "A"
-                                ? match.creator
-                                : match.opponent;
-
-                        if (Array.isArray(user)) {
-                            return user[0]?.username || side;
-                        }
-
-                        return user?.username || side;
-                    }}
-                    getUserColor={(userId) => {
-                        if (userId === match.creator_id) return "blue";
-                        if (userId === match.opponent_id) return "red";
-                        return "gray";
-                    }}
-                    myVote={null}
-                    pendingVote={null}
-                />
+                        <VoteBar
+                            isSolo={isSolo}
+                            currentMatch={match}
+                            voteCount={voteCount}
+                            sides={sides}
+                            totalVotes={totalVotes}
+                            fillPercent={fillPercent}
+                            getSideName={getSideName}
+                            getUserColor={getUserColor}
+                            myVote={null}
+                            pendingVote={null}
+                        />
+                    </>
+                )}
             </div>
         </div>
     );
