@@ -33,7 +33,15 @@ export async function GET(
   // Find their active match
   const { data: match, error: matchError } = await supabaseAdmin
     .from("matches")
-    .select("*")
+    .select(`
+    *,
+    creator:bounties!matches_creator_id_fkey (
+      username
+    ),
+    opponent:bounties!matches_opponent_id_fkey (
+      username
+    )
+  `)
     .or(`creator_id.eq.${user.user_id},opponent_id.eq.${user.user_id}`)
     .eq("status", "active")
     .order("created_at", { ascending: false })

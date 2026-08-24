@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import VoteBar from "../../../components/VoteBar";
 
 export default function UserOverlay({
     params,
@@ -10,7 +11,8 @@ export default function UserOverlay({
     const [username, setUsername] = useState("");
     const [match, setMatch] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-
+    const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
+    const [winnerMessage, setWinnerMessage] = useState<string | null>(null);
     useEffect(() => {
         params.then(({ username }) => {
             setUsername(username);
@@ -23,10 +25,24 @@ export default function UserOverlay({
 
                     const data = await response.json();
 
-                    setMatch(data.match ?? null);
+                    const activeMatch = data.match ?? null;
+
+                    if (activeMatch) {
+                        setMatch(activeMatch);
+
+                        const voteResponse = await fetch(
+                            `/api/match/votes?match_id=${activeMatch.id}`
+                        );
+
+                        const voteData = await voteResponse.json();
+
+                        setVoteCount({
+                            a: voteData.a ?? 0,
+                            b: voteData.b ?? 0,
+                        });
+                    }
                 } catch (error) {
                     console.error("Failed to load active match:", error);
-                    setMatch(null);
                 } finally {
                     setLoading(false);
                 }
@@ -78,7 +94,49 @@ export default function UserOverlay({
 
                 <p>💰 Bounty Pool: {match.bounty_pool}</p>
 
-                <p>🔵 Player 1 vs 🔴 Player 2</p>
+                <VoteBar
+                    isSolo={match.mode === "solo"}
+                    currentMatch={match}
+                    voteCount={voteCount}
+                    sides={{
+                        A: {
+                            user: match.creator,
+                            userId: match.creator_id,
+                            votes: voteCount.a,
+                        },
+                        B: {
+                            user: match.opponent,
+                            userId: match.opponent_id,
+                            votes: voteCount.b,
+                        },
+                    }}
+                    totalVotes={Math.max(voteCount.a + voteCount.b, 1)}
+                    fillPercent={
+                        50 +
+                        ((voteCount.b - voteCount.a) /
+                            Math.max(voteCount.a + voteCount.b, 1)) *
+                        50
+                    }
+                    getSideName={(side) => {
+                        const user =
+                            side === "A"
+                                ? match.creator
+                                : match.opponent;
+
+                        if (Array.isArray(user)) {
+                            return user[0]?.username || side;
+                        }
+
+                        return user?.username || side;
+                    }}
+                    getUserColor={(userId) => {
+                        if (userId === match.creator_id) return "blue";
+                        if (userId === match.opponent_id) return "red";
+                        return "gray";
+                    }}
+                    myVote={null}
+                    pendingVote={null}
+                />
             </div>
         </div>
     );
