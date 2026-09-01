@@ -25,6 +25,8 @@ type VoteBarProps = {
     getUserColor: (userId?: string) => string;
     myVote: "A" | "B" | null;
     pendingVote: "A" | "B" | null;
+    handleVote: (vote: "A" | "B") => void | Promise<void>;
+    canVote: boolean;
 };
 
 export default function VoteBar({
@@ -38,6 +40,8 @@ export default function VoteBar({
     getUserColor,
     myVote,
     pendingVote,
+    handleVote,
+    canVote,
 }: VoteBarProps) {
     const displayedVote = myVote || pendingVote;
 
@@ -90,8 +94,49 @@ export default function VoteBar({
                         }}
                     />
                 </div>
+                {canVote && !displayedVote && (
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 10,
+                            marginTop: 15,
+                        }}
+                    >
+                        <button
+                            onClick={() => handleVote("A")}
+                            style={{
+                                padding: "10px 18px",
+                                borderRadius: 8,
+                                border: "none",
+                                background: "#d33",
+                                color: "white",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                            }}
+                        >
+                            ❌ LOSE
+                        </button>
+
+                        <button
+                            onClick={() => handleVote("B")}
+                            style={{
+                                padding: "10px 18px",
+                                borderRadius: 8,
+                                border: "none",
+                                background: "#2e9d50",
+                                color: "white",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                            }}
+                        >
+                            🏆 WIN
+                        </button>
+                    </div>
+                )}
             </div>
         );
+
     }
 
     return (

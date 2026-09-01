@@ -207,6 +207,8 @@ export default function MatchView({
           getUserColor={getUserColor}
           myVote={myVote}
           pendingVote={pendingVote}
+          handleVote={handleVote}
+          canVote={canVote}
         />
       )}
     </section>
