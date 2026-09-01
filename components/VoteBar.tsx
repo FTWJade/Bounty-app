@@ -1,293 +1,334 @@
 "use client";
 
 type VoteBarProps = {
-  isSolo: boolean;
-  currentMatch: any;
-  voteCount: {
-    a: number;
-    b: number;
-  };
-  sides: {
-    A: {
-      user: any;
-      userId?: string;
-      votes: number;
+    isSolo: boolean;
+    currentMatch: any;
+    voteCount: {
+        a: number;
+        b: number;
     };
-    B: {
-      user: any;
-      userId?: string;
-      votes: number;
+    sides: {
+        A: {
+            user: any;
+            userId?: string;
+            votes: number;
+        };
+        B: {
+            user: any;
+            userId?: string;
+            votes: number;
+        };
     };
-  };
-  totalVotes: number;
-  fillPercent: number;
-  getSideName: (side: "A" | "B") => string;
-  getUserColor: (userId?: string) => string;
-  myVote: "A" | "B" | null;
-  pendingVote: "A" | "B" | null;
-  handleVote?: (vote: "A" | "B") => void | Promise<void>;
-  canVote?: boolean;
+    totalVotes: number;
+    fillPercent: number;
+    getSideName: (side: "A" | "B") => string;
+    getUserColor: (userId?: string) => string;
+    myVote: "A" | "B" | null;
+    pendingVote: "A" | "B" | null;
+    handleVote?: (vote: "A" | "B") => void | Promise<void>;
+    canVote?: boolean;
 };
 
 export default function VoteBar({
-  isSolo,
-  currentMatch,
-  voteCount,
-  sides,
-  totalVotes,
-  getSideName,
-  getUserColor,
-  myVote,
-  pendingVote,
-  handleVote,
-  canVote,
+    isSolo,
+    currentMatch,
+    voteCount,
+    sides,
+    totalVotes,
+    getSideName,
+    getUserColor,
+    myVote,
+    pendingVote,
+    handleVote,
+    canVote,
 }: VoteBarProps) {
-  const displayedVote = myVote || pendingVote;
+    const displayedVote = myVote || pendingVote;
 
-  /*
-   * SOLO
-   *
-   * A = LOSE
-   * B = WIN
-   *
-   * The marker starts in the center when there are no votes.
-   * More WIN votes move it right.
-   * More LOSE votes move it left.
-   */
-  if (isSolo) {
-    const totalSoloVotes = voteCount.a + voteCount.b;
+    /*
+     * SOLO
+     *
+     * A = LOSE
+     * B = WIN
+     *
+     * The marker starts in the center when there are no votes.
+     * More WIN votes move it right.
+     * More LOSE votes move it left.
+     */
+    if (isSolo) {
+        const totalSoloVotes = voteCount.a + voteCount.b;
 
-    const soloPercent =
-      totalSoloVotes === 0
-        ? 50
-        : (voteCount.b / totalSoloVotes) * 100;
+        const soloPercent =
+            totalSoloVotes === 0
+                ? 50
+                : (voteCount.b / totalSoloVotes) * 100;
 
+        return (
+            <div
+                style={{
+                    textAlign: "center",
+                    marginTop: 20,
+                    marginBottom: 10,
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        width: 300,
+                        margin: "0 auto 6px auto",
+                        fontSize: 12,
+                        color: "#aaa",
+                    }}
+                >
+                    <span>
+                        ❌ LOSE — {voteCount.a}
+                    </span>
+
+                    <span>
+                        {voteCount.b} — WIN 🏆
+                    </span>
+                </div>
+
+                {/* SOLO VOTE TRACK */}
+                <div
+                    style={{
+                        position: "relative",
+                        width: 300,
+                        height: 10,
+                        background: "#333",
+                        borderRadius: 5,
+                        margin: "8px auto",
+                    }}
+                >
+                    {/* CENTER LINE */}
+                    <div
+                        style={{
+                            position: "absolute",
+                            left: "50%",
+                            top: -3,
+                            transform: "translateX(-50%)",
+                            width: 2,
+                            height: 16,
+                            background: "#666",
+                        }}
+                    />
+
+                    {/* MOVING MARKER */}
+                    <div
+                        style={{
+                            position: "absolute",
+                            left: `${soloPercent}%`,
+                            top: -4,
+                            transform: "translateX(-50%)",
+                            width: 8,
+                            height: 18,
+                            background: "white",
+                            borderRadius: 4,
+                            transition:
+                                "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                        }}
+                    />
+                </div>
+
+                {/* VOTER'S CURRENT VOTE */}
+                {displayedVote && (
+                    <p
+                        style={{
+                            fontSize: 12,
+                            color: "#aaa",
+                            marginTop: 8,
+                        }}
+                    >
+                        You voted:{" "}
+                        {displayedVote === "A" ? "LOSE" : "WIN"}
+                    </p>
+                )}
+
+                {/* SOLO VOTING BUTTONS */}
+                {canVote && handleVote && !displayedVote && (
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 10,
+                            marginTop: 15,
+                        }}
+                    >
+                        <button
+                            onClick={() => handleVote("A")}
+                            style={{
+                                padding: "10px 18px",
+                                borderRadius: 8,
+                                border: "none",
+                                background: "#d33",
+                                color: "white",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                            }}
+                        >
+                            ❌ LOSE
+                        </button>
+
+                        <button
+                            onClick={() => handleVote("B")}
+                            style={{
+                                padding: "10px 18px",
+                                borderRadius: 8,
+                                border: "none",
+                                background: "#2e9d50",
+                                color: "white",
+                                cursor: "pointer",
+                                fontWeight: 600,
+                            }}
+                        >
+                            🏆 WIN
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    /*
+     * PVP
+     */
     return (
-      <div
-        style={{
-          textAlign: "center",
-          marginTop: 20,
-          marginBottom: 10,
-        }}
-      >
         <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            width: 300,
-            margin: "0 auto 6px auto",
-            fontSize: 12,
-            color: "#aaa",
-          }}
+            style={{
+                textAlign: "center",
+                marginTop: 20,
+                marginBottom: 10,
+            }}
         >
-          <span>
-            ❌ LOSE — {voteCount.a}
-          </span>
+            {displayedVote && (
+                <p
+                    style={{
+                        fontSize: 12,
+                        color: "#aaa",
+                    }}
+                >
+                    You voted: {displayedVote}
+                </p>
+            )}
 
-          <span>
-            {voteCount.b} — WIN 🏆
-          </span>
-        </div>
-
-        {/* SOLO VOTE TRACK */}
-        <div
-          style={{
-            position: "relative",
-            width: 300,
-            height: 10,
-            background: "#333",
-            borderRadius: 5,
-            margin: "8px auto",
-          }}
-        >
-          {/* CENTER LINE */}
-          <div
-            style={{
-              position: "absolute",
-              left: "50%",
-              top: -3,
-              transform: "translateX(-50%)",
-              width: 2,
-              height: 16,
-              background: "#666",
-            }}
-          />
-
-          {/* MOVING MARKER */}
-          <div
-            style={{
-              position: "absolute",
-              left: `${soloPercent}%`,
-              top: -4,
-              transform: "translateX(-50%)",
-              width: 8,
-              height: 18,
-              background: "white",
-              borderRadius: 4,
-              transition:
-                "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-            }}
-          />
-        </div>
-
-        {/* VOTER'S CURRENT VOTE */}
-        {displayedVote && (
-          <p
-            style={{
-              fontSize: 12,
-              color: "#aaa",
-              marginTop: 8,
-            }}
-          >
-            You voted:{" "}
-            {displayedVote === "A" ? "LOSE" : "WIN"}
-          </p>
-        )}
-
-        {/* SOLO VOTING BUTTONS */}
-        {canVote && handleVote && !displayedVote && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 10,
-              marginTop: 15,
-            }}
-          >
-            <button
-              onClick={() => handleVote("A")}
-              style={{
-                padding: "10px 18px",
-                borderRadius: 8,
-                border: "none",
-                background: "#d33",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    width: 300,
+                    margin: "2px auto 8px auto",
+                    color: "#ccc",
+                    fontSize: 13,
+                }}
             >
-              ❌ LOSE
-            </button>
+                <span>
+                    {currentMatch.opponent_id ? (
+                        <span
+                            style={{
+                                color: getUserColor(
+                                    currentMatch.creator_id
+                                ),
+                            }}
+                        >
+                            {getSideName("A")} — {sides.A.votes}
+                        </span>
+                    ) : (
+                        "⏳ Waiting for opponent..."
+                    )}
+                </span>
 
-            <button
-              onClick={() => handleVote("B")}
-              style={{
-                padding: "10px 18px",
-                borderRadius: 8,
-                border: "none",
-                background: "#2e9d50",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
+                <span>
+                    <span
+                        style={{
+                            color: getUserColor(
+                                currentMatch.opponent_id
+                            ),
+                        }}
+                    >
+                        {getSideName("B")} — {sides.B.votes}
+                    </span>
+                </span>
+            </div>
+
+            <div
+                style={{
+                    position: "relative",
+                    width: 300,
+                    height: 10,
+                    background: "#222",
+                    borderRadius: 5,
+                    overflow: "hidden",
+                }}
             >
-              🏆 WIN
-            </button>
-          </div>
-        )}
-      </div>
+                {totalVotes >= 0 && (
+                    <>
+                        <div
+                            style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                height: "100%",
+                                width: `${(sides.A.votes / totalVotes) * 100}%`,
+                                background: "blue",
+                                transition: "width 0.3s ease",
+                            }}
+                        />
+
+                        <div
+                            style={{
+                                position: "absolute",
+                                right: 0,
+                                top: 0,
+                                height: "100%",
+                                width: `${(sides.B.votes / totalVotes) * 100}%`,
+                                background: "red",
+                                transition: "width 0.3s ease",
+                            }}
+                        />
+                    </>
+                )}
+            </div>
+            {/* PVP VOTING BUTTONS */}
+            {canVote && handleVote && !displayedVote && currentMatch.opponent_id && (
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: 10,
+                        marginTop: 15,
+                    }}
+                >
+                    <button
+                        onClick={() => handleVote("A")}
+                        style={{
+                            padding: "10px 18px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "blue",
+                            color: "white",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                        }}
+                    >
+                        {getSideName("A")}
+                    </button>
+
+                    <button
+                        onClick={() => handleVote("B")}
+                        style={{
+                            padding: "10px 18px",
+                            borderRadius: 8,
+                            border: "none",
+                            background: "red",
+                            color: "white",
+                            cursor: "pointer",
+                            fontWeight: 600,
+                        }}
+                    >
+                        {getSideName("B")}
+                    </button>
+                </div>
+            )}
+        </div>
     );
-  }
-
-  /*
-   * PVP
-   */
-  return (
-    <div
-      style={{
-        textAlign: "center",
-        marginTop: 20,
-        marginBottom: 10,
-      }}
-    >
-      {displayedVote && (
-        <p
-          style={{
-            fontSize: 12,
-            color: "#aaa",
-          }}
-        >
-          You voted: {displayedVote}
-        </p>
-      )}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          width: 300,
-          margin: "2px auto 8px auto",
-          color: "#ccc",
-          fontSize: 13,
-        }}
-      >
-        <span>
-          {currentMatch.opponent_id ? (
-            <span
-              style={{
-                color: getUserColor(
-                  currentMatch.creator_id
-                ),
-              }}
-            >
-              {getSideName("A")} — {sides.A.votes}
-            </span>
-          ) : (
-            "⏳ Waiting for opponent..."
-          )}
-        </span>
-
-        <span>
-          <span
-            style={{
-              color: getUserColor(
-                currentMatch.opponent_id
-              ),
-            }}
-          >
-            {getSideName("B")} — {sides.B.votes}
-          </span>
-        </span>
-      </div>
-
-      <div
-        style={{
-          position: "relative",
-          width: 300,
-          height: 10,
-          background: "#222",
-          borderRadius: 5,
-          overflow: "hidden",
-        }}
-      >
-        {totalVotes > 0 && (
-          <>
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                height: "100%",
-                width: `${(sides.A.votes / totalVotes) * 100}%`,
-                background: "blue",
-                transition: "width 0.3s ease",
-              }}
-            />
-
-            <div
-              style={{
-                position: "absolute",
-                right: 0,
-                top: 0,
-                height: "100%",
-                width: `${(sides.B.votes / totalVotes) * 100}%`,
-                background: "red",
-                transition: "width 0.3s ease",
-              }}
-            />
-          </>
-        )}
-      </div>
-    </div>
-  );
 }
