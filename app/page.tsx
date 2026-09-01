@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { supabase } from "@/lib/supabase";
 import MatchView from "../components/MatchView";
-import { Analytics } from "@vercel/analytics/next"
 type MatchStatus =
   | "open"
   | "active"
@@ -31,15 +30,6 @@ type MatchResult = {
 };
 
 export default function Home() {
-  const getVotedUsername = (vote: "A" | "B" | null) => {
-    if (!vote || !currentMatch) return null;
-    const user =
-      vote === "A"
-        ? currentMatch.creator
-        : currentMatch.opponent;
-
-    return user?.username || (vote === "A" ? "Creator" : "Opponent");
-  };
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const isCoolingDown =
     cooldownUntil !== null && Date.now() < cooldownUntil;
@@ -115,7 +105,7 @@ export default function Home() {
   const getSideName = (side: "A" | "B") => {
     return getUsername(sides[side].user) || side;
   };
-  const totalVotes = sides.A.votes + sides.B.votes || 1;
+  const totalVotes = sides.A.votes + sides.B.votes;
   const isParticipant =
     session?.user?.id === currentMatch?.creator_id ||
     session?.user?.id === currentMatch?.opponent_id;
@@ -593,20 +583,6 @@ export default function Home() {
     .filter((user) =>
       user.username?.toLowerCase().includes(search.toLowerCase())
     );
-
-  // map LEFT side to correct vote source
-  const leftWidth = isCreator
-    ? voteCount.b / totalVotes   // creator sees opponent on left
-    : voteCount.a / totalVotes;  // opponent sees creator on left
-
-  const rightWidth = isCreator
-    ? voteCount.a / totalVotes   // creator is right
-    : voteCount.b / totalVotes;  // opponent is right
-
-  // normalize between 0 - 100 (center = 50)
-  const soloDiff = voteCount.b - voteCount.a;
-  const fillPercent = 50 + (soloDiff / totalVotes) * 50;
-
 
   const soloWinnerId =
     isSolo && currentMatch
@@ -1113,7 +1089,6 @@ export default function Home() {
             getUserColor={getUserColor}
             getSideName={getSideName}
             totalVotes={totalVotes}
-            fillPercent={fillPercent}
             canVote={canVote}
             getVoteLabel={getVoteLabel}
             isCoolingDown={isCoolingDown}
