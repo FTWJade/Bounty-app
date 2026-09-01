@@ -25,8 +25,8 @@ type VoteBarProps = {
     getUserColor: (userId?: string) => string;
     myVote: "A" | "B" | null;
     pendingVote: "A" | "B" | null;
-    handleVote: (vote: "A" | "B") => void | Promise<void>;
-    canVote: boolean;
+    handleVote?: (vote: "A" | "B") => void | Promise<void>;
+    canVote?: boolean;
 };
 
 export default function VoteBar({
@@ -94,7 +94,7 @@ export default function VoteBar({
                         }}
                     />
                 </div>
-                {canVote && !displayedVote && (
+                {canVote && handleVote && !displayedVote && (
                     <div
                         style={{
                             display: "flex",
