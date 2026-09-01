@@ -129,7 +129,6 @@ export default function Overlay() {
             voteCount={voteCount}
             sides={sides}
             totalVotes={totalVotes}
-            fillPercent={fillPercent}
             getSideName={getSideName}
             getUserColor={getUserColor}
             myVote={null}
