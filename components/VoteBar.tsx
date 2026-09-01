@@ -260,7 +260,7 @@ export default function VoteBar({
                     overflow: "hidden",
                 }}
             >
-                {totalVotes >= 0 && (
+                {totalVotes > 0 && (
                     <>
                         <div
                             style={{
