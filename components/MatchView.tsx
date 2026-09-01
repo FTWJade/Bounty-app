@@ -149,13 +149,15 @@ export default function MatchView({
         >
           <h3>{creatorName}</h3>
 
-          <p>
-            {getSideName("A")}
-          </p>
+          {!isSolo && (
+            <>
+              <p>{getSideName("A")}</p>
 
-          <p>
-            Votes: <b>{voteCount.a}</b>
-          </p>
+              <p>
+                Votes: <b>{voteCount.a}</b>
+              </p>
+            </>
+          )}
         </div>
 
         {showOpponent && (

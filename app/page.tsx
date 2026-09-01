@@ -566,7 +566,13 @@ export default function Home() {
   const hasTwoPlayers =
     currentMatch?.creator_id && currentMatch?.opponent_id;
 
-  const canViewVotes = !!currentMatch;
+  const canViewVotes =
+    !!currentMatch &&
+    (
+      isSolo
+        ? currentMatch.status === "active"
+        : !!currentMatch.opponent_id
+    );
   const showOpponent =
     currentMatch?.mode === "pvp" &&
     (currentMatch?.opponent_id !== null && currentMatch?.opponent_id !== undefined);
