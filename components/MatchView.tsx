@@ -37,7 +37,6 @@ type Props = {
   getUserColor: (userId?: string) => string;
   getSideName: (side: "A" | "B") => string;
   totalVotes: number;
-  fillPercent: number;
   canVote: boolean;
   getVoteLabel: (side: "A" | "B") => string;
   isCoolingDown: boolean;
@@ -69,7 +68,6 @@ export default function MatchView({
   getUserColor,
   getSideName,
   totalVotes,
-  fillPercent,
   canVote,
   getVoteLabel,
   isCoolingDown,
@@ -196,7 +194,6 @@ export default function MatchView({
           voteCount={voteCount}
           sides={sides}
           totalVotes={totalVotes}
-          fillPercent={fillPercent}
           getSideName={getSideName}
           getUserColor={getUserColor}
           myVote={myVote}
