@@ -55,8 +55,8 @@ export default function UserOverlay({
                     // Match finished
                     if (latestMatch.status === "finished") {
                         if (latestMatch.mode === "solo") {
-                            // For solo, winner_id belongs to the creator.
-                            // WIN = creator won, otherwise LOSE.
+                            // Solo matches can have a winner_id when the creator wins.
+                            // If there is no winner_id, the creator lost.
                             const message =
                                 latestMatch.winner_id === latestMatch.creator_id
                                     ? "🏆 WIN!"

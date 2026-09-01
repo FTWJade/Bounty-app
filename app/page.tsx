@@ -31,6 +31,15 @@ type MatchResult = {
 };
 
 export default function Home() {
+  const getVotedUsername = (vote: "A" | "B" | null) => {
+    if (!vote || !currentMatch) return null;
+    const user =
+      vote === "A"
+        ? currentMatch.creator
+        : currentMatch.opponent;
+
+    return user?.username || (vote === "A" ? "Creator" : "Opponent");
+  };
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const isCoolingDown =
     cooldownUntil !== null && Date.now() < cooldownUntil;
@@ -338,8 +347,6 @@ export default function Home() {
             const userId = session.user.id;
 
             if (match.mode === "solo") {
-              if (userId === match.creator_id) return;
-
               const creatorWon = match.winner_id === match.creator_id;
 
               const correctVote = creatorWon ? "B" : "A";

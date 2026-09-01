@@ -1,6 +1,63 @@
 "use client";
-import { useState } from "react";
+
 import VoteBar from "./VoteBar";
+
+type MatchStatus =
+  | "open"
+  | "active"
+  | "lobby"
+  | "waiting"
+  | "finished"
+  | "expired"
+  | "cancelled";
+
+type Match = {
+  mode?: "pvp" | "solo";
+  id: string;
+  status: MatchStatus;
+  creator_id?: string;
+  opponent_id?: string;
+  creator?: any;
+  opponent?: any;
+  created_at?: string;
+  bounty_pool?: number;
+};
+
+type Props = {
+  currentMatch: Match | null;
+  isMatchVisible: boolean;
+  canViewVotes: boolean;
+  myVote: "A" | "B" | null;
+  voteCount: {
+    a: number;
+    b: number;
+  };
+  handleVote: (vote: "A" | "B") => void | Promise<void>;
+  isSolo: boolean;
+  getUserColor: (userId?: string) => string;
+  getSideName: (side: "A" | "B") => string;
+  totalVotes: number;
+  fillPercent: number;
+  canVote: boolean;
+  getVoteLabel: (side: "A" | "B") => string;
+  isCoolingDown: boolean;
+  isSoloCreator: boolean;
+  pendingVote: "A" | "B" | null;
+  sides: {
+    A: {
+      user: any;
+      userId?: string;
+      votes: number;
+    };
+    B: {
+      user: any;
+      userId?: string;
+      votes: number;
+    };
+  };
+  btn: React.CSSProperties;
+};
+
 export default function MatchView({
   currentMatch,
   isMatchVisible,
@@ -19,135 +76,139 @@ export default function MatchView({
   isSoloCreator,
   pendingVote,
   sides,
-  btn,
-}: any) {
-  const getVotedUsername = (vote: "A" | "B" | null) => {
-    if (!vote || !currentMatch) return null;
-    const user =
-      vote === "A"
-        ? currentMatch.creator
-        : currentMatch.opponent;
+}: Props) {
+  if (!currentMatch || !isMatchVisible) {
+    return null;
+  }
 
-    return user?.username || (vote === "A" ? "Creator" : "Opponent");
+  const getUsername = (user: any) => {
+    if (!user) return null;
+
+    if (Array.isArray(user)) {
+      return user[0]?.username || null;
+    }
+
+    return user.username || null;
   };
-  const displayedVote = myVote || pendingVote;
-  const [selectedVote, setSelectedVote] = useState<"A" | "B" | null>(null);
+
+  const creatorName =
+    getUsername(currentMatch.creator) || "Creator";
+
+  const opponentName =
+    getUsername(currentMatch.opponent) || "Opponent";
+
+  const showOpponent =
+    currentMatch.mode === "pvp" &&
+    !!currentMatch.opponent_id;
+
   return (
-    <div>
-      {isMatchVisible && (
+    <section
+      style={{
+        width: "100%",
+        maxWidth: 700,
+        marginTop: 25,
+        padding: 20,
+        border: "1px solid #333",
+        borderRadius: 12,
+        background: "#111",
+        color: "white",
+        textAlign: "center",
+      }}
+    >
+      <h2>
+        {isSolo ? "🎲 Solo Match" : "🆚 PvP Match"}
+      </h2>
+
+      <p style={{ color: "#aaa" }}>
+        Match ID: <b>{currentMatch.id}</b>
+      </p>
+
+      <p>
+        Status: <b>{currentMatch.status}</b>
+      </p>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: 20,
+          marginTop: 25,
+        }}
+      >
+        {/* CREATOR */}
         <div
           style={{
-            marginTop: 20,
-            padding: 10,
-            border: "1px solid #ccc",
-            width: 340,
-            textAlign: "center",
-            borderRadius: 8,
+            padding: 15,
+            borderRadius: 10,
+            border: `2px solid ${getUserColor(
+              currentMatch.creator_id
+            )}`,
+            minWidth: 180,
           }}
         >
-          <h3>🎮 Match</h3>
+          <h3>{creatorName}</h3>
 
-          <p>ID: {currentMatch.id}</p>
-          <p>Status: {currentMatch.status}</p>
+          <p>
+            {getSideName("A")}
+          </p>
 
-          {canViewVotes && (
-            <div style={{ marginTop: 15 }}>
-              <div style={{ marginTop: 10 }}>
-                <h3>🗳 Vote</h3>
-
-                <VoteBar
-                  isSolo={isSolo}
-                  currentMatch={currentMatch}
-                  voteCount={voteCount}
-                  sides={sides}
-                  totalVotes={totalVotes}
-                  fillPercent={fillPercent}
-                  getSideName={getSideName}
-                  getUserColor={getUserColor}
-                  myVote={myVote}
-                  pendingVote={pendingVote}
-                />
-
-                {selectedVote && (
-                  <button
-                    style={{
-                      ...btn,
-                      background: "#222",
-                      color: "white",
-                      marginTop: 10,
-                      border: "1px solid #555",
-                    }}
-                    onClick={() => {
-                      handleVote(selectedVote);
-                      setSelectedVote(null);
-                    }}
-                  >
-                    Confirm {getVoteLabel(selectedVote)} (−
-                    {currentMatch?.bounty_pool ?? 0} bounty)
-                  </button>
-                )}
-
-                {selectedVote && (
-                  <button
-                    style={{
-                      ...btn,
-                      background: "#555",
-                      color: "white",
-                      marginTop: 5,
-                    }}
-                    onClick={() => setSelectedVote(null)}
-                  >
-                    Cancel
-                  </button>
-                )}
-
-                {canVote &&
-                  !isSoloCreator &&
-                  (isCoolingDown ? (
-                    <p style={{ marginTop: 10, color: "#888" }}>
-                      ⏳ You voted:{" "}
-                      <b>
-                        {isSolo
-                          ? myVote === "A"
-                            ? "LOSE"
-                            : "WIN"
-                          : getVotedUsername(myVote)}
-                      </b>
-                    </p>
-                  ) : (
-                    <>
-                      <button
-                        style={{
-                          ...btn,
-                          background:
-                            selectedVote === "A" ? "#ff4444" : "red",
-                          color: "white",
-                        }}
-                        onClick={() => setSelectedVote("A")}
-                      >
-                        Select {getVoteLabel("A")}
-                      </button>
-
-                      <button
-                        style={{
-                          ...btn,
-                          background:
-                            selectedVote === "B" ? "#44ff44" : "green",
-                          color: "white",
-                        }}
-                        onClick={() => setSelectedVote("B")}
-                      >
-                        Select {getVoteLabel("B")}
-                      </button>
-                    </>
-                  ))}
-              </div>
-            </div>
-          )}
-
-
+          <p>
+            Votes: <b>{voteCount.a}</b>
+          </p>
         </div>
+
+        {showOpponent && (
+          <>
+            <div
+              style={{
+                fontWeight: "bold",
+                fontSize: 20,
+              }}
+            >
+              VS
+            </div>
+
+            {/* OPPONENT */}
+            <div
+              style={{
+                padding: 15,
+                borderRadius: 10,
+                border: `2px solid ${getUserColor(
+                  currentMatch.opponent_id
+                )}`,
+                minWidth: 180,
+              }}
+            >
+              <h3>{opponentName}</h3>
+
+              <p>
+                {getSideName("B")}
+              </p>
+
+              <p>
+                Votes: <b>{voteCount.b}</b>
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* VOTING */}
+      {canViewVotes && (
+        <VoteBar
+          isSolo={isSolo}
+          currentMatch={currentMatch}
+          voteCount={voteCount}
+          sides={sides}
+          totalVotes={totalVotes}
+          fillPercent={fillPercent}
+          getSideName={getSideName}
+          getUserColor={getUserColor}
+          myVote={myVote}
+          pendingVote={pendingVote}
+        />
       )}
-    </div>
+    </section>
   );
 }

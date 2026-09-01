@@ -44,7 +44,7 @@ export async function GET(
       )
     `)
     .or(`creator_id.eq.${user.user_id},opponent_id.eq.${user.user_id}`)
-    .eq("status", "active")
+    .in("status", ["active", "open", "lobby", "waiting"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
