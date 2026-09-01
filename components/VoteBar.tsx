@@ -250,6 +250,7 @@ export default function VoteBar({
                 </span>
             </div>
 
+            {/* PVP VOTE TRACK */}
             <div
                 style={{
                     position: "relative",
@@ -260,33 +261,54 @@ export default function VoteBar({
                     overflow: "hidden",
                 }}
             >
+                {/* BLUE / CREATOR SIDE */}
                 {totalVotes > 0 && (
-                    <>
-                        <div
-                            style={{
-                                position: "absolute",
-                                left: 0,
-                                top: 0,
-                                height: "100%",
-                                width: `${(sides.A.votes / totalVotes) * 100}%`,
-                                background: "blue",
-                                transition: "width 0.3s ease",
-                            }}
-                        />
-
-                        <div
-                            style={{
-                                position: "absolute",
-                                right: 0,
-                                top: 0,
-                                height: "100%",
-                                width: `${(sides.B.votes / totalVotes) * 100}%`,
-                                background: "red",
-                                transition: "width 0.3s ease",
-                            }}
-                        />
-                    </>
+                    <div
+                        style={{
+                            position: "absolute",
+                            left: 0,
+                            top: 0,
+                            height: "100%",
+                            width: `${(sides.A.votes / totalVotes) * 100}%`,
+                            background: "blue",
+                            transition: "width 0.4s ease",
+                        }}
+                    />
                 )}
+
+                {/* RED / OPPONENT SIDE */}
+                {totalVotes > 0 && (
+                    <div
+                        style={{
+                            position: "absolute",
+                            right: 0,
+                            top: 0,
+                            height: "100%",
+                            width: `${(sides.B.votes / totalVotes) * 100}%`,
+                            background: "red",
+                            transition: "width 0.4s ease",
+                        }}
+                    />
+                )}
+
+                {/* WHITE CENTER/SPLIT MARKER */}
+                <div
+                    style={{
+                        position: "absolute",
+                        left: `${totalVotes === 0
+                                ? 50
+                                : (sides.A.votes / totalVotes) * 100
+                            }%`,
+                        top: -4,
+                        transform: "translateX(-50%)",
+                        width: 8,
+                        height: 18,
+                        background: "white",
+                        borderRadius: 4,
+                        transition:
+                            "left 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                    }}
+                />
             </div>
             {/* PVP VOTING BUTTONS */}
             {canVote && handleVote && !displayedVote && currentMatch.opponent_id && (
