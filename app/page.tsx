@@ -1228,6 +1228,6 @@ export default function Home() {
       >
         Logout
       </button>
-    </main >
+    </main>
   );
 }
