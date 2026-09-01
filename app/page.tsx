@@ -570,7 +570,9 @@ export default function Home() {
     !!currentMatch &&
     (
       isSolo
-        ? currentMatch.status === "active"
+        ? ["open", "active", "lobby", "waiting"].includes(
+          currentMatch.status
+        )
         : !!currentMatch.opponent_id
     );
   const showOpponent =
