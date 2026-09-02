@@ -3,10 +3,35 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export async function POST(request: Request) {
   const { match_id, user_id } = await request.json();
 
-  if (!match_id || !user_id) {
-    return Response.json({ error: "Missing data" }, { status: 400 });
+  if (!user_id) {
+    return Response.json({ error: "Missing user_id" }, { status: 400 });
   }
+  // Startup check: find an active match where this user is a contestant
+  if (!match_id) {
+    const { data: activeMatch, error: activeMatchError } =
+      await supabaseAdmin
+        .from("matches")
+        .select("*")
+        .or(`creator_id.eq.${user_id},opponent_id.eq.${user_id}`)
+        .in("status", ["open", "active", "lobby", "waiting"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
+    if (activeMatchError) {
+      return Response.json(
+        { error: activeMatchError.message },
+        { status: 500 }
+      );
+    }
+
+    return Response.json({
+      success: true,
+      match: activeMatch ?? null,
+      vote: null,
+      cooldown_end: null,
+    });
+  }
   const now = Date.now();
   const THREE_MINUTES = 3 * 60 * 1000;
 

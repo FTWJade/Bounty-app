@@ -204,6 +204,35 @@ export default function Home() {
   };
 
   useEffect(() => {
+    if (!session?.user?.id || currentMatch) return;
+
+    const restoreMatch = async () => {
+      const res = await fetch("/api/match/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: session.user.id,
+        }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (data.match) {
+        setCurrentMatch(data.match);
+        setMatchId(data.match.id);
+        setMode(data.match.mode ?? null);
+        setDidCreateMatch(
+          data.match.creator_id === session.user.id
+        );
+      }
+    };
+
+    restoreMatch();
+  }, [session?.user?.id, currentMatch]);
+
+  useEffect(() => {
     if (!currentMatch?.id || !session?.user?.id) return;
 
     const interval = setInterval(async () => {
