@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import VoteBar from "../../../components/VoteBar";
 
 export default function UserOverlay({
@@ -13,7 +13,7 @@ export default function UserOverlay({
     const [loading, setLoading] = useState(true);
     const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
     const [winnerMessage, setWinnerMessage] = useState<string | null>(null);
-
+    const finishedMatchRef = useRef<string | null>(null);
     useEffect(() => {
         let interval: NodeJS.Timeout;
         let hideTimer: NodeJS.Timeout;
@@ -33,81 +33,73 @@ export default function UserOverlay({
                     if (!latestMatch) {
                         setMatch(null);
                         setWinnerMessage(null);
+                        finishedMatchRef.current = null;
                         return;
                     }
 
-                    setMatch(latestMatch);
-
-                    // Load votes
-                    const voteResponse = await fetch(
-                        `/api/match/votes?match_id=${latestMatch.id}`
-                    );
-
-                    const voteData = await voteResponse.json();
-
-                    setVoteCount({
-                        a: voteData.a ?? 0,
-                        b: voteData.b ?? 0,
-                    });
-
                     // Match finished
                     if (latestMatch.status === "finished") {
-                        if (latestMatch.mode === "solo") {
-                            // Solo matches can have a winner_id when the creator wins.
-                            // If there is no winner_id, the creator lost.
-                            const message =
-                                latestMatch.winner_id === latestMatch.creator_id
-                                    ? "🏆 WIN!"
-                                    : "💀 LOSE!";
+                        if (finishedMatchRef.current !== latestMatch.id) {
+                            finishedMatchRef.current = latestMatch.id;
+                            setMatch(latestMatch);
 
-                            setWinnerMessage(message);
-                        } else {
-                            // PvP
-                            let winnerName = "Winner";
+                            if (latestMatch.mode === "solo") {
+                                const message =
+                                    latestMatch.winner_id === latestMatch.creator_id
+                                        ? "🏆 WIN!"
+                                        : "💀 LOSE!";
 
-                            if (
-                                latestMatch.winner_id ===
-                                latestMatch.creator_id
-                            ) {
-                                const creator = latestMatch.creator;
+                                setWinnerMessage(message);
+                            } else {
+                                let winnerName = "Winner";
 
-                                if (Array.isArray(creator)) {
-                                    winnerName =
-                                        creator[0]?.username || "Winner";
-                                } else {
-                                    winnerName =
-                                        creator?.username || "Winner";
+                                if (
+                                    latestMatch.winner_id ===
+                                    latestMatch.creator_id
+                                ) {
+                                    const creator = latestMatch.creator;
+
+                                    if (Array.isArray(creator)) {
+                                        winnerName =
+                                            creator[0]?.username || "Winner";
+                                    } else {
+                                        winnerName =
+                                            creator?.username || "Winner";
+                                    }
+                                } else if (
+                                    latestMatch.winner_id ===
+                                    latestMatch.opponent_id
+                                ) {
+                                    const opponent = latestMatch.opponent;
+
+                                    if (Array.isArray(opponent)) {
+                                        winnerName =
+                                            opponent[0]?.username || "Winner";
+                                    } else {
+                                        winnerName =
+                                            opponent?.username || "Winner";
+                                    }
                                 }
-                            } else if (
-                                latestMatch.winner_id ===
-                                latestMatch.opponent_id
-                            ) {
-                                const opponent = latestMatch.opponent;
 
-                                if (Array.isArray(opponent)) {
-                                    winnerName =
-                                        opponent[0]?.username || "Winner";
-                                } else {
-                                    winnerName =
-                                        opponent?.username || "Winner";
-                                }
+                                setWinnerMessage(`🏆 ${winnerName} won!`);
                             }
 
-                            setWinnerMessage(`🏆 ${winnerName} won!`);
+                            clearTimeout(hideTimer);
+
+                            hideTimer = setTimeout(() => {
+                                setMatch(null);
+                                setWinnerMessage(null);
+                            }, 5000);
                         }
 
-                        // Give the winner message a few seconds,
-                        // then clear the overlay.
-                        clearTimeout(hideTimer);
-
-                        hideTimer = setTimeout(() => {
-                            setMatch(null);
-                            setWinnerMessage(null);
-                        }, 4000);
-                    } else {
-                        setWinnerMessage(null);
+                        return;
                     }
-                } 
+
+                    // Normal active match
+                    setMatch(latestMatch);
+                    setWinnerMessage(null);
+                    finishedMatchRef.current = null;
+                }
                 catch (error) {
                     console.error(
                         "Failed to load overlay match:",
@@ -221,10 +213,11 @@ export default function UserOverlay({
                 ) : (
                     <>
                         <h3>
-                            🗳 {username}'s Live Match
+                            {username}'s {isSolo ? "Solo" : "PvP"}: #{match.id}
+
                         </h3>
 
-                        <p>Match #{match.id}</p>
+                        <p>{match.title}</p>
 
                         <p>
                             💰 Bounty Pool: {match.bounty_pool}
