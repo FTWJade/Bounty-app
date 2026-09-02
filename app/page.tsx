@@ -681,6 +681,8 @@ export default function Home() {
           top: 10,
           left: 10,
           fontSize: 14,
+          display: "flex",
+          gap: 15,
         }}
       >
         <a
@@ -691,6 +693,16 @@ export default function Home() {
           }}
         >
           About
+        </a>
+
+        <a
+          href={`/${session.user?.name}`}
+          style={{
+            color: "#555",
+            textDecoration: "none",
+          }}
+        >
+          Profile
         </a>
       </div>
       {canCancelMatch && (
