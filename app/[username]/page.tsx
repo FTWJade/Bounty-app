@@ -17,7 +17,6 @@ export default async function PublicProfile({
         .maybeSingle();
     const isOwnProfile = session?.user?.id === user?.user_id;
     if (error) {
-        console.error("PUBLIC PROFILE ERROR:", error);
         return <p>Something went wrong.</p>;
     }
 
