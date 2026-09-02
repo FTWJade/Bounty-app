@@ -30,8 +30,6 @@ export default function UserOverlay({
                     const data = await response.json();
                     const latestMatch = data.match ?? null;
 
-                    console.log("OVERLAY MATCH:", latestMatch);
-
                     if (!latestMatch) {
                         setMatch(null);
                         setWinnerMessage(null);
@@ -109,7 +107,8 @@ export default function UserOverlay({
                     } else {
                         setWinnerMessage(null);
                     }
-                } catch (error) {
+                } 
+                catch (error) {
                     console.error(
                         "Failed to load overlay match:",
                         error

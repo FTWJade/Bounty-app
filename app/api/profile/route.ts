@@ -29,8 +29,6 @@ export async function GET(req: Request) {
     .maybeSingle();
 
   if (userError) {
-    console.error("PROFILE FETCH ERROR:", userError);
-
     return NextResponse.json(
       { error: "Failed to load profile" },
       { status: 500 }
@@ -55,8 +53,6 @@ export async function GET(req: Request) {
     .order("created_at", { ascending: false });
 
   if (matchesError) {
-    console.error("MATCH HISTORY ERROR:", matchesError);
-
     return NextResponse.json(
       { error: "Failed to load match history" },
       { status: 500 }
@@ -70,8 +66,6 @@ export async function GET(req: Request) {
     .eq("user_id", userId);
 
   if (hiddenError) {
-    console.error("HIDDEN MATCH ERROR:", hiddenError);
-
     return NextResponse.json(
       { error: "Failed to load hidden matches" },
       { status: 500 }

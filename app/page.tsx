@@ -152,7 +152,6 @@ export default function Home() {
     const data = await res.json();
 
     if (!res.ok) {
-      console.log("❌ Cancel failed:", data);
       showPopup(data.error || "Failed to cancel match");
       return;
     }
@@ -239,8 +238,6 @@ export default function Home() {
     const loadVotes = async () => {
       const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
       const json = await res.json();
-
-      console.log("🗳 POLL:", json);
 
       setVoteCount({
         a: json.a ?? 0,
@@ -394,8 +391,6 @@ export default function Home() {
           setCurrentMatch(null);
           setMatchId("");
           setDidCreateMatch(false);
-
-          console.log("🛑 Match ended → UI cleared");
         }
       } catch (err) {
         console.warn("Polling failed:", err);
@@ -407,15 +402,6 @@ export default function Home() {
       clearInterval(interval);
     };
   }, [currentMatch?.id, session?.user?.id]);
-
-  useEffect(() => {
-    console.log("📊 STATE SNAPSHOT:", {
-      points,
-      displayPoints,
-      level,
-      xpIntoLevel,
-    });
-  }, [points, displayPoints, level]);
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -452,8 +438,6 @@ export default function Home() {
     const userId = session.user.id;
 
     const run = async () => {
-      console.log("RUN DAILY FOR:", userId);
-
       await loadUser(userId);
 
       const daily = await fetch("/api/daily", {

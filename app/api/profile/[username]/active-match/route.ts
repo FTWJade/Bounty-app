@@ -15,8 +15,6 @@ export async function GET(
     .maybeSingle();
 
   if (userError) {
-    console.error("ACTIVE MATCH USER ERROR:", userError);
-
     return NextResponse.json(
       { error: "Failed to find user" },
       { status: 500 }
@@ -50,8 +48,6 @@ export async function GET(
     .maybeSingle();
 
   if (activeMatchError) {
-    console.error("ACTIVE MATCH ERROR:", activeMatchError);
-
     return NextResponse.json(
       {
         error: "Failed to find active match",
@@ -89,8 +85,6 @@ export async function GET(
       .maybeSingle();
 
   if (finishedMatchError) {
-    console.error("FINISHED MATCH ERROR:", finishedMatchError);
-
     return NextResponse.json(
       {
         error: "Failed to find finished match",

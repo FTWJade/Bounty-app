@@ -3,8 +3,6 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export async function POST(request: Request) {
   const { match_id, user_id } = await request.json();
 
-  console.log("💓 HEARTBEAT:", { match_id, user_id });
-
   if (!match_id || !user_id) {
     return Response.json({ error: "Missing data" }, { status: 400 });
   }

@@ -9,7 +9,6 @@ export async function GET() {
     .limit(10);
 
   if (error) {
-    console.error("Leaderboard error:", error);
     return NextResponse.json(
       { data: [], error: error.message },
       { status: 500 }

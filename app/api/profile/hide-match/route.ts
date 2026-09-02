@@ -70,8 +70,6 @@ export async function POST(req: Request) {
         );
 
     if (insertError) {
-        console.error("HIDE MATCH ERROR:", insertError);
-
         return NextResponse.json(
             {
                 error: "Failed to hide match",

@@ -4,8 +4,6 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function POST(req: NextRequest) {
-  console.log("🔥 DAILY ROUTE HIT");
-
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.id) {
@@ -16,8 +14,6 @@ export async function POST(req: NextRequest) {
   const username = session.user.name ?? "unknown";
   const today = new Date().toISOString().split("T")[0];
 
-  console.log("SESSION USER ID:", user_id);
-
   // 1️⃣ GET USER
   let { data: user, error: userError } = await supabaseAdmin
     .from("bounties")
@@ -25,12 +21,8 @@ export async function POST(req: NextRequest) {
     .eq("user_id", user_id)
     .maybeSingle();
 
-  console.log("DB USER:", user, userError);
-
   // 2️⃣ AUTO CREATE USER IF MISSING
   if (!user) {
-    console.log("🆕 Creating new user...");
-
     const { error: insertError } = await supabaseAdmin.from("bounties").insert({
       user_id,
       username,
@@ -40,7 +32,6 @@ export async function POST(req: NextRequest) {
     });
 
     if (insertError) {
-      console.log("❌ USER CREATE ERROR:", insertError);
       return NextResponse.json({ error: "Failed to create user" });
     }
 
@@ -73,16 +64,12 @@ export async function POST(req: NextRequest) {
   }
 
   // 4️⃣ ACHIEVEMENTS
-  console.log("➡️ CHECKING ACHIEVEMENTS");
-
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from("achievements")
     .select("user_id")
     .eq("user_id", user_id)
     .eq("achievement_id", "first_login")
     .maybeSingle();
-
-  console.log("ACH CHECK:", { existing, fetchError });
 
   if (!existing) {
     const { error: insertError } = await supabaseAdmin
@@ -92,8 +79,6 @@ export async function POST(req: NextRequest) {
         achievement_id: "first_login",
         unlocked_at: new Date().toISOString(),
       });
-
-    console.log("ACH INSERT ERROR:", insertError);
 
     if (!insertError) {
       unlocked.push("first_login");

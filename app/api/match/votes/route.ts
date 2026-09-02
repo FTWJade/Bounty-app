@@ -3,9 +3,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const match_id = searchParams.get("match_id");
-
-  console.log("GET VOTES FOR:", match_id);
-
+  
   if (!match_id) {
     return Response.json({ a: 0, b: 0 });
   }

@@ -27,7 +27,6 @@ export default function ProfilePage() {
         fetch(`/api/profile?page=${page}`)
             .then((res) => res.json())
             .then((data) => {
-                console.log("PROFILE DATA:", data);
                 setProfile(data);
             })
             .catch((error) => {
