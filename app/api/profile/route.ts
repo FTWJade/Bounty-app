@@ -48,7 +48,7 @@ export async function GET(req: Request) {
   const { data: matches, error: matchesError } = await supabaseAdmin
     .from("matches")
     .select(
-      "id, creator_id, opponent_id, status, winner_id, created_at, mode, bounty_pool"
+      "id, creator_id, opponent_id, status, winner_id, created_at, mode, bounty_pool, title"
     )
     .or(`creator_id.eq.${userId},opponent_id.eq.${userId}`)
     .eq("status", "finished")

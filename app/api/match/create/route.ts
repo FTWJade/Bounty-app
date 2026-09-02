@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
-  const { user_id, mode, bet_amount } = await req.json();
+  const { user_id, mode, bet_amount, title } = await req.json();
 
   if (!user_id) {
     return Response.json({ error: "Missing user_id" }, { status: 400 });
@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       opponent_id: null,
       status: "open",
       mode: mode || "pvp",
+      title: title || null,
       bounty_pool: bet_amount,
       last_activity_at: new Date().toISOString(),
     })

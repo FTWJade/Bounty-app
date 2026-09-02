@@ -18,6 +18,7 @@ export default function ProfilePage() {
             created_at: string;
             mode: string;
             bounty_pool: number;
+            title: string | null;
         }[];
     } | null>(null);
     const [page, setPage] = useState(1);
@@ -25,7 +26,10 @@ export default function ProfilePage() {
     useEffect(() => {
         fetch(`/api/profile?page=${page}`)
             .then((res) => res.json())
-            .then((data) => setProfile(data));
+            .then((data) => {
+                console.log("PROFILE DATA:", data);
+                setProfile(data);
+            });
     }, [page]);
     if (status === "loading") {
         return <div>Loading profile...</div>;
@@ -92,6 +96,11 @@ export default function ProfilePage() {
                                     key={match.id}
                                     className="rounded-lg border p-4"
                                 >
+                                    {match.title && (
+                                        <p className="text-lg font-semibold">
+                                            {match.title}
+                                        </p>
+                                    )}
                                     <p className="font-semibold">
                                         Match #{match.id}
                                     </p>

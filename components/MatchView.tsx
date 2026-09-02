@@ -15,6 +15,7 @@ type Match = {
   mode?: "pvp" | "solo";
   id: string;
   status: MatchStatus;
+  title?: string;
   creator_id?: string;
   opponent_id?: string;
   creator?: any;
@@ -116,6 +117,18 @@ export default function MatchView({
       <h2>
         {isSolo ? "🎲 Solo Match" : "🆚 PvP Match"}
       </h2>
+
+      {currentMatch.title && (
+        <h3
+          style={{
+            marginTop: 5,
+            marginBottom: 15,
+            fontSize: 22,
+          }}
+        >
+          {currentMatch.title}
+        </h3>
+      )}
 
       <p style={{ color: "#aaa" }}>
         Match ID: <b>{currentMatch.id}</b>

@@ -17,12 +17,13 @@ type Match = {
   mode?: "pvp" | "solo";
   id: string;
   status: MatchStatus;
+  title?: string;
   creator_id?: string;
   opponent_id?: string;
   creator?: any;
   opponent?: any;
   created_at?: string;
-  bounty_pool?: number; // ✅ ADD THIS
+  bounty_pool?: number;
 };
 type MatchResult = {
   winner_id: string | null;
@@ -55,6 +56,7 @@ export default function Home() {
     }, duration);
   };
   const [betAmount, setBetAmount] = useState<number>(0);
+  const [matchTitle, setMatchTitle] = useState<string>("");
   const [pendingJoin, setPendingJoin] = useState<{
     matchId: string;
     betAmount: number;
@@ -784,6 +786,22 @@ export default function Home() {
             gap: 8,
           }}
         >
+          <p style={{ marginBottom: 2 }}>Bounty title:</p>
+
+          <input
+            type="text"
+            value={matchTitle}
+            onChange={(e) => setMatchTitle(e.target.value)}
+            placeholder="What is this bounty?"
+            maxLength={100}
+            style={{
+              padding: "10px",
+              borderRadius: 8,
+              border: "1px solid #ccc",
+              width: 200,
+              textAlign: "center",
+            }}
+          />
           <p style={{ marginBottom: 2 }}>Input bet:</p>
 
           <input
@@ -815,6 +833,7 @@ export default function Home() {
                   user_id: session.user.id,
                   mode,
                   bet_amount: betAmount,
+                  title: matchTitle,
                 }),
               });
 
@@ -829,6 +848,7 @@ export default function Home() {
                 setCurrentMatch(full.data);
                 setMatchId(full.data.id);
                 setDidCreateMatch(true);
+                setMatchTitle("");
                 setBounty((prev) => prev - betAmount);
               }
             }}
