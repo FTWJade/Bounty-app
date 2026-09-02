@@ -45,17 +45,17 @@ export async function POST(req: NextRequest) {
     user = res.data;
   }
 
-  let pointsAdded = 0;
+  let bountyAdded = 0;
   let unlocked: string[] = [];
 
   // 3️⃣ DAILY LOGIN
   if (user?.last_login !== today) {
-    pointsAdded = 100;
+    bountyAdded = 25;
 
     await supabaseAdmin
       .from("bounties")
       .update({
-        points: (user.points || 0) + 100,
+        bounty: (user.bounty || 0) + 25,
         last_login: today,
       })
       .eq("user_id", user_id);
@@ -85,5 +85,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ pointsAdded, unlocked });
+  return NextResponse.json({ bountyAdded, unlocked });
 }

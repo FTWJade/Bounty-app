@@ -331,7 +331,9 @@ export default function Home() {
           const lb = await updatedLeaderboard.json();
           setLeaderboard(lb.data || []);
           const vote = voteRef.current;
-
+          setCurrentMatch(null);
+          setMatchId("");
+          setDidCreateMatch(false);
           if (vote) {
             const userId = session.user.id;
 
@@ -388,9 +390,6 @@ export default function Home() {
               showPopup(didWin ? "🏆 You won!" : "💀 You lost");
             }
           }
-          setCurrentMatch(null);
-          setMatchId("");
-          setDidCreateMatch(false);
         }
       } catch (err) {
         console.warn("Polling failed:", err);
@@ -448,11 +447,9 @@ export default function Home() {
 
       const data = await daily.json();
 
-      if (data.pointsAdded) {
-        showPopup(`+${data.pointsAdded} XP 🎉`);
-        const newPoints = points + data.pointsAdded;
-        setPoints(newPoints);
-        animateXP(newPoints);
+      if (data.bountyAdded) {
+        showPopup(`+${data.bountyAdded} Bounty 💰`);
+        setBounty((current) => current + data.bountyAdded);
       }
 
       if (data.unlocked?.length > 0) {
