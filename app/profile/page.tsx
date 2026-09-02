@@ -29,6 +29,9 @@ export default function ProfilePage() {
             .then((data) => {
                 console.log("PROFILE DATA:", data);
                 setProfile(data);
+            })
+            .catch((error) => {
+                console.error("PROFILE FETCH FAILED:", error);
             });
     }, [page]);
     if (status === "loading") {
