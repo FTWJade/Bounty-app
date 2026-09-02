@@ -17,9 +17,11 @@ type Match = {
 export default function ProfileMatches({
     matches,
     userId,
+    isOwnProfile,
 }: {
     matches: Match[];
     userId: string;
+    isOwnProfile: boolean;
 }) {
     const [page, setPage] = useState(1);
     const pageSize = 10;
@@ -27,7 +29,34 @@ export default function ProfileMatches({
     const start = (page - 1) * pageSize;
     const paginatedMatches = matches.slice(start, start + pageSize);
     const hasNextPage = start + pageSize < matches.length;
+    const hideMatch = async (matchId: string) => {
+        console.log("REMOVE CLICKED", matchId);
 
+        const response = await fetch("/api/profile/hide-match", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                match_id: matchId,
+            }),
+        });
+
+        console.log("HIDE RESPONSE:", response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+
+            console.error("HIDE MATCH FAILED:", {
+                status: response.status,
+                body: errorText,
+            });
+
+            return;
+        }
+
+        window.location.reload();
+    };
     return (
         <div>
             <div className="mt-4 space-y-4">
@@ -64,6 +93,14 @@ export default function ProfileMatches({
                                         match.created_at
                                     ).toLocaleDateString()}
                                 </p>
+                                {isOwnProfile && (
+                                    <button
+                                        onClick={() => hideMatch(match.id)}
+                                        className="mt-2 rounded px-3 py-1 border"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
                             </div>
                         );
                     })

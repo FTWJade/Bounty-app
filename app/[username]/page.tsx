@@ -32,6 +32,17 @@ export default async function PublicProfile({
         .or(`creator_id.eq.${user.user_id},opponent_id.eq.${user.user_id}`)
         .eq("status", "finished")
         .order("created_at", { ascending: false });
+    const { data: hiddenMatches } = await supabaseAdmin
+        .from("hidden_matches")
+        .select("match_id")
+        .eq("user_id", user.user_id);
+    const hiddenIds = new Set(
+        (hiddenMatches ?? []).map((match) => match.match_id)
+    );
+
+    const visibleMatches = (matches ?? []).filter(
+        (match) => !hiddenIds.has(match.id)
+    );
     return (
         <main className="min-h-screen p-6">
             <div className="flex items-center gap-4">
@@ -80,8 +91,9 @@ export default async function PublicProfile({
                 </h2>
 
                 <ProfileMatches
-                    matches={matches ?? []}
+                    matches={visibleMatches}
                     userId={user.user_id}
+                    isOwnProfile={isOwnProfile}
                 />
             </section>
         </main>
