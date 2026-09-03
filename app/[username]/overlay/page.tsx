@@ -259,6 +259,7 @@ export default function UserOverlay({
                             getUserColor={getUserColor}
                             myVote={null}
                             pendingVote={null}
+                            canVote={true}
                         />
                     </>
                 )}
