@@ -1221,7 +1221,9 @@ export default function Home() {
         )
       }
 
-      <div style={{ marginTop: 30, textAlign: "center" }}>
+      <div
+
+        style={{ marginTop: 30, textAlign: "center" }}>
         <h2>🏆 Leaderboard</h2>
         <input
           value={search}
