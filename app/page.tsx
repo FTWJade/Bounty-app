@@ -510,6 +510,15 @@ export default function Home() {
         fontFamily: "Arial",
         textAlign: "center",
       }}>
+        player.setVolume(50);
+        <iframe
+          width="560"
+          height="315"
+          src="https://www.youtube.com/embed/l7xWjOGTJ64"
+          title="bounty.town demo"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
         <h1>Bounty App</h1>
 
         <p style={{
