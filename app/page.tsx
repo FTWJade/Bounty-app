@@ -699,7 +699,7 @@ export default function Home() {
       justifyContent: "flex-start",
       alignItems: "center",
       flexDirection: "column",
-      paddingTop: 20,
+      paddingTop: 40,
       paddingBottom: 80,
       fontFamily: "Arial",
     }}>
