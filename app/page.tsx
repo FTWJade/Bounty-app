@@ -510,7 +510,6 @@ export default function Home() {
         fontFamily: "Arial",
         textAlign: "center",
       }}>
-        player.setVolume(50);
         <iframe
           width="560"
           height="315"
