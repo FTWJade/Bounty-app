@@ -209,7 +209,7 @@ export default function VoteBar({
                 marginBottom: 10,
             }}
         >
-            {displayedVote && (
+            {displayedVote ? (
                 <p
                     style={{
                         fontSize: 12,
@@ -218,7 +218,16 @@ export default function VoteBar({
                 >
                     You voted: {displayedVote}
                 </p>
-            )}
+            ) : !canVote ? (
+                <p
+                    style={{
+                        fontSize: 12,
+                        color: "#ff6666",
+                    }}
+                >
+                    Unable to vote
+                </p>
+            ) : null}
 
             <div
                 style={{
