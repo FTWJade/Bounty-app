@@ -514,7 +514,7 @@ export default function Home() {
         <iframe
           width="560"
           height="315"
-          src="https://www.youtube.com/embed/l7xWjOGTJ64"
+          src="https://www.youtube.com/embed/vvUvE9ASpJU"
           title="bounty.town demo"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
