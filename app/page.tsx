@@ -1300,26 +1300,6 @@ export default function Home() {
           </div>
         ))}
       </div>
-      <a
-        href="https://www.buymeacoffee.com/justsojaded"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <button
-          style={{
-            marginTop: "20px",
-            padding: "10px 16px",
-            background: "#FFDD00",
-            color: "#000",
-            borderRadius: "8px",
-            fontWeight: "bold",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          ☕ Buy me a coffee
-        </button>
-      </a>
 
       <button
         onClick={() => signOut()}
