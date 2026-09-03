@@ -129,8 +129,8 @@ export default function VoteBar({
                     />
                 </div>
 
-                {/* VOTER'S CURRENT VOTE */}
-                {displayedVote && (
+                {/* VOTER STATUS */}
+                {displayedVote ? (
                     <p
                         style={{
                             fontSize: 12,
@@ -141,7 +141,17 @@ export default function VoteBar({
                         You voted:{" "}
                         {displayedVote === "A" ? "LOSE" : "WIN"}
                     </p>
-                )}
+                ) : !canVote ? (
+                    <p
+                        style={{
+                            fontSize: 12,
+                            color: "#ff6666",
+                            marginTop: 8,
+                        }}
+                    >
+                        Unable to vote
+                    </p>
+                ) : null}
 
                 {/* SOLO VOTING BUTTONS */}
                 {canVote && handleVote && !displayedVote && (
