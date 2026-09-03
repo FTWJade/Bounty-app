@@ -706,8 +706,8 @@ export default function Home() {
         href="/about"
         style={{
           position: "absolute",
-          bottom: 10,
-          left: 10,
+          top: 10,
+          right: 10,
           color: "#555",
           textDecoration: "none",
           fontSize: 14,
