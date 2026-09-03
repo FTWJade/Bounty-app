@@ -123,7 +123,11 @@ export default function Home() {
   const [mode, setMode] = useState<"pvp" | "solo" | null>(null);
   const isSolo = currentMatch?.mode === "solo";
   const userId = session?.user?.id;
-
+  useEffect(() => {
+    setMyVote(null);
+    setPendingVote(null);
+    voteRef.current = null;
+  }, [currentMatch?.id]);
   const isCreator = userId === currentMatch?.creator_id;
   const isOpponent = userId === currentMatch?.opponent_id;
 
@@ -1207,7 +1211,7 @@ export default function Home() {
 
       <div style={{ marginTop: 30, textAlign: "center" }}>
         <h2>🏆 Leaderboard</h2>
-        
+
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
