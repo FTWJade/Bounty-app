@@ -127,6 +127,7 @@ export default function Home() {
     setMyVote(null);
     setPendingVote(null);
     voteRef.current = null;
+    setCooldownUntil(null);
   }, [currentMatch?.id]);
   const isCreator = userId === currentMatch?.creator_id;
   const isOpponent = userId === currentMatch?.opponent_id;
@@ -645,6 +646,18 @@ export default function Home() {
     }
 
     if (!res.ok) {
+      if (
+        result.error?.toLowerCase().includes("bounty") ||
+        result.error?.toLowerCase().includes("balance")
+      ) {
+        setPendingVote(null);
+        voteRef.current = null;
+        showPopup("💰 You don't have enough bounty to bet");
+        return;
+      }
+
+      setPendingVote(null);
+      voteRef.current = null;
       showPopup(result.error || "Unable to vote");
       return;
     }
@@ -753,22 +766,86 @@ export default function Home() {
         </button>
       )}
       {mode && showModeSelect && (
-        <button
-          onClick={() => {
-            setCurrentMatch(null);
-            setMatchId("");
-            setDidCreateMatch(false);
-            setMode(null);
-          }}
-          style={{
-            ...btn,
-            background: "#333",
-            color: "white",
-            marginTop: 10,
-          }}
-        >
-          ⬅ Back
-        </button>
+        <>
+          <div
+            style={{
+              marginTop: 15,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            {/* Bounty title input */}
+            {/* Bet input */}
+          </div>
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              gap: 10,
+              marginTop: 10,
+            }}
+          >
+            <button
+              onClick={() => {
+                setCurrentMatch(null);
+                setMatchId("");
+                setDidCreateMatch(false);
+                setMode(null);
+              }}
+              style={{
+                ...btn,
+                background: "#333",
+                color: "white",
+                marginTop: 0,
+              }}
+            >
+              ⬅ Back
+            </button>
+
+
+            <button
+              style={{
+                ...btn,
+                background: "#444",
+                color: "white",
+                width: 200,
+              }}
+              onClick={async () => {
+                const res = await fetch("/api/match/create", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    user_id: session.user.id,
+                    mode,
+                    bet_amount: betAmount,
+                    title: matchTitle,
+                  }),
+                });
+
+                const result = await res.json();
+
+                setMode(null);
+
+                if (result.data) {
+                  const full = await fetch(`/api/match/get?id=${result.data.id}`)
+                    .then(r => r.json());
+
+                  setCurrentMatch(full.data);
+                  setMatchId(full.data.id);
+                  setDidCreateMatch(true);
+                  setMatchTitle("");
+                  setBounty((prev) => prev - betAmount);
+                }
+              }}
+            >
+              🎮 Create Match
+            </button>
+          </div>
+        </>
       )}
       {!mode && showModeSelect && (
         <div
@@ -856,44 +933,6 @@ export default function Home() {
               textAlign: "center",
             }}
           />
-
-          <button
-            style={{
-              ...btn,
-              background: "#444",
-              color: "white",
-              width: 200,
-            }}
-            onClick={async () => {
-              const res = await fetch("/api/match/create", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  user_id: session.user.id,
-                  mode,
-                  bet_amount: betAmount,
-                  title: matchTitle,
-                }),
-              });
-
-              const result = await res.json();
-
-              setMode(null);
-
-              if (result.data) {
-                const full = await fetch(`/api/match/get?id=${result.data.id}`)
-                  .then(r => r.json());
-
-                setCurrentMatch(full.data);
-                setMatchId(full.data.id);
-                setDidCreateMatch(true);
-                setMatchTitle("");
-                setBounty((prev) => prev - betAmount);
-              }
-            }}
-          >
-            🎮 Create Match
-          </button>
         </div>
       )}
       {currentMatch && !showModeSelect && (
@@ -902,7 +941,7 @@ export default function Home() {
         </p>
       )}
 
-      {!currentMatch && !pendingJoin && (
+      {!currentMatch && !pendingJoin && !mode && (
         <div style={{ marginTop: 10 }}>
           <input
             value={matchId}
