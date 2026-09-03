@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🏆 bounty.town
 
-## Getting Started
+### A Twitch-focused matchmaking and virtual bounty app for streamers and their communities.
 
-First, run the development server:
+**Create matches. Place virtual bounty bets. Compete live.**
+
+🌐 **Live site:** https://bounty.town
+
+---
+
+## 🎮 What is bounty.town?
+
+bounty.town is an independent Twitch-focused web app built around community matches and virtual **bounty**.
+
+Streamers and viewers can create or join matches, make predictions with virtual bounty, and follow the results through a simple matchmaking experience.
+
+It also includes an **OBS-friendly overlay**, so active matches and results can be displayed directly on stream.
+
+> 💡 Bounty is virtual in-app currency — there is no real-money wagering.
+
+## ✨ Features
+
+- 🎯 **PvP matches** — create and compete in player-vs-player matches
+- 🎲 **Solo matches** — create prediction-style challenges
+- 💰 **Virtual bounty** — use in-app bounty to vote on match outcomes
+- 🏆 **Leaderboard** — see how you stack up against other users
+- 📺 **OBS overlay** — display active matches and results on stream
+- 👤 **User profiles** — view player profiles and match information
+- ⚡ **Live match updates** — matches update automatically without requiring a page refresh
+- 🎁 **Daily bounty bonus** — return each day to claim bonus virtual bounty
+
+## 📺 OBS Overlay
+
+Each user has a dedicated overlay page that can be added to OBS as a Browser Source.
+
+From the app, use **Copy OBS Overlay Link** to quickly grab your personal overlay URL.
+
+## 🛠️ Built With
+
+- **Next.js** — application framework
+- **TypeScript** — application language
+- **Supabase** — database and realtime data
+- **NextAuth** — Twitch authentication
+- **Vercel** — deployment and hosting
+
+## 🚀 Running Locally
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/FTWJade/Bounty-app.git
+cd Bounty-app
+npm install
+```
+
+Create your local environment variables as required by the application, then start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🌱 About the Project
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+bounty.town is an independent project built by **FTWJade** while learning app development.
 
-## Learn More
+The goal is simple: make a fun, lightweight Twitch community tool and keep improving it based on how people actually use it.
 
-To learn more about Next.js, take a look at the following resources:
+Feedback, ideas, and bug reports are welcome!
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Built with curiosity, caffeine, and probably too many bounty bets. ☕💰**
