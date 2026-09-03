@@ -44,6 +44,20 @@ export default async function PublicProfile({
     );
     return (
         <main className="min-h-screen p-6">
+            <a
+                href="/"
+                style={{
+                    position: "absolute",
+                    top: 10,
+                    right: 10,
+                    fontSize: 24,
+                    color: "#555",
+                    textDecoration: "none",
+                    cursor: "pointer",
+                }}
+            >
+                ✕
+            </a>
             <div className="flex items-center gap-4">
                 {user.avatar_url ? (
                     <img
