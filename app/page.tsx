@@ -686,7 +686,26 @@ export default function Home() {
       paddingBottom: 80,
       fontFamily: "Arial",
     }}>
+      <h1>Welcome {session.user?.name}</h1>
+      <h2>Level {level}</h2>
+      <p>{displayPoints} XP</p>
 
+      <div style={{ width: 300, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", marginTop: 10 }}>
+        <div
+          style={{
+            width: `${((xpIntoLevel || 0) / xpNeeded) * 100}%`,
+            height: "100%",
+            background: "limegreen",
+            transition: "width 0.3s ease"
+          }}
+        />
+      </div>
+
+      <p>
+        {xpIntoLevel} / {xpNeeded} XP
+      </p>
+
+      <p>Current bounty: ${bounty}</p>
 
       <a
         href={`/${session.user?.name}`}
@@ -730,23 +749,69 @@ export default function Home() {
         </button>
       )}
       {mode && showModeSelect && (
-        <button
-          onClick={() => {
-            setCurrentMatch(null);
-            setMatchId("");
-            setDidCreateMatch(false);
-            setMode(null);
-          }}
+        <div
           style={{
-            ...btn,
-            background: "#333",
-            color: "white",
+            display: "flex",
+            justifyContent: "center",
+            gap: 10,
             marginTop: 10,
           }}
         >
-          ⬅ Back
-        </button>
+          <button
+            onClick={() => {
+              setCurrentMatch(null);
+              setMatchId("");
+              setDidCreateMatch(false);
+              setMode(null);
+            }}
+            style={{
+              ...btn,
+              background: "#333",
+              color: "white",
+            }}
+          >
+            ⬅ Back
+          </button>
+
+          <button
+            style={{
+              ...btn,
+              background: "#444",
+              color: "white",
+            }}
+            onClick={async () => {
+              const res = await fetch("/api/match/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  user_id: session.user.id,
+                  mode,
+                  bet_amount: betAmount,
+                  title: matchTitle,
+                }),
+              });
+
+              const result = await res.json();
+
+              setMode(null);
+
+              if (result.data) {
+                const full = await fetch(`/api/match/get?id=${result.data.id}`)
+                  .then(r => r.json());
+
+                setCurrentMatch(full.data);
+                setMatchId(full.data.id);
+                setDidCreateMatch(true);
+                setMatchTitle("");
+                setBounty((prev) => prev - betAmount);
+              }
+            }}
+          >
+            🎮 Create Match
+          </button>
+        </div>
       )}
+
       {!mode && showModeSelect && (
         <div
           style={{
@@ -757,7 +822,76 @@ export default function Home() {
           }}
         >
           <h2>Choose Mode</h2>
+          {!currentMatch && (
+            <div style={{ marginTop: 10 }}>
+              <input
+                value={matchId}
+                onChange={(e) => setMatchId(e.target.value)}
+                placeholder="Enter Match ID"
+                style={{
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                }}
+              />
 
+              <button
+                style={{ ...btn, background: "purple", color: "white" }}
+                onClick={async () => {
+                  const res = await fetch(`/api/match/get?id=${matchId}`);
+                  const data = await res.json();
+
+                  const match = data.data;
+                  if (!match) {
+                    showPopup("Match not found");
+                    return;
+                  }
+
+                  const userId = session?.user?.id;
+
+                  const isCreator = userId === match.creator_id;
+                  const isOpponent = userId === match.opponent_id;
+                  const isParticipant = isCreator || isOpponent;
+
+                  const isPvPFull = match.mode === "pvp" && match.opponent_id;
+
+                  // 🟢 CASE 1: already participant → open match
+                  if (isParticipant) {
+                    setCurrentMatch(match);
+                    setMatchId("");
+                    setPendingJoin(null);
+                    return;
+                  }
+
+                  // 🎲 CASE 2: solo → skip everything
+                  if (match.mode === "solo") {
+                    setCurrentMatch(match);
+                    setMatchId("");
+                    setPendingJoin(null);
+                    return;
+                  }
+
+                  // 👀 CASE 3: PvP already full → spectator (no join UI)
+                  if (isPvPFull) {
+                    setCurrentMatch(match);
+                    setMatchId("");
+                    setPendingJoin(null);
+                    return;
+                  }
+
+                  // 🆕 CASE 4: PvP not full → THIS is join window
+                  setPendingJoin({
+                    matchId: match.id,
+                    betAmount: match.bounty_pool ?? 0,
+                    mode: match.mode,
+                    isParticipant: false,
+                  });
+                }}
+              >
+                Join Match
+              </button>
+            </div>
+          )}
           <div
             style={{
               display: "flex",
@@ -802,152 +936,72 @@ export default function Home() {
             gap: 8,
           }}
         >
-          <p style={{ marginBottom: 2 }}>Bounty title:</p>
-
-          <input
-            type="text"
-            value={matchTitle}
-            onChange={(e) => setMatchTitle(e.target.value)}
-            placeholder="What is this bounty?"
-            maxLength={100}
+          <div
             style={{
-              padding: "10px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-              width: 200,
-              textAlign: "center",
-            }}
-          />
-          <p style={{ marginBottom: 2 }}>Input bet:</p>
-
-          <input
-            type="number"
-            value={betAmount}
-            onChange={(e) => setBetAmount(Number(e.target.value))}
-            placeholder="Enter bounty bet"
-            style={{
-              padding: "10px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-              width: 200,
-              textAlign: "center",
-            }}
-          />
-
-          <button
-            style={{
-              ...btn,
-              background: "#444",
-              color: "white",
-              width: 200,
-            }}
-            onClick={async () => {
-              const res = await fetch("/api/match/create", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  user_id: session.user.id,
-                  mode,
-                  bet_amount: betAmount,
-                  title: matchTitle,
-                }),
-              });
-
-              const result = await res.json();
-
-              setMode(null);
-
-              if (result.data) {
-                const full = await fetch(`/api/match/get?id=${result.data.id}`)
-                  .then(r => r.json());
-
-                setCurrentMatch(full.data);
-                setMatchId(full.data.id);
-                setDidCreateMatch(true);
-                setMatchTitle("");
-                setBounty((prev) => prev - betAmount);
-              }
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
             }}
           >
-            🎮 Create Match
-          </button>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <p style={{ margin: 0, width: 90, textAlign: "right" }}>
+                Bounty title:
+              </p>
+
+              <input
+                type="text"
+                value={matchTitle}
+                onChange={(e) => setMatchTitle(e.target.value)}
+                placeholder="What is this bounty?"
+                maxLength={100}
+                style={{
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  width: 200,
+                  textAlign: "center",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <p style={{ margin: 0, width: 90, textAlign: "right" }}>
+                Input bet:
+              </p>
+
+              <input
+                type="number"
+                value={betAmount}
+                onChange={(e) => setBetAmount(Number(e.target.value))}
+                placeholder="Enter bounty bet"
+                style={{
+                  padding: "10px",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  width: 200,
+                  textAlign: "center",
+                }}
+              />
+            </div>
+          </div>
         </div>
       )}
       {currentMatch && !showModeSelect && (
         <p style={{ marginTop: 10 }}>
           Match ID: <b>{currentMatch.id}</b>
         </p>
-      )}
-
-      {!currentMatch && (
-        <div style={{ marginTop: 10 }}>
-          <input
-            value={matchId}
-            onChange={(e) => setMatchId(e.target.value)}
-            placeholder="Enter Match ID"
-            style={{
-              padding: "10px",
-              borderRadius: 8,
-              border: "1px solid #ccc",
-            }}
-          />
-
-          <button
-            style={{ ...btn, background: "purple", color: "white" }}
-            onClick={async () => {
-              const res = await fetch(`/api/match/get?id=${matchId}`);
-              const data = await res.json();
-
-              const match = data.data;
-              if (!match) {
-                showPopup("Match not found");
-                return;
-              }
-
-              const userId = session?.user?.id;
-
-              const isCreator = userId === match.creator_id;
-              const isOpponent = userId === match.opponent_id;
-              const isParticipant = isCreator || isOpponent;
-
-              const isPvPFull = match.mode === "pvp" && match.opponent_id;
-
-              // 🟢 CASE 1: already participant → open match
-              if (isParticipant) {
-                setCurrentMatch(match);
-                setMatchId("");
-                setPendingJoin(null);
-                return;
-              }
-
-              // 🎲 CASE 2: solo → skip everything
-              if (match.mode === "solo") {
-                setCurrentMatch(match);
-                setMatchId("");
-                setPendingJoin(null);
-                return;
-              }
-
-              // 👀 CASE 3: PvP already full → spectator (no join UI)
-              if (isPvPFull) {
-                setCurrentMatch(match);
-                setMatchId("");
-                setPendingJoin(null);
-                return;
-              }
-
-              // 🆕 CASE 4: PvP not full → THIS is join window
-              setPendingJoin({
-                matchId: match.id,
-                betAmount: match.bounty_pool ?? 0,
-                mode: match.mode,
-                isParticipant: false,
-              });
-            }}
-          >
-            Join Match
-          </button>
-        </div>
       )}
 
       {shouldShowJoinPrompt && (
@@ -1166,46 +1220,6 @@ export default function Home() {
           </div>
         )
       }
-
-      <h1>Welcome {session.user?.name}</h1>
-      <h2>Level {level}</h2>
-      <p>{displayPoints} XP</p>
-
-      <div style={{ width: 300, height: 12, background: "#333", borderRadius: 6, overflow: "hidden", marginTop: 10 }}>
-        <div
-          style={{
-            width: `${((xpIntoLevel || 0) / xpNeeded) * 100}%`,
-            height: "100%",
-            background: "limegreen",
-            transition: "width 0.3s ease"
-          }}
-        />
-      </div>
-
-      <p>
-        {xpIntoLevel} / {xpNeeded} XP
-      </p>
-
-      <p>Current bounty: ${bounty}</p>
-      <button
-        onClick={async () => {
-          const overlayUrl = `${window.location.origin}/${session.user?.name}/overlay`;
-
-          await navigator.clipboard.writeText(overlayUrl);
-
-          showPopup("📺 Overlay link copied!");
-        }}
-        style={{
-          marginTop: 10,
-          padding: "10px 16px",
-          borderRadius: 8,
-          border: "none",
-          cursor: "pointer",
-          fontWeight: 600,
-        }}
-      >
-        📺 Copy OBS Overlay Link
-      </button>
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}

@@ -43,7 +43,7 @@ export default async function PublicProfile({
         (match) => !hiddenIds.has(match.id)
     );
     return (
-        <main className="min-h-screen p-6">
+        <main className="min-h-screen p-6 flex flex-col items-center">
             <a
                 href="/"
                 style={{
@@ -58,7 +58,15 @@ export default async function PublicProfile({
             >
                 ✕
             </a>
-            <div className="flex items-center gap-4">
+            <div
+                style={{
+                    width: "100%",
+                    maxWidth: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                }}
+            >
                 {user.avatar_url ? (
                     <img
                         src={user.avatar_url}
@@ -85,30 +93,39 @@ export default async function PublicProfile({
                 </div>
             </div>
 
-            <section className="mt-8">
-                <h2 className="text-xl font-semibold">
-                    Balance
-                </h2>
+            <div
+                style={{
+                    width: "100%",
+                    maxWidth: 600,
+                    marginTop: 30,
+                }}
+            >
+                <section>
+                    <h2 className="text-xl font-semibold">
+                        Balance
+                    </h2>
 
-                <p className="mt-2">
-                    Points: {user.points ?? 0}
-                </p>
+                    <p className="mt-2">
+                        Points: {user.points ?? 0}
+                    </p>
 
-                <p>
-                    Bounty: {user.bounty ?? 0}
-                </p>
-            </section>
-            <section className="mt-8">
-                <h2 className="text-xl font-semibold">
-                    Past Bounties
-                </h2>
+                    <p>
+                        Bounty: {user.bounty ?? 0}
+                    </p>
+                </section>
 
-                <ProfileMatches
-                    matches={visibleMatches}
-                    userId={user.user_id}
-                    isOwnProfile={isOwnProfile}
-                />
-            </section>
+                <section className="mt-8">
+                    <h2 className="text-xl font-semibold">
+                        Past Bounties
+                    </h2>
+
+                    <ProfileMatches
+                        matches={visibleMatches}
+                        userId={user.user_id}
+                        isOwnProfile={isOwnProfile}
+                    />
+                </section>
+            </div>
         </main>
     );
 }
