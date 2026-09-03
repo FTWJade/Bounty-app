@@ -1181,6 +1181,25 @@ export default function Home() {
       </p>
 
       <p>Current bounty: ${bounty}</p>
+      <button
+        onClick={async () => {
+          const overlayUrl = `${window.location.origin}/${session.user?.name}/overlay`;
+
+          await navigator.clipboard.writeText(overlayUrl);
+
+          showPopup("📺 Overlay link copied!");
+        }}
+        style={{
+          marginTop: 10,
+          padding: "10px 16px",
+          borderRadius: 8,
+          border: "none",
+          cursor: "pointer",
+          fontWeight: 600,
+        }}
+      >
+        📺 Copy OBS Overlay Link
+      </button>
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -1217,7 +1236,17 @@ export default function Home() {
             }}
           >
             <span>
-              #{user.realRank} {user.username}
+              #{user.realRank}{" "}
+              <a
+                href={`/${user.username}`}
+                style={{
+                  color: "inherit",
+                  textDecoration: "underline",
+                  cursor: "pointer",
+                }}
+              >
+                {user.username}
+              </a>
             </span>
             <span>{user.points} pts</span>
           </div>

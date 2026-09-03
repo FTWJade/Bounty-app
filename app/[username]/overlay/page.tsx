@@ -213,7 +213,7 @@ export default function UserOverlay({
                 ) : (
                     <>
                         <h3>
-                            {username}'s {isSolo ? "Solo" : "PvP"}: #{match.id}
+                            {isSolo ? "Solo" : "PvP"}: #{match.id}
 
                         </h3>
 
