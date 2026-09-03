@@ -687,44 +687,34 @@ export default function Home() {
       fontFamily: "Arial",
     }}>
 
-      <div
+
+      <a
+        href={`/${session.user?.name}`}
         style={{
           position: "absolute",
           top: 10,
           left: 10,
+          color: "#555",
+          textDecoration: "none",
           fontSize: 14,
-          display: "flex",
-          gap: 15,
         }}
       >
-        <a
-          href={`/${session.user?.name}`}
-          style={{
-            position: "absolute",
-            top: 10,
-            left: 10,
-            color: "#555",
-            textDecoration: "none",
-            fontSize: 14,
-          }}
-        >
-          Profile
-        </a>
+        Profile
+      </a>
 
-        <a
-          href="/about"
-          style={{
-            position: "absolute",
-            bottom: 10,
-            left: 10,
-            color: "#555",
-            textDecoration: "none",
-            fontSize: 14,
-          }}
-        >
-          About
-        </a>
-      </div>
+      <a
+        href="/about"
+        style={{
+          position: "absolute",
+          bottom: 10,
+          left: 10,
+          color: "#555",
+          textDecoration: "none",
+          fontSize: 14,
+        }}
+      >
+        About
+      </a>
       {canCancelMatch && (
         <button
           onClick={handleCancelMatch}
