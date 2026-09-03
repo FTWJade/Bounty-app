@@ -698,23 +698,31 @@ export default function Home() {
         }}
       >
         <a
-          href="/about"
-          style={{
-            color: "#555",
-            textDecoration: "none",
-          }}
-        >
-          About
-        </a>
-
-        <a
           href={`/${session.user?.name}`}
           style={{
+            position: "absolute",
+            top: 10,
+            left: 10,
             color: "#555",
             textDecoration: "none",
+            fontSize: 14,
           }}
         >
           Profile
+        </a>
+
+        <a
+          href="/about"
+          style={{
+            position: "absolute",
+            bottom: 10,
+            left: 10,
+            color: "#555",
+            textDecoration: "none",
+            fontSize: 14,
+          }}
+        >
+          About
         </a>
       </div>
       {canCancelMatch && (
@@ -750,8 +758,16 @@ export default function Home() {
         </button>
       )}
       {!mode && showModeSelect && (
-        <div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+          }}
+        >
           <h2>Choose Mode</h2>
+
           <div
             style={{
               display: "flex",
