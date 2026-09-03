@@ -121,6 +121,32 @@ export default function UserOverlay({
         };
     }, [params]);
 
+    useEffect(() => {
+        if (!match?.id) {
+            setVoteCount({ a: 0, b: 0 });
+            return;
+        }
+
+        const loadVotes = async () => {
+            const res = await fetch(
+                `/api/match/votes?match_id=${match.id}`
+            );
+
+            const json = await res.json();
+
+            setVoteCount({
+                a: json.a ?? 0,
+                b: json.b ?? 0,
+            });
+        };
+
+        loadVotes();
+
+        const interval = setInterval(loadVotes, 1000);
+
+        return () => clearInterval(interval);
+    }, [match?.id]);
+
     if (loading) {
         return null;
     }
