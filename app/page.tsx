@@ -1220,22 +1220,21 @@ export default function Home() {
           </div>
         )
       }
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search user..."
-        style={{
-          padding: "10px",
-          borderRadius: 8,
-          border: "1px solid #ccc",
-          marginTop: 20,
-          width: 300,
-        }}
-      />
 
       <div style={{ marginTop: 30, textAlign: "center" }}>
         <h2>🏆 Leaderboard</h2>
-
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search user..."
+          style={{
+            padding: "10px",
+            borderRadius: 8,
+            border: "1px solid #ccc",
+            marginTop: 20,
+            width: 300,
+          }}
+        />
         {search && myRank > 0 && (
           <p style={{ marginTop: 10, fontWeight: "bold" }}>
             Your rank #{myRank}
