@@ -2,11 +2,12 @@ import "dotenv/config";
 
 const CLIENT_ID = process.env.TWITCH_BOT_CLIENT_ID;
 const ACCESS_TOKEN = process.env.TWITCH_BOT_ACCESS_TOKEN;
+const BOT_USER_ID = process.env.TWITCH_BOT_USER_ID;
 const CHANNEL = process.env.TWITCH_BOT_CHANNEL;
 
-if (!CLIENT_ID || !ACCESS_TOKEN || !CHANNEL) {
+if (!CLIENT_ID || !ACCESS_TOKEN || !BOT_USER_ID || !CHANNEL) {
   throw new Error(
-    "Missing TWITCH_BOT_CLIENT_ID, TWITCH_BOT_ACCESS_TOKEN, or TWITCH_BOT_CHANNEL"
+    "Missing TWITCH_BOT_CLIENT_ID, TWITCH_BOT_ACCESS_TOKEN, TWITCH_BOT_USER_ID, or TWITCH_BOT_CHANNEL"
   );
 }
 
@@ -14,7 +15,7 @@ const TWITCH_API = "https://api.twitch.tv/helix";
 const EVENTSUB_WS = "wss://eventsub.wss.twitch.tv/ws";
 
 let socket: WebSocket | null = null;
-let sessionId: string | null = null;
+let reconnecting = false;
 
 async function twitchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${TWITCH_API}${path}`, {
@@ -50,13 +51,15 @@ async function sendChatMessage(broadcasterId: string, message: string) {
     method: "POST",
     body: JSON.stringify({
       broadcaster_id: broadcasterId,
-      sender_id: broadcasterId,
+      sender_id: BOT_USER_ID,
       message,
     }),
   });
+
+  console.log(`→ ${message}`);
 }
 
-async function subscribeToChat(session: string, broadcasterId: string) {
+async function subscribeToChat(sessionId: string, broadcasterId: string) {
   await twitchApi("/eventsub/subscriptions", {
     method: "POST",
     body: JSON.stringify({
@@ -64,45 +67,36 @@ async function subscribeToChat(session: string, broadcasterId: string) {
       version: "1",
       condition: {
         broadcaster_user_id: broadcasterId,
-        user_id: broadcasterId,
+        user_id: BOT_USER_ID,
       },
       transport: {
         method: "websocket",
-        session_id: session,
+        session_id: sessionId,
       },
     }),
   });
+
+  console.log(`Subscribed to ${CHANNEL}'s chat`);
 }
 
-type ChatMessageNotification = {
-  metadata: {
-    message_type: string;
-  };
-  payload: {
-    subscription: {
-      type: string;
-    };
-    event: {
-      broadcaster_user_id: string;
-      chatter_user_id: string;
-      chatter_user_login: string;
-      chatter_user_name: string;
-      message: { text: string };
-    };
-  };
-};
-
-async function handleChatMessage(notification: ChatMessageNotification) {
+async function handleChatMessage(notification: any) {
   const event = notification.payload.event;
   const text = event.message.text.trim();
 
+  console.log(`<${event.chatter_user_name}> ${text}`);
+
   if (text.toLowerCase() === "!hello") {
-    await sendChatMessage(event.broadcaster_user_id, "🐈‍⬛ meow! bounty.town bot online :3");
+    await sendChatMessage(
+      event.broadcaster_user_id,
+      "🐈‍⬛ meow! bounty.town bot online :3"
+    );
   }
 }
 
-function connect() {
-  socket = new WebSocket(EVENTSUB_WS);
+function connect(url = EVENTSUB_WS) {
+  if (reconnecting) return;
+
+  socket = new WebSocket(url);
 
   socket.addEventListener("open", () => {
     console.log("Connected to Twitch EventSub WebSocket");
@@ -110,28 +104,30 @@ function connect() {
 
   socket.addEventListener("message", async (message) => {
     try {
-      const notification = JSON.parse(String(message.data));
-      const type = notification.metadata?.message_type;
+      const data = JSON.parse(String(message.data));
+      const type = data.metadata?.message_type;
 
       if (type === "session_welcome") {
-        sessionId = notification.payload.session.id;
-        console.log(`EventSub session ready: ${sessionId}`);
-
+        const sessionId = data.payload.session.id;
         const broadcaster = await getUser(CHANNEL!);
         await subscribeToChat(sessionId, broadcaster.id);
-        console.log(`Subscribed to chat for ${broadcaster.login}`);
         return;
       }
 
-      if (type === "notification" && notification.payload?.subscription?.type === "channel.chat.message") {
-        await handleChatMessage(notification as ChatMessageNotification);
+      if (
+        type === "notification" &&
+        data.payload?.subscription?.type === "channel.chat.message"
+      ) {
+        await handleChatMessage(data);
+        return;
       }
 
       if (type === "session_reconnect") {
-        const reconnectUrl = notification.payload.session.reconnect_url;
-        console.log("Twitch requested a reconnect");
+        const reconnectUrl = data.payload.session.reconnect_url;
+        reconnecting = true;
         socket?.close();
-        socket = new WebSocket(reconnectUrl);
+        connect(reconnectUrl);
+        reconnecting = false;
       }
     } catch (error) {
       console.error("Twitch message handling error:", error);
@@ -139,9 +135,10 @@ function connect() {
   });
 
   socket.addEventListener("close", () => {
+    if (reconnecting) return;
+
     console.log("Twitch connection closed; reconnecting in 5 seconds...");
-    sessionId = null;
-    setTimeout(connect, 5000);
+    setTimeout(() => connect(), 5000);
   });
 
   socket.addEventListener("error", (error) => {
@@ -149,5 +146,12 @@ function connect() {
   });
 }
 
-console.log(`Starting bounty.town Twitch bot for ${CHANNEL}...`);
-connect();
+(async () => {
+  const broadcaster = await getUser(CHANNEL!);
+
+  console.log("Starting bounty.town Twitch bot...");
+  console.log(`Bot user ID: ${BOT_USER_ID}`);
+  console.log(`Channel: ${broadcaster.login} (${broadcaster.id})`);
+
+  connect();
+})();
