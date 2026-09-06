@@ -297,6 +297,26 @@ async function handleChatMessage(notification: any) {
     return;
   }
 
+  if (text.toLowerCase() === "!bounty") {
+    const bountyUser = await getBountyUserByTwitchId(
+      event.chatter_user_id
+    );
+
+    if (!bountyUser) {
+      await sendChatMessage(
+        event.broadcaster_user_id,
+        `🐈‍⬛ @${event.chatter_user_name}, you don't have a bounty.town account linked yet!`
+      );
+      return;
+    }
+
+    await sendChatMessage(
+      event.broadcaster_user_id,
+      `🐈‍⬛ @${event.chatter_user_name}, you have ${bountyUser.bounty} bounty!`
+    );
+    return;
+  }
+
   const voteMatch = text.match(/^!vote\s+([ab])$/i);
 
   if (voteMatch) {
