@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "bot": "tsx twitch-bot/index.ts"
+    "bot": "tsx twitch-bot/token-refresh.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.115.0",
