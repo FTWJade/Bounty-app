@@ -12,8 +12,8 @@ export function calculateSoloRewards({
     // remove creator completely
     const voters = votes.filter(v => v.user_id !== creatorId);
 
-    // 💰 full pool (creator + voters)
-    const pool = betAmount * (1 + voters.length);
+    // 💰 bounty_pool is already the full accumulated pool
+    const pool = betAmount;
 
     // 🧠 outcome decided by creator button
     const correctSide = creatorOutcome === "WIN" ? "B" : "A";
