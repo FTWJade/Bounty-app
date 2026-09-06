@@ -49,11 +49,11 @@ if (!CLIENT_ID || !ACCESS_TOKEN || !BOT_USER_ID || !CHANNEL) {
 
 const TWITCH_API = "https://api.twitch.tv/helix";
 const EVENTSUB_WS = "wss://eventsub.wss.twitch.tv/ws";
+const RECONCILE_INTERVAL = 30_000;
 
 let socket: WebSocket | null = null;
 let reconnecting = false;
-
-
+let currentSessionId: string | null = null;
 
 async function twitchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${TWITCH_API}${path}`, {
@@ -138,34 +138,85 @@ async function subscribeToChat(
 
   console.log(`Subscribed to ${channelLogin}'s chat`);
 }
-async function unsubscribeFromChat(
-  broadcasterId: string
-) {
+
+async function getChatSubscriptions() {
   const result = await twitchApi<{
     data: Array<{
       id: string;
       type: string;
+      status: string;
       condition: {
         broadcaster_user_id: string;
+        user_id?: string;
+      };
+      transport: {
+        session_id?: string;
       };
     }>;
   }>(
-    `/eventsub/subscriptions?broadcaster_user_id=${encodeURIComponent(
-      broadcasterId
-    )}&user_id=${encodeURIComponent(BOT_USER_ID!)}`
+    `/eventsub/subscriptions?user_id=${encodeURIComponent(BOT_USER_ID!)}`
   );
 
-  for (const subscription of result.data) {
-    if (subscription.type !== "channel.chat.message") continue;
+  return result.data;
+}
 
-    await twitchApi(
-      `/eventsub/subscriptions?id=${encodeURIComponent(subscription.id)}`,
-      {
-        method: "DELETE",
-      }
+async function unsubscribeFromSubscription(subscriptionId: string) {
+  await twitchApi(
+    `/eventsub/subscriptions?id=${encodeURIComponent(subscriptionId)}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+async function reconcileTwitchSubscriptions() {
+  if (!currentSessionId) return;
+
+  try {
+    const connections = await loadTwitchConnections();
+    const connectedIds = new Set(
+      connections.map((connection) => connection.twitch_id)
     );
 
-    console.log(`Unsubscribed from Twitch channel ${broadcasterId}`);
+    const subscriptions = await getChatSubscriptions();
+
+    const activeSubscriptions = subscriptions.filter(
+      (subscription) =>
+        subscription.type === "channel.chat.message" &&
+        subscription.status === "enabled"
+    );
+
+    const subscribedIds = new Set<string>();
+
+    for (const subscription of activeSubscriptions) {
+      const broadcasterId = subscription.condition.broadcaster_user_id;
+      subscribedIds.add(broadcasterId);
+
+      if (!connectedIds.has(broadcasterId)) {
+        await unsubscribeFromSubscription(subscription.id);
+        console.log(
+          `Reconciled disconnected Twitch channel: ${broadcasterId}`
+        );
+      }
+    }
+
+    const missingIds = [...connectedIds].filter(
+      (twitchId) => !subscribedIds.has(twitchId)
+    );
+
+    if (missingIds.length > 0) {
+      const broadcasters = await getUsersByIds(missingIds);
+
+      for (const broadcaster of broadcasters) {
+        await subscribeToChat(
+          currentSessionId,
+          broadcaster.id,
+          broadcaster.login
+        );
+      }
+    }
+  } catch (error) {
+    console.error("Twitch subscription reconciliation error:", error);
   }
 }
 
@@ -207,21 +258,8 @@ function connect(url = EVENTSUB_WS) {
       const type = data.metadata?.message_type;
 
       if (type === "session_welcome") {
-        const sessionId = data.payload.session.id;
-        const connections = await loadTwitchConnections();
-        const twitchIds = connections.map(
-          (connection) => connection.twitch_id
-        );
-        const broadcasters = await getUsersByIds(twitchIds);
-
-        for (const broadcaster of broadcasters) {
-          await subscribeToChat(
-            sessionId,
-            broadcaster.id,
-            broadcaster.login
-          );
-        }
-
+        currentSessionId = data.payload.session.id;
+        await reconcileTwitchSubscriptions();
         return;
       }
 
@@ -246,6 +284,8 @@ function connect(url = EVENTSUB_WS) {
   });
 
   socket.addEventListener("close", () => {
+    currentSessionId = null;
+
     if (reconnecting) return;
 
     console.log("Twitch connection closed; reconnecting in 5 seconds...");
@@ -266,4 +306,6 @@ function connect(url = EVENTSUB_WS) {
   console.log(`Channel: ${broadcaster.login} (${broadcaster.id})`);
 
   connect();
+
+  setInterval(reconcileTwitchSubscriptions, RECONCILE_INTERVAL);
 })();
