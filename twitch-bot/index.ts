@@ -41,6 +41,28 @@ async function getTwitchConnection(twitchId: string) {
   return data;
 }
 
+async function getActiveMatchForChannel(broadcasterId: string) {
+  const connection = await getTwitchConnection(broadcasterId);
+
+  if (!connection) return null;
+
+  const { data: match, error } = await supabase
+    .from("matches")
+    .select("id, status, mode")
+    .eq("creator_id", connection.user_id)
+    .in("status", ["open", "active"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to find active match:", error);
+    return null;
+  }
+
+  return match;
+}
+
 if (!CLIENT_ID || !ACCESS_TOKEN || !BOT_USER_ID || !CHANNEL) {
   throw new Error(
     "Missing TWITCH_BOT_CLIENT_ID, TWITCH_BOT_ACCESS_TOKEN, TWITCH_BOT_USER_ID, or TWITCH_BOT_CHANNEL"
@@ -244,6 +266,79 @@ async function handleChatMessage(notification: any) {
       event.broadcaster_user_id,
       "🐈‍⬛ meow! bounty.town bot online :3"
     );
+    return;
+  }
+
+  const voteMatch = text.match(/^!vote\s+([ab])$/i);
+
+  if (voteMatch) {
+    const vote = voteMatch[1].toUpperCase();
+
+    const match = await getActiveMatchForChannel(
+      event.broadcaster_user_id
+    );
+
+    if (!match) {
+      await sendChatMessage(
+        event.broadcaster_user_id,
+        `🐈‍⬛ @${event.chatter_user_name}, there isn't an active match right now!`
+      );
+      return;
+    }
+
+    const { data: existingVote, error: existingError } = await supabase
+      .from("twitch_votes")
+      .select("id, vote, updated_at")
+      .eq("match_id", match.id)
+      .eq("twitch_user_id", event.chatter_user_id)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error("Failed to check Twitch vote:", existingError);
+      return;
+    }
+
+    if (existingVote?.updated_at) {
+      const THREE_MINUTES = 3 * 60 * 1000;
+      const lastTime = new Date(existingVote.updated_at).getTime();
+      const now = Date.now();
+
+      if (now - lastTime < THREE_MINUTES) {
+        const secondsLeft = Math.ceil(
+          (THREE_MINUTES - (now - lastTime)) / 1000
+        );
+
+        await sendChatMessage(
+          event.broadcaster_user_id,
+          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${existingVote.vote}! Try again in ${secondsLeft}s.`
+        );
+
+        return;
+      }
+    }
+
+    const { error: voteError } = await supabase
+      .from("twitch_votes")
+      .upsert({
+        match_id: match.id,
+        twitch_user_id: event.chatter_user_id,
+        twitch_username: event.chatter_user_name,
+        vote,
+        bounty_user_id: connection.user_id,
+        bet_amount: 0,
+      });
+
+    if (voteError) {
+      console.error("Failed to save Twitch vote:", voteError);
+      return;
+    }
+
+    await sendChatMessage(
+      event.broadcaster_user_id,
+      `🐈‍⬛ @${event.chatter_user_name} voted ${vote}!`
+    );
+
+    return;
   }
 }
 
