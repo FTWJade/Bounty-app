@@ -211,7 +211,7 @@ async function main() {
   console.log("🐈‍⬛ Twitch token manager ready.");
 
   // Import the existing bot only after the token manager is initialized.
-  await import("./index.ts");
+  await import("./index");
 }
 
 main().catch((error) => {
