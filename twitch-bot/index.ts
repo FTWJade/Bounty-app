@@ -63,7 +63,7 @@ async function getActiveMatchForChannel(broadcasterId: string) {
 
   const { data: match, error } = await supabase
     .from("matches")
-    .select("id, status, mode, creator_id, opponent_id")
+    .select("id, status, mode, creator_id, opponent_id, bet_amount, bounty_pool")
     .eq("creator_id", connection.user_id)
     .in("status", ["open", "active"])
     .order("created_at", { ascending: false })
@@ -332,7 +332,7 @@ async function handleChatMessage(notification: any) {
 
     const { data: existingVote, error: existingError } = await supabase
       .from("twitch_votes")
-      .select("id, vote, updated_at")
+      .select("id, vote, updated_at, bet_amount")
       .eq("match_id", match.id)
       .eq("twitch_user_id", event.chatter_user_id)
       .maybeSingle();
@@ -361,6 +361,48 @@ async function handleChatMessage(notification: any) {
       }
     }
 
+    const betAmount = Number(match.bet_amount ?? match.bounty_pool ?? 0);
+    let paidAmount = 0;
+
+    if (!existingVote && bountyUser && betAmount > 0 && bountyUser.bounty >= betAmount) {
+      const { data: updatedBounty, error: bountyError } = await supabase
+        .from("bounties")
+        .update({
+          bounty: bountyUser.bounty - betAmount,
+        })
+        .eq("user_id", bountyUser.user_id)
+        .gte("bounty", betAmount)
+        .select("user_id, bounty")
+        .maybeSingle();
+
+      if (bountyError) {
+        console.error("Failed to deduct Twitch vote bounty:", bountyError);
+        return;
+      }
+
+      if (updatedBounty) {
+        const { error: poolError } = await supabase
+          .from("matches")
+          .update({
+            bounty_pool: (match.bounty_pool || 0) + betAmount,
+          })
+          .eq("id", match.id);
+
+        if (poolError) {
+          console.error("Failed to add Twitch vote bounty to pool:", poolError);
+
+          await supabase
+            .from("bounties")
+            .update({ bounty: bountyUser.bounty })
+            .eq("user_id", bountyUser.user_id);
+
+          return;
+        }
+
+        paidAmount = betAmount;
+      }
+    }
+
     const { error: voteError } = await supabase
       .from("twitch_votes")
       .upsert(
@@ -370,7 +412,7 @@ async function handleChatMessage(notification: any) {
           twitch_username: event.chatter_user_name,
           vote,
           bounty_user_id: bountyUser?.user_id ?? null,
-          bet_amount: 0,
+          bet_amount: paidAmount,
         },
         {
           onConflict: "match_id,twitch_user_id",
@@ -382,10 +424,17 @@ async function handleChatMessage(notification: any) {
       return;
     }
 
-    await sendChatMessage(
-      event.broadcaster_user_id,
-      `🐈‍⬛ @${event.chatter_user_name} voted ${vote}!`
-    );
+    if (paidAmount > 0) {
+      await sendChatMessage(
+        event.broadcaster_user_id,
+        `🐈‍⬛ @${event.chatter_user_name} voted ${vote} and spent ${paidAmount} bounty!`
+      );
+    } else {
+      await sendChatMessage(
+        event.broadcaster_user_id,
+        `🐈‍⬛ @${event.chatter_user_name} voted ${vote}!`
+      );
+    }
 
     return;
   }
