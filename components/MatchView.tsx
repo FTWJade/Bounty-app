@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import VoteBar from "./VoteBar";
 
 type MatchStatus =
@@ -76,6 +77,34 @@ export default function MatchView({
   pendingVote,
   sides,
 }: Props) {
+  const [voterCounts, setVoterCounts] = useState({
+    bounty: 0,
+    twitch: 0,
+  });
+
+  useEffect(() => {
+    if (!currentMatch?.id) {
+      setVoterCounts({ bounty: 0, twitch: 0 });
+      return;
+    }
+
+    const loadVoterCounts = async () => {
+      const res = await fetch(`/api/match/votes?match_id=${currentMatch.id}`);
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setVoterCounts({
+        bounty: data.bountyVoters ?? 0,
+        twitch: data.twitchVoters ?? 0,
+      });
+    };
+
+    loadVoterCounts();
+    const interval = setInterval(loadVoterCounts, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentMatch?.id]);
+
   if (!currentMatch || !isMatchVisible) {
     return null;
   }
@@ -147,14 +176,11 @@ export default function MatchView({
           marginTop: 25,
         }}
       >
-        {/* CREATOR */}
         <div
           style={{
             padding: 15,
             borderRadius: 10,
-            border: `2px solid ${getUserColor(
-              currentMatch.creator_id
-            )}`,
+            border: `2px solid ${getUserColor(currentMatch.creator_id)}`,
             minWidth: 180,
           }}
         >
@@ -178,14 +204,11 @@ export default function MatchView({
               VS
             </div>
 
-            {/* OPPONENT */}
             <div
               style={{
                 padding: 15,
                 borderRadius: 10,
-                border: `2px solid ${getUserColor(
-                  currentMatch.opponent_id
-                )}`,
+                border: `2px solid ${getUserColor(currentMatch.opponent_id)}`,
                 minWidth: 180,
               }}
             >
@@ -199,7 +222,22 @@ export default function MatchView({
         )}
       </div>
 
-      {/* VOTING */}
+      {canViewVotes && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: 18,
+            marginTop: 12,
+            fontSize: 12,
+            color: "#aaa",
+          }}
+        >
+          <span>🟣 Twitch voters: <b>{voterCounts.twitch}</b></span>
+          <span>💰 bounty.voters: <b>{voterCounts.bounty}</b></span>
+        </div>
+      )}
+
       {canViewVotes && (
         <VoteBar
           isSolo={isSolo}
