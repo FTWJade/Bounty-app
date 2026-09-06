@@ -826,6 +826,11 @@ export default function Home() {
                 width: 200,
               }}
               onClick={async () => {
+                if (mode === "pvp" && bounty < betAmount) {
+                  showPopup("💰 You don't have enough bounty to create this match");
+                  return;
+                }
+
                 const res = await fetch("/api/match/create", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
