@@ -138,15 +138,48 @@ async function subscribeToChat(
 
   console.log(`Subscribed to ${channelLogin}'s chat`);
 }
+async function unsubscribeFromChat(
+  broadcasterId: string
+) {
+  const result = await twitchApi<{
+    data: Array<{
+      id: string;
+      type: string;
+      condition: {
+        broadcaster_user_id: string;
+      };
+    }>;
+  }>(
+    `/eventsub/subscriptions?broadcaster_user_id=${encodeURIComponent(
+      broadcasterId
+    )}&user_id=${encodeURIComponent(BOT_USER_ID!)}`
+  );
+
+  for (const subscription of result.data) {
+    if (subscription.type !== "channel.chat.message") continue;
+
+    await twitchApi(
+      `/eventsub/subscriptions?id=${encodeURIComponent(subscription.id)}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    console.log(`Unsubscribed from Twitch channel ${broadcasterId}`);
+  }
+}
 
 async function handleChatMessage(notification: any) {
   const event = notification.payload.event;
   const connection = await getTwitchConnection(event.broadcaster_user_id);
 
   if (!connection) {
-    console.log(`Ignoring message from disconnected channel: ${event.broadcaster_user_name}`);
+    console.log(
+      `Ignoring message from disconnected channel: ${event.broadcaster_user_name}`
+    );
     return;
   }
+
   const text = event.message.text.trim();
 
   console.log(`<${event.chatter_user_name}> ${text}`);
@@ -176,7 +209,9 @@ function connect(url = EVENTSUB_WS) {
       if (type === "session_welcome") {
         const sessionId = data.payload.session.id;
         const connections = await loadTwitchConnections();
-        const twitchIds = connections.map((connection) => connection.twitch_id);
+        const twitchIds = connections.map(
+          (connection) => connection.twitch_id
+        );
         const broadcasters = await getUsersByIds(twitchIds);
 
         for (const broadcaster of broadcasters) {
@@ -185,36 +220,6 @@ function connect(url = EVENTSUB_WS) {
             broadcaster.id,
             broadcaster.login
           );
-          async function unsubscribeFromChat(
-            broadcasterId: string
-          ) {
-            const result = await twitchApi<{
-              data: Array<{
-                id: string;
-                type: string;
-                condition: {
-                  broadcaster_user_id: string;
-                };
-              }>;
-            }>(
-              `/eventsub/subscriptions?broadcaster_user_id=${encodeURIComponent(
-                broadcasterId
-              )}&user_id=${encodeURIComponent(BOT_USER_ID!)}`
-            );
-
-            for (const subscription of result.data) {
-              if (subscription.type !== "channel.chat.message") continue;
-
-              await twitchApi(
-                `/eventsub/subscriptions?id=${encodeURIComponent(subscription.id)}`,
-                {
-                  method: "DELETE",
-                }
-              );
-
-              console.log(`Unsubscribed from Twitch channel ${broadcasterId}`);
-            }
-          }
         }
 
         return;
