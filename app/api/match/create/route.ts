@@ -11,7 +11,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid bet_amount" }, { status: 400 });
   }
 
-  // ✅ USE bounties (NOT users)
   const { data: user, error } = await supabaseAdmin
     .from("bounties")
     .select("bounty")
@@ -20,6 +19,10 @@ export async function POST(req: Request) {
 
   if (error || !user) {
     return Response.json({ error: "User not found" }, { status: 404 });
+  }
+
+  if (user.bounty < bet_amount) {
+    return Response.json({ error: "Not enough bounty" }, { status: 400 });
   }
 
   const matchId = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -33,6 +36,7 @@ export async function POST(req: Request) {
       status: "open",
       mode: mode || "pvp",
       title: title || null,
+      bet_amount,
       bounty_pool: bet_amount,
       last_activity_at: new Date().toISOString(),
     })
@@ -41,10 +45,6 @@ export async function POST(req: Request) {
 
   if (matchError || !match) {
     return Response.json({ error: "Failed to create match" }, { status: 500 });
-  }
-  const cost = Number(match?.bounty_pool ?? 0);
-  if (user.bounty < bet_amount) {
-    return Response.json({ error: "Not enough bounty" }, { status: 400 });
   }
 
   await supabaseAdmin
