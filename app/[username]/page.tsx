@@ -12,7 +12,7 @@ export default async function PublicProfile({
     const session = await getServerSession(authOptions);
     const { data: user, error } = await supabaseAdmin
         .from("bounties")
-        .select("user_id, username, points, bounty, avatar_url")
+        .select("user_id, username, points, bounty, avatar_url, twitch_id")
         .eq("username", username)
         .maybeSingle();
     const isOwnProfile = session?.user?.id === user?.user_id;
@@ -89,6 +89,37 @@ export default async function PublicProfile({
                         <p className="text-green-500">
                             This is your profile!
                         </p>
+                    )}
+                    {isOwnProfile && (
+                        user.twitch_id ? (
+                            <div className="flex items-center gap-2 mt-3">
+                                <span className="inline-block px-4 py-2 rounded bg-gray-400 text-white">
+                                    🎮 Twitch Connected ✓
+                                </span>
+
+                                <form action="/api/twitch/disconnect" method="POST">
+                                    <input
+                                        type="hidden"
+                                        name="redirect"
+                                        value={`/${user.username}`}
+                                    />
+                                    <button
+                                        type="submit"
+                                        className="px-3 py-2 rounded bg-red-500 text-white hover:bg-red-600"
+                                        title="Disconnect Twitch"
+                                    >
+                                        ✕
+                                    </button>
+                                </form>
+                            </div>
+                        ) : (
+                            <a
+                                href="/api/twitch/connect"
+                                className="inline-block mt-3 px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700"
+                            >
+                                🎮 Connect Twitch Bot
+                            </a>
+                        )
                     )}
                 </div>
             </div>

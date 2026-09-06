@@ -1,9 +1,30 @@
-import "dotenv/config";
-
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+import { createClient } from "@supabase/supabase-js";
 const CLIENT_ID = process.env.TWITCH_BOT_CLIENT_ID;
 const ACCESS_TOKEN = process.env.TWITCH_BOT_ACCESS_TOKEN;
 const BOT_USER_ID = process.env.TWITCH_BOT_USER_ID;
 const CHANNEL = process.env.TWITCH_BOT_CHANNEL;
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+async function loadTwitchConnections() {
+  const { data, error } = await supabase
+    .from("twitch_connections")
+    .select("user_id, twitch_id");
+
+  if (error) {
+    console.error("Failed to load Twitch connections:", error);
+    return [];
+  }
+
+  console.log("Connected Twitch accounts:", data);
+
+  return data ?? [];
+}
 
 if (!CLIENT_ID || !ACCESS_TOKEN || !BOT_USER_ID || !CHANNEL) {
   throw new Error(
@@ -16,6 +37,8 @@ const EVENTSUB_WS = "wss://eventsub.wss.twitch.tv/ws";
 
 let socket: WebSocket | null = null;
 let reconnecting = false;
+
+
 
 async function twitchApi<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${TWITCH_API}${path}`, {
@@ -150,6 +173,7 @@ function connect(url = EVENTSUB_WS) {
   const broadcaster = await getUser(CHANNEL!);
 
   console.log("Starting bounty.town Twitch bot...");
+  await loadTwitchConnections();
   console.log(`Bot user ID: ${BOT_USER_ID}`);
   console.log(`Channel: ${broadcaster.login} (${broadcaster.id})`);
 

@@ -10,7 +10,7 @@
     "bot": "tsx twitch-bot/index.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.103.3",
+    "@supabase/supabase-js": "^2.115.0",
     "@vercel/analytics": "^2.0.1",
     "discord.js": "^14.26.3",
     "dotenv": "^17.4.2",
