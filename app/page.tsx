@@ -849,7 +849,10 @@ export default function Home() {
                   setMatchId(full.data.id);
                   setDidCreateMatch(true);
                   setMatchTitle("");
-                  setBounty((prev) => prev - betAmount);
+                  // Solo creators only set the vote cost; they do not pay an entry fee.
+                  if (mode === "pvp") {
+                    setBounty((prev) => prev - betAmount);
+                  }
                 }
               }}
             >
