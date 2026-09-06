@@ -5,6 +5,7 @@ export async function POST(request: Request) {
 
   const THREE_MINUTES = 3 * 60 * 1000;
   const now = Date.now();
+  const voteTimestamp = new Date().toISOString();
 
   // 1. existing website vote
   const { data: existing, error: fetchError } = await supabaseAdmin
@@ -18,8 +19,9 @@ export async function POST(request: Request) {
     return Response.json({ error: fetchError.message }, { status: 500 });
   }
 
-  // 2. Check the user's linked Twitch vote too, so a vote made through Twitch
-  // cannot immediately be followed by another vote on the website.
+  // 2. Check the user's linked Twitch vote too. A linked user's vote is
+  // platform-independent, so a Twitch vote must become the same website vote
+  // instead of creating a second voter when they switch platforms.
   const { data: twitchConnection, error: twitchConnectionError } =
     await supabaseAdmin
       .from("twitch_connections")
@@ -34,12 +36,17 @@ export async function POST(request: Request) {
     );
   }
 
-  let existingTwitchVote: { updated_at: string | null } | null = null;
+  let existingTwitchVote: {
+    id: string | number;
+    vote: string;
+    updated_at: string | null;
+    bet_amount: number | null;
+  } | null = null;
 
   if (twitchConnection?.twitch_id) {
     const { data: twitchVote, error: twitchVoteError } = await supabaseAdmin
       .from("twitch_votes")
-      .select("updated_at")
+      .select("id, vote, updated_at, bet_amount")
       .eq("match_id", String(match_id))
       .eq("twitch_user_id", twitchConnection.twitch_id)
       .maybeSingle();
@@ -115,6 +122,96 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid match bet amount" }, { status: 400 });
   }
 
+  // 6. If this linked user only has a Twitch vote, adopt that vote into the
+  // website vote row. A paid Twitch vote has already paid the pool, so do not
+  // charge it again. A free Twitch vote becomes a normal website vote and is
+  // charged here.
+  if (!existing && existingTwitchVote) {
+    const twitchPaidAmount = Number(existingTwitchVote.bet_amount ?? 0);
+    const twitchWasPaid = twitchPaidAmount > 0;
+
+    if (!twitchWasPaid) {
+      if (user.bounty < BET_COST) {
+        return Response.json(
+          { error: "Not enough bounty to vote" },
+          { status: 400 }
+        );
+      }
+
+      const { data: updatedBounty, error: deductError } = await supabaseAdmin
+        .from("bounties")
+        .update({
+          bounty: user.bounty - BET_COST,
+        })
+        .eq("user_id", user_id)
+        .gte("bounty", BET_COST)
+        .select("user_id")
+        .maybeSingle();
+
+      if (deductError || !updatedBounty) {
+        return Response.json(
+          { error: "Failed to deduct bounty" },
+          { status: 500 }
+        );
+      }
+
+      const { error: poolError } = await supabaseAdmin
+        .from("matches")
+        .update({
+          bounty_pool: (match.bounty_pool || 0) + BET_COST,
+        })
+        .eq("id", match_id);
+
+      if (poolError) {
+        await supabaseAdmin
+          .from("bounties")
+          .update({ bounty: user.bounty })
+          .eq("user_id", user_id);
+
+        return Response.json(
+          { error: "Failed to add bounty to pool" },
+          { status: 500 }
+        );
+      }
+    }
+
+    const { error: websiteVoteError } = await supabaseAdmin
+      .from("match_votes")
+      .upsert(
+        {
+          match_id: String(match_id),
+          user_id: String(user_id),
+          vote,
+          updated_at: voteTimestamp,
+          bet_amount: twitchWasPaid ? twitchPaidAmount : BET_COST,
+        },
+        { onConflict: "match_id,user_id" }
+      );
+
+    if (websiteVoteError) {
+      return Response.json(
+        { error: websiteVoteError.message },
+        { status: 500 }
+      );
+    }
+
+    const { error: deleteTwitchError } = await supabaseAdmin
+      .from("twitch_votes")
+      .delete()
+      .eq("match_id", String(match_id))
+      .eq("twitch_user_id", twitchConnection!.twitch_id);
+
+    if (deleteTwitchError) {
+      return Response.json(
+        { error: deleteTwitchError.message },
+        { status: 500 }
+      );
+    }
+
+    return Response.json({ success: true });
+  }
+
+  // 7. Normal website vote. Charge only on the first website vote.
   if (user.bounty < BET_COST) {
     return Response.json(
       { error: "Not enough bounty to vote" },
@@ -122,32 +219,45 @@ export async function POST(request: Request) {
     );
   }
 
-  // 6. only charge on FIRST vote
   if (!existing) {
-    const { error: deductError } = await supabaseAdmin
+    const { data: updatedBounty, error: deductError } = await supabaseAdmin
       .from("bounties")
       .update({
         bounty: user.bounty - BET_COST,
       })
       .eq("user_id", user_id)
-      .gte("bounty", BET_COST);
+      .gte("bounty", BET_COST)
+      .select("user_id")
+      .maybeSingle();
 
-    if (deductError) {
+    if (deductError || !updatedBounty) {
       return Response.json(
         { error: "Failed to deduct bounty" },
         { status: 500 }
       );
     }
 
-    await supabaseAdmin
+    const { error: poolError } = await supabaseAdmin
       .from("matches")
       .update({
         bounty_pool: (match.bounty_pool || 0) + BET_COST,
       })
       .eq("id", match_id);
+
+    if (poolError) {
+      await supabaseAdmin
+        .from("bounties")
+        .update({ bounty: user.bounty })
+        .eq("user_id", user_id);
+
+      return Response.json(
+        { error: "Failed to add bounty to pool" },
+        { status: 500 }
+      );
+    }
   }
 
-  // 7. upsert vote
+  // 8. upsert website vote
   const { error } = await supabaseAdmin
     .from("match_votes")
     .upsert(
@@ -155,8 +265,8 @@ export async function POST(request: Request) {
         match_id: String(match_id),
         user_id: String(user_id),
         vote,
-        updated_at: new Date().toISOString(),
-        bet_amount: BET_COST,
+        updated_at: voteTimestamp,
+        bet_amount: existing?.updated_at ? BET_COST : BET_COST,
       },
       { onConflict: "match_id,user_id" }
     );
