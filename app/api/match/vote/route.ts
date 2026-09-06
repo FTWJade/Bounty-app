@@ -22,14 +22,20 @@ export async function POST(request: Request) {
   if (existing?.updated_at) {
     const lastTime = new Date(existing.updated_at).getTime();
 
-    if (now - lastTime < THREE_MINUTES) {
-      return Response.json(
-        {
-          error: "Cooldown active",
-          cooldown_end: lastTime + THREE_MINUTES,
-        },
-        { status: 429 }
-      );
+    // Ignore invalid/future timestamps so a bad/stale DB value can never
+    // lock a voter out for hours (or indefinitely).
+    if (Number.isFinite(lastTime) && lastTime <= now) {
+      const cooldownEnd = lastTime + THREE_MINUTES;
+
+      if (now < cooldownEnd) {
+        return Response.json(
+          {
+            error: "Cooldown active",
+            cooldown_end: cooldownEnd,
+          },
+          { status: 429 }
+        );
+      }
     }
   }
 
