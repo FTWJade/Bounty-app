@@ -80,7 +80,7 @@ export async function POST(req: Request) {
 
   // 💰 Build the pool from the money that was actually paid into this match.
   // This avoids relying on a stale/incomplete bounty_pool value when rewarding.
-  const creatorPaid = entryFee;
+  const creatorPaid = match.mode === "pvp" ? entryFee : 0;
   const opponentPaid = match.mode === "pvp" && match.opponent_id ? entryFee : 0;
   const voterPaid = combinedVotes.reduce(
     (sum, vote) => sum + Math.max(0, Number(vote.bet_amount ?? 0)),
@@ -114,7 +114,6 @@ export async function POST(req: Request) {
   if (match.mode === "solo") {
     const result = calculateSoloRewards({
       betAmount: actualPool,
-      entryFee,
       creatorId: match.creator_id,
       votes: voteData,
       creatorOutcome: winner_id ? "WIN" : "LOSE",
