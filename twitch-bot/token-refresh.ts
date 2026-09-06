@@ -27,6 +27,14 @@ let accessToken: string | null = null;
 let refreshToken: string | null = null;
 let refreshingToken: Promise<void> | null = null;
 
+function syncTokenToEnvironment() {
+  if (accessToken) {
+    // The existing bot file reads this once at import time.
+    // Keep it populated with the current DB-backed token without changing that file.
+    process.env.TWITCH_BOT_ACCESS_TOKEN = accessToken;
+  }
+}
+
 async function loadBotTokens() {
   const { data, error } = await supabase
     .from("twitch_connections")
@@ -46,6 +54,7 @@ async function loadBotTokens() {
 
   accessToken = data.access_token;
   refreshToken = data.refresh_token;
+  syncTokenToEnvironment();
 }
 
 async function saveBotTokens() {
@@ -98,6 +107,7 @@ async function refreshBotToken() {
       refreshToken = tokens.refresh_token;
     }
 
+    syncTokenToEnvironment();
     await saveBotTokens();
 
     console.log("🐈‍⬛ Twitch bot access token refreshed and saved.");
