@@ -26,6 +26,7 @@ type VoteBarProps = {
     pendingVote: "A" | "B" | null;
     handleVote?: (vote: "A" | "B") => void | Promise<void>;
     canVote?: boolean;
+    isCoolingDown?: boolean;
 };
 
 export default function VoteBar({
@@ -40,8 +41,21 @@ export default function VoteBar({
     pendingVote,
     handleVote,
     canVote,
+    isCoolingDown = false,
 }: VoteBarProps) {
     const displayedVote = myVote || pendingVote;
+
+    const voteButtonStyle = (background: string) => ({
+        padding: "10px 18px",
+        borderRadius: 8,
+        border: "none",
+        background: isCoolingDown ? "#555" : background,
+        color: "white",
+        cursor: isCoolingDown ? "not-allowed" : "pointer",
+        fontWeight: 600,
+        opacity: isCoolingDown ? 0.65 : 1,
+        transition: "opacity 0.2s ease, background 0.2s ease",
+    });
 
     /*
      * SOLO
@@ -154,7 +168,7 @@ export default function VoteBar({
                 ) : null}
 
                 {/* SOLO VOTING BUTTONS */}
-                {canVote && handleVote && !displayedVote && (
+                {canVote && handleVote && (
                     <div
                         style={{
                             display: "flex",
@@ -165,30 +179,14 @@ export default function VoteBar({
                     >
                         <button
                             onClick={() => handleVote("A")}
-                            style={{
-                                padding: "10px 18px",
-                                borderRadius: 8,
-                                border: "none",
-                                background: "#d33",
-                                color: "white",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                            }}
+                            style={voteButtonStyle("#d33")}
                         >
                             ❌ LOSE
                         </button>
 
                         <button
                             onClick={() => handleVote("B")}
-                            style={{
-                                padding: "10px 18px",
-                                borderRadius: 8,
-                                border: "none",
-                                background: "#2e9d50",
-                                color: "white",
-                                cursor: "pointer",
-                                fontWeight: 600,
-                            }}
+                            style={voteButtonStyle("#2e9d50")}
                         >
                             🏆 WIN
                         </button>
@@ -325,7 +323,7 @@ export default function VoteBar({
                 </div>
             )}
             {/* PVP VOTING BUTTONS */}
-            {canVote && handleVote && !displayedVote && currentMatch.opponent_id && (
+            {canVote && handleVote && currentMatch.opponent_id && (
                 <div
                     style={{
                         display: "flex",
@@ -336,30 +334,14 @@ export default function VoteBar({
                 >
                     <button
                         onClick={() => handleVote("A")}
-                        style={{
-                            padding: "10px 18px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "blue",
-                            color: "white",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                        }}
+                        style={voteButtonStyle("blue")}
                     >
                         {getSideName("A")}
                     </button>
 
                     <button
                         onClick={() => handleVote("B")}
-                        style={{
-                            padding: "10px 18px",
-                            borderRadius: 8,
-                            border: "none",
-                            background: "red",
-                            color: "white",
-                            cursor: "pointer",
-                            fontWeight: 600,
-                        }}
+                        style={voteButtonStyle("red")}
                     >
                         {getSideName("B")}
                     </button>
