@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   const THREE_MINUTES = 3 * 60 * 1000;
   const now = Date.now();
 
-  // 1. existing vote
+  // 1. existing website vote
   const { data: existing, error: fetchError } = await supabaseAdmin
     .from("match_votes")
     .select("updated_at")
@@ -18,28 +18,75 @@ export async function POST(request: Request) {
     return Response.json({ error: fetchError.message }, { status: 500 });
   }
 
-  // 2. cooldown
-  if (existing?.updated_at) {
-    const lastTime = new Date(existing.updated_at).getTime();
+  // 2. Check the user's linked Twitch vote too, so a vote made through Twitch
+  // cannot immediately be followed by another vote on the website.
+  const { data: twitchConnection, error: twitchConnectionError } =
+    await supabaseAdmin
+      .from("twitch_connections")
+      .select("twitch_id")
+      .eq("user_id", String(user_id))
+      .maybeSingle();
 
-    // Ignore invalid/future timestamps so a bad/stale DB value can never
-    // lock a voter out for hours (or indefinitely).
-    if (Number.isFinite(lastTime) && lastTime <= now) {
-      const cooldownEnd = lastTime + THREE_MINUTES;
+  if (twitchConnectionError) {
+    return Response.json(
+      { error: twitchConnectionError.message },
+      { status: 500 }
+    );
+  }
 
-      if (now < cooldownEnd) {
-        return Response.json(
-          {
-            error: "Cooldown active",
-            cooldown_end: cooldownEnd,
-          },
-          { status: 429 }
-        );
-      }
+  let existingTwitchVote: { updated_at: string | null } | null = null;
+
+  if (twitchConnection?.twitch_id) {
+    const { data: twitchVote, error: twitchVoteError } = await supabaseAdmin
+      .from("twitch_votes")
+      .select("updated_at")
+      .eq("match_id", String(match_id))
+      .eq("twitch_user_id", twitchConnection.twitch_id)
+      .maybeSingle();
+
+    if (twitchVoteError) {
+      return Response.json(
+        { error: twitchVoteError.message },
+        { status: 500 }
+      );
+    }
+
+    existingTwitchVote = twitchVote;
+  }
+
+  // 3. cooldown — use whichever platform has the newest valid vote timestamp.
+  const websiteVoteTime = (() => {
+    if (!existing?.updated_at) return null;
+    const time = new Date(existing.updated_at).getTime();
+    return Number.isFinite(time) && time <= now ? time : null;
+  })();
+
+  const twitchVoteTime = (() => {
+    if (!existingTwitchVote?.updated_at) return null;
+    const time = new Date(existingTwitchVote.updated_at).getTime();
+    return Number.isFinite(time) && time <= now ? time : null;
+  })();
+
+  const latestVoteTime = Math.max(
+    websiteVoteTime ?? 0,
+    twitchVoteTime ?? 0
+  );
+
+  if (latestVoteTime > 0) {
+    const cooldownEnd = latestVoteTime + THREE_MINUTES;
+
+    if (now < cooldownEnd) {
+      return Response.json(
+        {
+          error: "Cooldown active",
+          cooldown_end: cooldownEnd,
+        },
+        { status: 429 }
+      );
     }
   }
 
-  // 3. user check
+  // 4. user check
   const { data: user } = await supabaseAdmin
     .from("bounties")
     .select("bounty")
@@ -50,7 +97,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  // 4. Match fetch — bet_amount is the fixed vote cost for this match.
+  // 5. Match fetch — bet_amount is the fixed vote cost for this match.
   const { data: match } = await supabaseAdmin
     .from("matches")
     .select("bet_amount, bounty_pool")
@@ -75,7 +122,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // 5. only charge on FIRST vote
+  // 6. only charge on FIRST vote
   if (!existing) {
     const { error: deductError } = await supabaseAdmin
       .from("bounties")
@@ -100,7 +147,7 @@ export async function POST(request: Request) {
       .eq("id", match_id);
   }
 
-  // 6. upsert vote
+  // 7. upsert vote
   const { error } = await supabaseAdmin
     .from("match_votes")
     .upsert(
