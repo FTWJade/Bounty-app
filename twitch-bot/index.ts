@@ -418,7 +418,7 @@ async function handleChatMessage(notification: any) {
 
     // A linked user who already has a website vote changes that same vote
     // instead of becoming a second voter through Twitch.
-    if (bountyUser && existingWebsiteVote) {
+    if (linkedUserId && existingWebsiteVote) {
       const voteTimestamp = new Date().toISOString();
 
       const { error: updateError } = await supabase
@@ -428,7 +428,7 @@ async function handleChatMessage(notification: any) {
           updated_at: voteTimestamp,
         })
         .eq("match_id", match.id)
-        .eq("user_id", bountyUser.user_id);
+        .eq("user_id", linkedUserId);
 
       if (updateError) {
         console.error("Failed to update website vote from Twitch:", updateError);
