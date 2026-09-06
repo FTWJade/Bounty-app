@@ -33,20 +33,41 @@ export async function POST(req: Request) {
     return Response.json({ error: "Match not found" }, { status: 404 });
   }
 
-
   const finalWinnerId = winner_id;
 
-  // 📦 Get votes
+  // 📦 Get website votes
   const { data: votes } = await supabaseAdmin
     .from("match_votes")
     .select("user_id, vote")
     .eq("match_id", match_id);
 
+  // 📦 Get paid Twitch votes
+  // Free/anonymous Twitch votes are audience votes only and do not receive bounty rewards.
+  const { data: twitchVotes } = await supabaseAdmin
+    .from("twitch_votes")
+    .select("bounty_user_id, vote, bet_amount")
+    .eq("match_id", match_id)
+    .gt("bet_amount", 0)
+    .not("bounty_user_id", "is", null);
+
   const allVotes = votes ?? [];
 
+  // Twitch-linked voters use the same reward path as website voters.
+  // If someone voted through both platforms, count them only once.
+  const websiteVoterIds = new Set(allVotes.map(v => v.user_id));
+
+  const paidTwitchVotes = (twitchVotes ?? [])
+    .filter(v => v.bounty_user_id && !websiteVoterIds.has(v.bounty_user_id))
+    .map(v => ({
+      user_id: v.bounty_user_id as string,
+      vote: v.vote as "A" | "B",
+    }));
+
+  const combinedVotes = [...allVotes, ...paidTwitchVotes];
+
   const voteData = match.mode === "solo"
-    ? allVotes.filter(v => v.user_id !== match.creator_id)
-    : allVotes;
+    ? combinedVotes.filter(v => v.user_id !== match.creator_id)
+    : combinedVotes;
 
   // 🔐 Validation
   const isParticipant =
@@ -67,9 +88,6 @@ export async function POST(req: Request) {
       { status: 403 }
     );
   }
-
-  const votesA = voteData.filter(v => v.vote === "A").length;
-  const votesB = voteData.filter(v => v.vote === "B").length;
 
   // 💰 Rewards
   let rewards: Record<string, { xp: number; bounty: number }> = {};
