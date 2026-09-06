@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Match not found" }, { status: 404 });
   }
 
-  // 2. Get all voters
+  // 2. Get all website voters
   const { data: votes } = await supabaseAdmin
     .from("match_votes")
     .select("user_id")
@@ -26,8 +26,7 @@ export async function POST(req: Request) {
 
   const voterIds = [...new Set(votes?.map(v => v.user_id) || [])];
 
-  // 3. Refund all voters (example: +bet_amount or fixed refund logic)
-  // If you store bet per user, adjust this accordingly
+  // 3. Refund all website voters (existing refund behavior)
   const refundAmount = match.bounty_pool ?? 0;
 
   for (const userId of voterIds) {
@@ -37,7 +36,26 @@ export async function POST(req: Request) {
     });
   }
 
-  // 4. Refund creator + opponent bets if they exist
+  // 4. Refund paid Twitch votes to their linked bounty.town accounts.
+  // Free/anonymous Twitch votes have no bounty_user_id or bet_amount, so there
+  // is nothing to refund for them.
+  const { data: twitchVotes } = await supabaseAdmin
+    .from("twitch_votes")
+    .select("bounty_user_id, bet_amount")
+    .eq("match_id", match_id)
+    .not("bounty_user_id", "is", null)
+    .gt("bet_amount", 0);
+
+  for (const twitchVote of twitchVotes || []) {
+    if (!twitchVote.bounty_user_id || !twitchVote.bet_amount) continue;
+
+    await supabaseAdmin.rpc("add_points", {
+      user_id_input: twitchVote.bounty_user_id,
+      amount_input: twitchVote.bet_amount,
+    });
+  }
+
+  // 5. Refund creator + opponent bets if they exist
   if (match.creator_id) {
     await supabaseAdmin.rpc("add_points", {
       user_id_input: match.creator_id,
@@ -52,7 +70,7 @@ export async function POST(req: Request) {
     });
   }
 
-  // 5. Close match safely
+  // 6. Close match safely
   await supabaseAdmin
     .from("matches")
     .update({
