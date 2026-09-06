@@ -43,7 +43,7 @@ export default function VoteBar({
     canVote,
     isCoolingDown = false,
 }: VoteBarProps) {
-    const displayedVote = myVote || pendingVote;
+    const displayedVote = pendingVote || myVote;
 
     const voteButtonStyle = (background: string) => ({
         padding: "10px 18px",
