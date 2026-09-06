@@ -121,7 +121,7 @@ async function subscribeToChat(
     }),
   });
 
-  console.log(`Subscribed to ${CHANNEL}'s chat`);
+  console.log(`Subscribed to ${channelLogin}'s chat`);
 }
 
 async function handleChatMessage(notification: any) {
