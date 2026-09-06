@@ -64,7 +64,7 @@ async function getActiveMatchForChannel(broadcasterId: string) {
   const { data: match, error } = await supabase
     .from("matches")
     .select("id, status, mode, creator_id, opponent_id, bet_amount, bounty_pool")
-    .eq("creator_id", connection.user_id)
+    .or(`creator_id.eq.${connection.user_id},opponent_id.eq.${connection.user_id}`)
     .in("status", ["open", "active"])
     .order("created_at", { ascending: false })
     .limit(1)
