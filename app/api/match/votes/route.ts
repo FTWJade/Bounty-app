@@ -9,6 +9,8 @@ export async function GET(req: Request) {
       a: 0, b: 0,
       bountyA: 0, bountyB: 0,
       twitchA: 0, twitchB: 0,
+      bountyVoters: 0,
+      twitchVoters: 0,
     });
   }
 
@@ -45,5 +47,7 @@ export async function GET(req: Request) {
     bountyB,
     twitchA,
     twitchB,
+    bountyVoters: (bountyVotes || []).length,
+    twitchVoters: (twitchVotes || []).length,
   });
 }
