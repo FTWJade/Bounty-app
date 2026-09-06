@@ -51,6 +51,33 @@ export async function POST(req: Request) {
       );
     }
 
+    // Bounty refunds must update the `bounty` balance directly.
+    // `add_points` is used elsewhere for XP/points, not bounty currency.
+    const refundBounty = async (targetUserId: string, amount: number) => {
+      if (!targetUserId || amount <= 0) return;
+
+      const { data: bountyRow, error: bountyError } = await supabaseAdmin
+        .from("bounties")
+        .select("bounty")
+        .eq("user_id", targetUserId)
+        .single();
+
+      if (bountyError || !bountyRow) {
+        throw new Error(`Failed to load bounty for ${targetUserId}`);
+      }
+
+      const { error: updateBountyError } = await supabaseAdmin
+        .from("bounties")
+        .update({
+          bounty: Number(bountyRow.bounty ?? 0) + amount,
+        })
+        .eq("user_id", targetUserId);
+
+      if (updateBountyError) {
+        throw new Error(`Failed to refund bounty for ${targetUserId}`);
+      }
+    };
+
     // 5. Refund website voters using each vote's stored bet amount.
     const { data: votes, error: votesError } = await supabaseAdmin
       .from("match_votes")
@@ -72,11 +99,7 @@ export async function POST(req: Request) {
       const amount = Number(vote.bet_amount ?? 0);
       if (amount <= 0) continue;
 
-      await supabaseAdmin.rpc("add_points", {
-        user_id_input: vote.user_id,
-        amount_input: amount,
-      });
-
+      await refundBounty(vote.user_id, amount);
       refundedWebsiteUsers.add(vote.user_id);
     }
 
@@ -98,22 +121,20 @@ export async function POST(req: Request) {
 
     for (const twitchVote of twitchVotes || []) {
       if (!twitchVote.bounty_user_id) continue;
+      if (refundedWebsiteUsers.has(twitchVote.bounty_user_id)) continue;
 
       const amount = Number(twitchVote.bet_amount ?? 0);
       if (amount <= 0) continue;
 
-      await supabaseAdmin.rpc("add_points", {
-        user_id_input: twitchVote.bounty_user_id,
-        amount_input: amount,
-      });
+      await refundBounty(twitchVote.bounty_user_id, amount);
     }
 
     // 7. Refund creator's match bet.
     if (match.creator_id) {
-      await supabaseAdmin.rpc("add_points", {
-        user_id_input: match.creator_id,
-        amount_input: match.bet_amount ?? 0,
-      });
+      await refundBounty(
+        match.creator_id,
+        Number(match.bet_amount ?? 0)
+      );
     }
 
     // 8. Cancel match.
