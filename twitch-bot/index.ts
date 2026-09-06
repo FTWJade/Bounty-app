@@ -11,6 +11,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+const THREE_MINUTES = 3 * 60 * 1000;
+
+function getValidVoteTime(timestamp: string | null | undefined, now = Date.now()) {
+  if (!timestamp) return null;
+
+  const time = new Date(timestamp).getTime();
+  if (!Number.isFinite(time) || time > now) return null;
+
+  return time;
+}
+
 async function loadTwitchConnections() {
   const { data, error } = await supabase
     .from("twitch_connections")
@@ -376,27 +387,28 @@ async function handleChatMessage(notification: any) {
       return;
     }
 
-    const existingCrossPlatformVote =
-      existingWebsiteVote?.updated_at &&
-      (!existingVote?.updated_at ||
-        new Date(existingWebsiteVote.updated_at).getTime() >=
-          new Date(existingVote.updated_at).getTime())
-        ? existingWebsiteVote
-        : existingVote;
+    const now = Date.now();
+    const websiteVoteTime = getValidVoteTime(existingWebsiteVote?.updated_at, now);
+    const twitchVoteTime = getValidVoteTime(existingVote?.updated_at, now);
 
-    if (existingCrossPlatformVote?.updated_at) {
-      const THREE_MINUTES = 3 * 60 * 1000;
-      const lastTime = new Date(existingCrossPlatformVote.updated_at).getTime();
-      const now = Date.now();
+    const latestVoteTime = Math.max(
+      websiteVoteTime ?? 0,
+      twitchVoteTime ?? 0
+    );
 
-      if (now - lastTime < THREE_MINUTES) {
-        const secondsLeft = Math.ceil(
-          (THREE_MINUTES - (now - lastTime)) / 1000
-        );
+    if (latestVoteTime > 0) {
+      const cooldownEnd = latestVoteTime + THREE_MINUTES;
+
+      if (now < cooldownEnd) {
+        const secondsLeft = Math.ceil((cooldownEnd - now) / 1000);
 
         await sendChatMessage(
           event.broadcaster_user_id,
-          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${existingCrossPlatformVote.vote}! Try again in ${secondsLeft}s.`
+          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${
+            websiteVoteTime !== null && websiteVoteTime >= (twitchVoteTime ?? 0)
+              ? existingWebsiteVote!.vote
+              : existingVote!.vote
+          }! Try again in ${secondsLeft}s.`
         );
 
         return;
@@ -406,11 +418,13 @@ async function handleChatMessage(notification: any) {
     // A linked user who already has a website vote changes that same vote
     // instead of becoming a second voter through Twitch.
     if (bountyUser && existingWebsiteVote) {
+      const voteTimestamp = new Date().toISOString();
+
       const { error: updateError } = await supabase
         .from("match_votes")
         .update({
           vote,
-          updated_at: new Date().toISOString(),
+          updated_at: voteTimestamp,
         })
         .eq("match_id", match.id)
         .eq("user_id", bountyUser.user_id);
@@ -420,7 +434,6 @@ async function handleChatMessage(notification: any) {
         return;
       }
 
-      // Remove any old Twitch row for this linked user on this match.
       await supabase
         .from("twitch_votes")
         .delete()
@@ -476,6 +489,8 @@ async function handleChatMessage(notification: any) {
       }
     }
 
+    const voteTimestamp = new Date().toISOString();
+
     const { error: voteError } = await supabase
       .from("twitch_votes")
       .upsert(
@@ -486,6 +501,7 @@ async function handleChatMessage(notification: any) {
           vote,
           bounty_user_id: bountyUser?.user_id ?? null,
           bet_amount: paidAmount,
+          updated_at: voteTimestamp,
         },
         {
           onConflict: "match_id,twitch_user_id",
