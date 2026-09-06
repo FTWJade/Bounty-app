@@ -15,13 +15,8 @@ export function calculatePvPRewards({
     const voters = [...new Map(votes.map(v => [v.user_id, v])).values()]
         .filter(v => v.user_id !== creatorId && v.user_id !== opponentId);
 
-    const participants = [
-        creatorId,
-        opponentId,
-        ...voters.map(v => v.user_id),
-    ];
-
-    const pool = betAmount * participants.length;
+    // 💰 bounty_pool is already the full accumulated pool
+    const pool = betAmount;
 
     const correctSide = winnerId === creatorId ? "A" : "B";
 
@@ -29,7 +24,7 @@ export function calculatePvPRewards({
 
     const rewards: Record<string, { xp: number; bounty: number }> = {};
 
-    // 🧨 edge case: no correct voters
+    // 🧨 if nobody was correct → winner wins everything
     if (correct.length === 0) {
         rewards[winnerId] = {
             xp: 50,
@@ -38,23 +33,19 @@ export function calculatePvPRewards({
         return { pool, rewards };
     }
 
-    // 🏆 winner base cut
-    const winnerShare = Math.floor(pool * 0.65);
-
+    // 🏆 winner gets 10%, correct voters split 90%
     rewards[winnerId] = {
         xp: 50,
-        bounty: winnerShare,
+        bounty: Math.floor(pool * 0.1),
     };
 
-    // 🧠 remaining pool
-    const remaining = pool - winnerShare;
-
-    const each = Math.floor(remaining / correct.length);
+    const voterPool = pool - rewards[winnerId].bounty;
+    const eachWinner = Math.floor(voterPool / correct.length);
 
     for (const v of correct) {
         rewards[v.user_id] = {
             xp: 10,
-            bounty: each,
+            bounty: eachWinner,
         };
     }
 
