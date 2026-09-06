@@ -34,14 +34,15 @@ export async function POST(req: Request) {
   }
 
   const finalWinnerId = winner_id;
+  const entryFee = Number(match.bet_amount ?? 0);
 
-  // 📦 Get website votes
+  // 📦 Get website votes and their actual paid amounts.
   const { data: votes } = await supabaseAdmin
     .from("match_votes")
-    .select("user_id, vote")
+    .select("user_id, vote, bet_amount")
     .eq("match_id", match_id);
 
-  // 📦 Get paid Twitch votes
+  // 📦 Get paid Twitch votes.
   // Free/anonymous Twitch votes are audience votes only and do not receive bounty rewards.
   const { data: twitchVotes } = await supabaseAdmin
     .from("twitch_votes")
@@ -61,13 +62,31 @@ export async function POST(req: Request) {
     .map(v => ({
       user_id: v.bounty_user_id as string,
       vote: v.vote as "A" | "B",
+      bet_amount: Number(v.bet_amount ?? 0),
     }));
 
-  const combinedVotes = [...allVotes, ...paidTwitchVotes];
+  const combinedVotes = [
+    ...allVotes.map(v => ({
+      user_id: v.user_id,
+      vote: v.vote as "A" | "B",
+      bet_amount: Number(v.bet_amount ?? entryFee),
+    })),
+    ...paidTwitchVotes,
+  ];
 
   const voteData = match.mode === "solo"
     ? combinedVotes.filter(v => v.user_id !== match.creator_id)
     : combinedVotes;
+
+  // 💰 Build the pool from the money that was actually paid into this match.
+  // This avoids relying on a stale/incomplete bounty_pool value when rewarding.
+  const creatorPaid = entryFee;
+  const opponentPaid = match.mode === "pvp" && match.opponent_id ? entryFee : 0;
+  const voterPaid = combinedVotes.reduce(
+    (sum, vote) => sum + Math.max(0, Number(vote.bet_amount ?? 0)),
+    0
+  );
+  const actualPool = Math.max(0, creatorPaid + opponentPaid + voterPaid);
 
   // 🔐 Validation
   const isParticipant =
@@ -94,8 +113,8 @@ export async function POST(req: Request) {
 
   if (match.mode === "solo") {
     const result = calculateSoloRewards({
-      betAmount: match.bounty_pool ?? 0,
-      entryFee: match.bet_amount ?? 0,
+      betAmount: actualPool,
+      entryFee,
       creatorId: match.creator_id,
       votes: voteData,
       creatorOutcome: winner_id ? "WIN" : "LOSE",
@@ -108,8 +127,8 @@ export async function POST(req: Request) {
       creatorId: match.creator_id,
       opponentId: match.opponent_id,
       winnerId: finalWinnerId,
-      betAmount: match.bounty_pool ?? 0,
-      entryFee: match.bet_amount ?? 0,
+      betAmount: actualPool,
+      entryFee,
     });
 
     rewards = result.rewards;
