@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import VoteBar from "../../components/VoteBar";
 import { useSearchParams } from "next/navigation";
+
 export default function Overlay() {
   const [voteCount, setVoteCount] = useState({ a: 0, b: 0 });
+  const [voterCounts, setVoterCounts] = useState({ bounty: 0, twitch: 0 });
   const [winner, setWinner] = useState<string | null>(null);
   const params = typeof window !== "undefined"
     ? new URLSearchParams(window.location.search)
@@ -66,6 +68,11 @@ export default function Overlay() {
         a: data.a ?? 0,
         b: data.b ?? 0,
       });
+
+      setVoterCounts({
+        bounty: data.bountyVoters ?? 0,
+        twitch: data.twitchVoters ?? 0,
+      });
     };
 
     const loadMatch = async () => {
@@ -75,7 +82,7 @@ export default function Overlay() {
       const match = data.data;
       if (!match) return;
 
-      setMatch(match); // 👈 ADD THIS
+      setMatch(match);
 
       if (match.status === "finished") {
         setWinner(match.winner_id);
@@ -87,7 +94,7 @@ export default function Overlay() {
 
     const interval = setInterval(() => {
       loadVotes();
-      loadMatch(); // 👈 important so winner updates live
+      loadMatch();
     }, 1000);
 
     return () => clearInterval(interval);
@@ -134,6 +141,20 @@ export default function Overlay() {
             myVote={null}
             pendingVote={null}
           />
+
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              gap: 18,
+              marginTop: 8,
+              fontSize: 12,
+              color: "#aaa",
+            }}
+          >
+            <span>🟣 Twitch voters: <b>{voterCounts.twitch}</b></span>
+            <span>💰 bounty.voters: <b>{voterCounts.bounty}</b></span>
+          </div>
         </div>
       )}
 
