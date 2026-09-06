@@ -361,13 +361,15 @@ async function handleChatMessage(notification: any) {
       return;
     }
 
-    const { data: existingWebsiteVote, error: websiteVoteError } = bountyUser
+    const linkedUserId = connection?.user_id ?? bountyUser?.user_id;
+
+    const { data: existingWebsiteVote, error: websiteVoteError } = linkedUserId
       ? await supabase
-          .from("match_votes")
-          .select("vote, updated_at")
-          .eq("match_id", match.id)
-          .eq("user_id", bountyUser.user_id)
-          .maybeSingle()
+        .from("match_votes")
+        .select("vote, updated_at")
+        .eq("match_id", match.id)
+        .eq("user_id", linkedUserId)
+        .maybeSingle()
       : { data: null, error: null };
 
     if (websiteVoteError) {
@@ -404,10 +406,9 @@ async function handleChatMessage(notification: any) {
 
         await sendChatMessage(
           event.broadcaster_user_id,
-          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${
-            websiteVoteTime !== null && websiteVoteTime >= (twitchVoteTime ?? 0)
-              ? existingWebsiteVote!.vote
-              : existingVote!.vote
+          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${websiteVoteTime !== null && websiteVoteTime >= (twitchVoteTime ?? 0)
+            ? existingWebsiteVote!.vote
+            : existingVote!.vote
           }! Try again in ${secondsLeft}s.`
         );
 
