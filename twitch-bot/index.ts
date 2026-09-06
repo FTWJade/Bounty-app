@@ -26,6 +26,21 @@ async function loadTwitchConnections() {
   return data ?? [];
 }
 
+async function getTwitchConnection(twitchId: string) {
+  const { data, error } = await supabase
+    .from("twitch_connections")
+    .select("user_id, twitch_id")
+    .eq("twitch_id", twitchId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to check Twitch connection:", error);
+    return null;
+  }
+
+  return data;
+}
+
 if (!CLIENT_ID || !ACCESS_TOKEN || !BOT_USER_ID || !CHANNEL) {
   throw new Error(
     "Missing TWITCH_BOT_CLIENT_ID, TWITCH_BOT_ACCESS_TOKEN, TWITCH_BOT_USER_ID, or TWITCH_BOT_CHANNEL"
@@ -126,6 +141,12 @@ async function subscribeToChat(
 
 async function handleChatMessage(notification: any) {
   const event = notification.payload.event;
+  const connection = await getTwitchConnection(event.broadcaster_user_id);
+
+  if (!connection) {
+    console.log(`Ignoring message from disconnected channel: ${event.broadcaster_user_name}`);
+    return;
+  }
   const text = event.message.text.trim();
 
   console.log(`<${event.chatter_user_name}> ${text}`);
@@ -164,6 +185,36 @@ function connect(url = EVENTSUB_WS) {
             broadcaster.id,
             broadcaster.login
           );
+          async function unsubscribeFromChat(
+            broadcasterId: string
+          ) {
+            const result = await twitchApi<{
+              data: Array<{
+                id: string;
+                type: string;
+                condition: {
+                  broadcaster_user_id: string;
+                };
+              }>;
+            }>(
+              `/eventsub/subscriptions?broadcaster_user_id=${encodeURIComponent(
+                broadcasterId
+              )}&user_id=${encodeURIComponent(BOT_USER_ID!)}`
+            );
+
+            for (const subscription of result.data) {
+              if (subscription.type !== "channel.chat.message") continue;
+
+              await twitchApi(
+                `/eventsub/subscriptions?id=${encodeURIComponent(subscription.id)}`,
+                {
+                  method: "DELETE",
+                }
+              );
+
+              console.log(`Unsubscribed from Twitch channel ${broadcasterId}`);
+            }
+          }
         }
 
         return;
