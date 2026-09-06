@@ -33,11 +33,9 @@ export async function POST(request: Request) {
     }
   }
 
-
   // 3. user check
   const { data: user } = await supabaseAdmin
     .from("bounties")
-
     .select("bounty")
     .eq("user_id", user_id)
     .single();
@@ -46,18 +44,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-
-  // 4. ALWAYS safe match fetch
+  // 4. Match fetch — bet_amount is the fixed vote cost for this match.
   const { data: match } = await supabaseAdmin
     .from("matches")
-    .select("bounty_pool")
+    .select("bet_amount, bounty_pool")
     .eq("id", match_id)
     .single();
 
   if (!match) {
     return Response.json({ error: "Match not found" }, { status: 404 });
   }
-  const BET_COST = Number(match.bounty_pool ?? 0);
+
+  // Fall back to bounty_pool for older matches created before bet_amount existed.
+  const BET_COST = Number(match.bet_amount ?? match.bounty_pool ?? 0);
+
+  if (BET_COST <= 0) {
+    return Response.json({ error: "Invalid match bet amount" }, { status: 400 });
+  }
 
   if (user.bounty < BET_COST) {
     return Response.json(
@@ -65,6 +68,7 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
   // 5. only charge on FIRST vote
   if (!existing) {
     const { error: deductError } = await supabaseAdmin
@@ -81,6 +85,7 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
     await supabaseAdmin
       .from("matches")
       .update({
@@ -88,7 +93,6 @@ export async function POST(request: Request) {
       })
       .eq("id", match_id);
   }
-
 
   // 6. upsert vote
   const { error } = await supabaseAdmin
