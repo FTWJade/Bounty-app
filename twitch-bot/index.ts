@@ -363,14 +363,19 @@ async function handleChatMessage(notification: any) {
 
     const { error: voteError } = await supabase
       .from("twitch_votes")
-      .upsert({
-        match_id: match.id,
-        twitch_user_id: event.chatter_user_id,
-        twitch_username: event.chatter_user_name,
-        vote,
-        bounty_user_id: bountyUser?.user_id ?? null,
-        bet_amount: 0,
-      });
+      .upsert(
+        {
+          match_id: match.id,
+          twitch_user_id: event.chatter_user_id,
+          twitch_username: event.chatter_user_name,
+          vote,
+          bounty_user_id: bountyUser?.user_id ?? null,
+          bet_amount: 0,
+        },
+        {
+          onConflict: "match_id,twitch_user_id",
+        }
+      );
 
     if (voteError) {
       console.error("Failed to save Twitch vote:", voteError);
