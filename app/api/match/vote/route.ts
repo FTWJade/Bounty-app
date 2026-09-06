@@ -43,12 +43,33 @@ export async function POST(request: Request) {
     bet_amount: number | null;
   } | null = null;
 
-  if (twitchConnection?.twitch_id) {
+
+  let linkedTwitchId = twitchConnection?.twitch_id ?? null;
+
+  if (!linkedTwitchId) {
+    const { data: bountyTwitchLink, error: bountyTwitchLinkError } =
+      await supabaseAdmin
+        .from("bounties")
+        .select("twitch_id")
+        .eq("user_id", String(user_id))
+        .maybeSingle();
+
+    if (bountyTwitchLinkError) {
+      return Response.json(
+        { error: bountyTwitchLinkError.message },
+        { status: 500 }
+      );
+    }
+
+    linkedTwitchId = bountyTwitchLink?.twitch_id ?? null;
+  }
+
+  if (linkedTwitchId) {
     const { data: twitchVote, error: twitchVoteError } = await supabaseAdmin
       .from("twitch_votes")
       .select("id, vote, updated_at, bet_amount")
       .eq("match_id", String(match_id))
-      .eq("twitch_user_id", twitchConnection.twitch_id)
+      .eq("twitch_user_id", linkedTwitchId)
       .maybeSingle();
 
     if (twitchVoteError) {
@@ -199,7 +220,7 @@ export async function POST(request: Request) {
       .from("twitch_votes")
       .delete()
       .eq("match_id", String(match_id))
-      .eq("twitch_user_id", twitchConnection!.twitch_id);
+      .eq("twitch_user_id", linkedTwitchId!);
 
     if (deleteTwitchError) {
       return Response.json(
