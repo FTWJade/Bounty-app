@@ -350,6 +350,20 @@ async function handleChatMessage(notification: any) {
       return;
     }
 
+    const { data: existingWebsiteVote, error: websiteVoteError } = bountyUser
+      ? await supabase
+          .from("match_votes")
+          .select("vote, updated_at")
+          .eq("match_id", match.id)
+          .eq("user_id", bountyUser.user_id)
+          .maybeSingle()
+      : { data: null, error: null };
+
+    if (websiteVoteError) {
+      console.error("Failed to check website vote:", websiteVoteError);
+      return;
+    }
+
     const { data: existingVote, error: existingError } = await supabase
       .from("twitch_votes")
       .select("id, vote, updated_at, bet_amount")
@@ -362,9 +376,17 @@ async function handleChatMessage(notification: any) {
       return;
     }
 
-    if (existingVote?.updated_at) {
+    const existingCrossPlatformVote =
+      existingWebsiteVote?.updated_at &&
+      (!existingVote?.updated_at ||
+        new Date(existingWebsiteVote.updated_at).getTime() >=
+          new Date(existingVote.updated_at).getTime())
+        ? existingWebsiteVote
+        : existingVote;
+
+    if (existingCrossPlatformVote?.updated_at) {
       const THREE_MINUTES = 3 * 60 * 1000;
-      const lastTime = new Date(existingVote.updated_at).getTime();
+      const lastTime = new Date(existingCrossPlatformVote.updated_at).getTime();
       const now = Date.now();
 
       if (now - lastTime < THREE_MINUTES) {
@@ -374,11 +396,42 @@ async function handleChatMessage(notification: any) {
 
         await sendChatMessage(
           event.broadcaster_user_id,
-          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${existingVote.vote}! Try again in ${secondsLeft}s.`
+          `🐈‍⬛ @${event.chatter_user_name}, you already voted ${existingCrossPlatformVote.vote}! Try again in ${secondsLeft}s.`
         );
 
         return;
       }
+    }
+
+    // A linked user who already has a website vote changes that same vote
+    // instead of becoming a second voter through Twitch.
+    if (bountyUser && existingWebsiteVote) {
+      const { error: updateError } = await supabase
+        .from("match_votes")
+        .update({
+          vote,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("match_id", match.id)
+        .eq("user_id", bountyUser.user_id);
+
+      if (updateError) {
+        console.error("Failed to update website vote from Twitch:", updateError);
+        return;
+      }
+
+      // Remove any old Twitch row for this linked user on this match.
+      await supabase
+        .from("twitch_votes")
+        .delete()
+        .eq("match_id", match.id)
+        .eq("twitch_user_id", event.chatter_user_id);
+
+      await sendChatMessage(
+        event.broadcaster_user_id,
+        `🐈‍⬛ @${event.chatter_user_name} changed their vote to ${vote}!`
+      );
+      return;
     }
 
     const betAmount = Number(match.bet_amount ?? match.bounty_pool ?? 0);
