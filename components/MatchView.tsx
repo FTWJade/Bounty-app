@@ -213,6 +213,7 @@ export default function MatchView({
           pendingVote={pendingVote}
           handleVote={handleVote}
           canVote={canVote}
+          isCoolingDown={isCoolingDown}
         />
       )}
     </section>
