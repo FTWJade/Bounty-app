@@ -129,7 +129,16 @@ async function getUsersByIds(twitchIds: string[]) {
 }
 
 async function sendChatMessage(broadcasterId: string, message: string) {
-  await twitchApi("/chat/messages", {
+  const result = await twitchApi<{
+    data: Array<{
+      message_id: string;
+      is_sent: boolean;
+      drop_reason?: {
+        code: string;
+        message: string;
+      };
+    }>;
+  }>("/chat/messages", {
     method: "POST",
     body: JSON.stringify({
       broadcaster_id: broadcasterId,
@@ -138,6 +147,10 @@ async function sendChatMessage(broadcasterId: string, message: string) {
     }),
   });
 
+  console.log(
+    "Twitch chat send result:",
+    JSON.stringify(result, null, 2)
+  );
   console.log(`→ ${message}`);
 }
 
