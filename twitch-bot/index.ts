@@ -69,6 +69,24 @@ async function getUser(login: string) {
   return user;
 }
 
+async function getUsersByIds(twitchIds: string[]) {
+  if (twitchIds.length === 0) return [];
+
+  const params = twitchIds
+    .map((id) => `id=${encodeURIComponent(id)}`)
+    .join("&");
+
+  const result = await twitchApi<{
+    data: Array<{
+      id: string;
+      login: string;
+      display_name: string;
+    }>;
+  }>(`/users?${params}`);
+
+  return result.data;
+}
+
 async function sendChatMessage(broadcasterId: string, message: string) {
   await twitchApi("/chat/messages", {
     method: "POST",
@@ -82,7 +100,11 @@ async function sendChatMessage(broadcasterId: string, message: string) {
   console.log(`→ ${message}`);
 }
 
-async function subscribeToChat(sessionId: string, broadcasterId: string) {
+async function subscribeToChat(
+  sessionId: string,
+  broadcasterId: string,
+  channelLogin: string
+) {
   await twitchApi("/eventsub/subscriptions", {
     method: "POST",
     body: JSON.stringify({
@@ -132,8 +154,18 @@ function connect(url = EVENTSUB_WS) {
 
       if (type === "session_welcome") {
         const sessionId = data.payload.session.id;
-        const broadcaster = await getUser(CHANNEL!);
-        await subscribeToChat(sessionId, broadcaster.id);
+        const connections = await loadTwitchConnections();
+        const twitchIds = connections.map((connection) => connection.twitch_id);
+        const broadcasters = await getUsersByIds(twitchIds);
+
+        for (const broadcaster of broadcasters) {
+          await subscribeToChat(
+            sessionId,
+            broadcaster.id,
+            broadcaster.login
+          );
+        }
+
         return;
       }
 
