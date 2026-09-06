@@ -669,6 +669,9 @@ export default function Home() {
       showPopup(result.error || "Unable to vote");
       return;
     }
+    setMyVote(voteKey);
+    voteRef.current = voteKey;
+    setPendingVote(null);
     // refresh votes
     const data = await fetch(
       `/api/match/votes?match_id=${currentMatch.id}`
