@@ -159,7 +159,12 @@ async function validateBotToken() {
 const originalFetch = globalThis.fetch.bind(globalThis);
 
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  const url =
+    typeof input === "string"
+      ? input
+      : input instanceof URL
+        ? input.toString()
+        : input.url;
 
   if (!url.startsWith(TWITCH_API)) {
     return originalFetch(input, init);
@@ -191,16 +196,25 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   return response;
 };
 
-await loadBotTokens();
-await validateBotToken();
+async function main() {
+  await loadBotTokens();
+  await validateBotToken();
 
-setInterval(async () => {
-  try {
-    await validateBotToken();
-  } catch (error) {
-    console.error("Twitch bot token validation error:", error);
-  }
-}, VALIDATE_INTERVAL);
+  setInterval(async () => {
+    try {
+      await validateBotToken();
+    } catch (error) {
+      console.error("Twitch bot token validation error:", error);
+    }
+  }, VALIDATE_INTERVAL);
 
-console.log("🐈‍⬛ Twitch token manager ready.");
-await import("./index.ts");
+  console.log("🐈‍⬛ Twitch token manager ready.");
+
+  // Import the existing bot only after the token manager is initialized.
+  await import("./index.ts");
+}
+
+main().catch((error) => {
+  console.error("🐈‍⬛ Twitch token manager failed to start:", error);
+  process.exit(1);
+});
