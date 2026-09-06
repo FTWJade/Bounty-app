@@ -19,21 +19,8 @@ export function calculateSoloRewards({
     const correctSide = creatorOutcome === "WIN" ? "B" : "A";
 
     const correct = voters.filter(v => v.vote === correctSide);
-    const wrong = voters.filter(v => v.vote !== correctSide);
 
     const rewards: Record<string, { xp: number; bounty: number }> = {};
-
-    // split pool
-    const winnerPool = Math.floor(pool * 0.8);
-    const loserPool = pool - winnerPool; // ensures exact total
-
-    const eachWinner = correct.length
-        ? Math.floor(winnerPool / correct.length)
-        : 0;
-
-    const eachLoser = wrong.length
-        ? Math.floor(loserPool / wrong.length)
-        : 0;
 
     // 🧨 if nobody was correct → creator wins everything
     if (correct.length === 0) {
@@ -45,20 +32,19 @@ export function calculateSoloRewards({
         return { pool, rewards };
     }
 
-    // 🏆 winners
+    // 🏆 creator gets 10%, correct voters split 90%
+    rewards[creatorId] = {
+        xp: 50,
+        bounty: Math.floor(pool * 0.1),
+    };
+
+    const voterPool = pool - rewards[creatorId].bounty;
+    const eachWinner = Math.floor(voterPool / correct.length);
+
     for (const v of correct) {
         rewards[v.user_id] = {
             xp: 10,
             bounty: eachWinner,
-        };
-    }
-
-    // 🎖 losers (still get something)
-    for (const v of wrong) {
-        votes.filter(v => v.user_id !== creatorId)
-        rewards[v.user_id] = {
-            xp: 3,
-            bounty: eachLoser,
         };
     }
 
