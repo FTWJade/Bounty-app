@@ -51,11 +51,77 @@ export async function POST(req: Request) {
       );
     }
 
-    // 5. Cancel match
+    // 5. Refund website voters using each vote's stored bet amount.
+    const { data: votes, error: votesError } = await supabaseAdmin
+      .from("match_votes")
+      .select("user_id, bet_amount")
+      .eq("match_id", match_id);
+
+    if (votesError) {
+      return NextResponse.json(
+        { error: "Failed to load votes for refund" },
+        { status: 500 }
+      );
+    }
+
+    const refundedWebsiteUsers = new Set<string>();
+
+    for (const vote of votes || []) {
+      if (!vote.user_id || refundedWebsiteUsers.has(vote.user_id)) continue;
+
+      const amount = Number(vote.bet_amount ?? 0);
+      if (amount <= 0) continue;
+
+      await supabaseAdmin.rpc("add_points", {
+        user_id_input: vote.user_id,
+        amount_input: amount,
+      });
+
+      refundedWebsiteUsers.add(vote.user_id);
+    }
+
+    // 6. Refund paid Twitch votes to their linked bounty.town accounts.
+    // Free/anonymous Twitch votes have bet_amount = 0, so they receive no bounty refund.
+    const { data: twitchVotes, error: twitchVotesError } = await supabaseAdmin
+      .from("twitch_votes")
+      .select("bounty_user_id, bet_amount")
+      .eq("match_id", match_id)
+      .not("bounty_user_id", "is", null)
+      .gt("bet_amount", 0);
+
+    if (twitchVotesError) {
+      return NextResponse.json(
+        { error: "Failed to load Twitch votes for refund" },
+        { status: 500 }
+      );
+    }
+
+    for (const twitchVote of twitchVotes || []) {
+      if (!twitchVote.bounty_user_id) continue;
+
+      const amount = Number(twitchVote.bet_amount ?? 0);
+      if (amount <= 0) continue;
+
+      await supabaseAdmin.rpc("add_points", {
+        user_id_input: twitchVote.bounty_user_id,
+        amount_input: amount,
+      });
+    }
+
+    // 7. Refund creator's match bet.
+    if (match.creator_id) {
+      await supabaseAdmin.rpc("add_points", {
+        user_id_input: match.creator_id,
+        amount_input: match.bet_amount ?? 0,
+      });
+    }
+
+    // 8. Cancel match.
     const { error: updateError } = await supabaseAdmin
       .from("matches")
       .update({
         status: "cancelled",
+        winner_id: null,
       })
       .eq("id", match_id);
 
@@ -68,7 +134,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Match cancelled",
+      message: "Match cancelled and refunds issued",
     });
   } catch (err) {
     console.error(err);
