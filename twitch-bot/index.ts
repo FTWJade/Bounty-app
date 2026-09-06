@@ -41,6 +41,21 @@ async function getTwitchConnection(twitchId: string) {
   return data;
 }
 
+async function getBountyUserByTwitchId(twitchId: string) {
+  const { data, error } = await supabase
+    .from("bounties")
+    .select("user_id, twitch_id, bounty")
+    .eq("twitch_id", twitchId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Failed to find bounty user by Twitch ID:", error);
+    return null;
+  }
+
+  return data;
+}
+
 async function getActiveMatchForChannel(broadcasterId: string) {
   const connection = await getTwitchConnection(broadcasterId);
 
@@ -48,7 +63,7 @@ async function getActiveMatchForChannel(broadcasterId: string) {
 
   const { data: match, error } = await supabase
     .from("matches")
-    .select("id, status, mode")
+    .select("id, status, mode, creator_id, opponent_id")
     .eq("creator_id", connection.user_id)
     .in("status", ["open", "active"])
     .order("created_at", { ascending: false })
@@ -299,6 +314,22 @@ async function handleChatMessage(notification: any) {
       return;
     }
 
+    const bountyUser = await getBountyUserByTwitchId(
+      event.chatter_user_id
+    );
+
+    const isParticipant =
+      bountyUser?.user_id === match.creator_id ||
+      bountyUser?.user_id === match.opponent_id;
+
+    if (isParticipant) {
+      await sendChatMessage(
+        event.broadcaster_user_id,
+        `🐈‍⬛ @${event.chatter_user_name}, players can't vote on their own match!`
+      );
+      return;
+    }
+
     const { data: existingVote, error: existingError } = await supabase
       .from("twitch_votes")
       .select("id, vote, updated_at")
@@ -337,7 +368,7 @@ async function handleChatMessage(notification: any) {
         twitch_user_id: event.chatter_user_id,
         twitch_username: event.chatter_user_name,
         vote,
-        bounty_user_id: connection.user_id,
+        bounty_user_id: bountyUser?.user_id ?? null,
         bet_amount: 0,
       });
 
