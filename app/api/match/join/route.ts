@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const cost = Number(match.bounty_pool ?? 0);
+  const cost = Number(match.bet_amount ?? 0);
 
   // 🔒 4. ATOMIC deduction (prevents race condition)
   const { data: user } = await supabaseAdmin
@@ -73,6 +73,7 @@ export async function POST(req: Request) {
     .update({
       opponent_id: user_id,
       status: "active",
+      bounty_pool: Number(match.bounty_pool ?? 0) + cost,
       last_activity_at: new Date().toISOString(),
     })
     .eq("id", match_id)
