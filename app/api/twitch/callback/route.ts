@@ -12,11 +12,22 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const storedState = request.headers
+        .get("cookie")
+        ?.match(/(?:^|;\s*)twitch_oauth_state=([^;]*)/)?.[1];
 
     if (!code) {
         return NextResponse.json(
             { error: "Missing Twitch authorization code" },
             { status: 400 }
+        );
+    }
+
+    if (!state || !storedState || state !== decodeURIComponent(storedState)) {
+        return NextResponse.json(
+            { error: "Invalid Twitch authorization state" },
+            { status: 403 }
         );
     }
 
@@ -78,6 +89,7 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
+
     const { error: connectionError } = await supabaseAdmin
         .from("twitch_connections")
         .upsert({
@@ -95,9 +107,19 @@ export async function GET(request: Request) {
             { status: 500 }
         );
     }
+
     console.log(
         `Twitch account ${twitchUserId} connected to bounty.town user ${session.user.id}`
     );
 
-    return NextResponse.redirect(new URL("/", request.url));
+    const response = NextResponse.redirect(new URL("/", request.url));
+    response.cookies.set("twitch_oauth_state", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+    });
+
+    return response;
 }
