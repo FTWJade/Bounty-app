@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     .update(updates)
     .eq("id", match_id);
 
-  // 2. fetch user vote
+  // 2. fetch the user's website vote
   const { data: voteData, error: voteError } = await supabaseAdmin
     .from("match_votes")
     .select("vote, updated_at")
@@ -89,21 +89,81 @@ export async function POST(request: Request) {
     return Response.json({ error: voteError.message }, { status: 500 });
   }
 
-  // 3. compute cooldown
+  // A linked Twitch vote is the same user's vote, so include it when the
+  // website vote has not adopted it yet.
+  let twitchVoteData: { vote: "A" | "B"; updated_at: string | null } | null = null;
+
+  const { data: twitchConnection, error: twitchConnectionError } =
+    await supabaseAdmin
+      .from("twitch_connections")
+      .select("twitch_id")
+      .eq("user_id", String(user_id))
+      .maybeSingle();
+
+  if (twitchConnectionError) {
+    return Response.json(
+      { error: twitchConnectionError.message },
+      { status: 500 }
+    );
+  }
+
+  if (twitchConnection?.twitch_id) {
+    const { data: twitchVote, error: twitchVoteError } = await supabaseAdmin
+      .from("twitch_votes")
+      .select("vote, updated_at")
+      .eq("match_id", match_id)
+      .eq("twitch_user_id", twitchConnection.twitch_id)
+      .maybeSingle();
+
+    if (twitchVoteError) {
+      return Response.json(
+        { error: twitchVoteError.message },
+        { status: 500 }
+      );
+    }
+
+    twitchVoteData = twitchVote;
+  }
+
+  // 3. compute cooldown from whichever platform has the newest vote
+  const websiteVoteTime = (() => {
+    if (!voteData?.updated_at) return null;
+    const time = new Date(voteData.updated_at).getTime();
+    return Number.isFinite(time) && time <= now ? time : null;
+  })();
+
+  const twitchVoteTime = (() => {
+    if (!twitchVoteData?.updated_at) return null;
+    const time = new Date(twitchVoteData.updated_at).getTime();
+    return Number.isFinite(time) && time <= now ? time : null;
+  })();
+
+  const latestVoteTime = Math.max(
+    websiteVoteTime ?? 0,
+    twitchVoteTime ?? 0
+  );
+
   let cooldown_end: number | null = null;
 
-  if (voteData?.updated_at) {
-    const last = new Date(voteData.updated_at).getTime();
-    const diff = now - last;
+  if (latestVoteTime > 0) {
+    const cooldownEnd = latestVoteTime + THREE_MINUTES;
 
-    if (diff < THREE_MINUTES) {
-      cooldown_end = last + THREE_MINUTES;
+    if (now < cooldownEnd) {
+      cooldown_end = cooldownEnd;
     }
   }
 
+  const websiteVote = voteData?.vote ?? null;
+  const twitchVote = twitchVoteData?.vote ?? null;
+  const currentVote =
+    twitchVoteTime !== null &&
+    (websiteVoteTime === null || twitchVoteTime >= websiteVoteTime)
+      ? twitchVote
+      : websiteVote;
+
   return Response.json({
     success: true,
-    vote: voteData?.vote ?? null,
+    vote: currentVote,
     cooldown_end,
   });
 }
