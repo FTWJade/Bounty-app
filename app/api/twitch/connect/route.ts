@@ -5,7 +5,7 @@ export async function GET() {
         response_type: "code",
         client_id: process.env.TWITCH_BOT_CLIENT_ID!,
         redirect_uri: `${process.env.NEXTAUTH_URL}/api/twitch/callback`,
-        scope: "user:read:chat user:write:chat",
+        scope: "user:bot user:read:chat user:write:chat",
     });
 
     return NextResponse.redirect(
