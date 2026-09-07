@@ -79,12 +79,12 @@ export default function MatchView({
 }: Props) {
   const [voterCounts, setVoterCounts] = useState({
     bounty: 0,
-    twitch: 0,
+    free: 0,
   });
 
   useEffect(() => {
     if (!currentMatch?.id) {
-      setVoterCounts({ bounty: 0, twitch: 0 });
+      setVoterCounts({ bounty: 0, free: 0 });
       return;
     }
 
@@ -95,7 +95,7 @@ export default function MatchView({
       const data = await res.json();
       setVoterCounts({
         bounty: data.bountyVoters ?? 0,
-        twitch: data.twitchVoters ?? 0,
+        free: data.freeVoters ?? 0,
       });
     };
 
@@ -233,8 +233,8 @@ export default function MatchView({
             color: "#aaa",
           }}
         >
-          <span>🟣 Twitch voters: <b>{voterCounts.twitch}</b></span>
-          <span>💰 bounty.voters: <b>{voterCounts.bounty}</b></span>
+          <span>🟣 Free votes: <b>{voterCounts.free}</b></span>
+          <span>💰 Bounty voters: <b>{voterCounts.bounty}</b></span>
         </div>
       )}
 
