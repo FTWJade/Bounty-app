@@ -129,8 +129,10 @@ export async function POST(req: Request) {
       await refundBounty(twitchVote.bounty_user_id, amount);
     }
 
-    // 7. Refund creator's match bet.
-    if (match.creator_id) {
+    // 7. Refund the creator's entry fee only for PvP matches.
+    // Solo creators never pay an entry fee, so cancelling a Solo match must not
+    // return the match's bet_amount to the creator.
+    if (match.mode !== "solo" && match.creator_id) {
       await refundBounty(
         match.creator_id,
         Number(match.bet_amount ?? 0)
