@@ -43,7 +43,11 @@ export default function VoteBar({
     canVote,
     isCoolingDown = false,
 }: VoteBarProps) {
-    const displayedVote = myVote || pendingVote;
+    // During cooldown, only show the confirmed current vote. This prevents a
+    // rejected click from appearing as if the user's vote changed.
+    const displayedVote = isCoolingDown
+        ? myVote
+        : myVote || pendingVote;
 
     const voteButtonStyle = (background: string) => ({
         padding: "10px 18px",
@@ -214,7 +218,7 @@ export default function VoteBar({
                         color: "#aaa",
                     }}
                 >
-                    You voted: {displayedVote}
+                    You voted: {getSideName(displayedVote)}
                 </p>
             ) : !canVote ? (
                 <p
