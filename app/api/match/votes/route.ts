@@ -10,18 +10,18 @@ export async function GET(req: Request) {
       bountyA: 0, bountyB: 0,
       twitchA: 0, twitchB: 0,
       bountyVoters: 0,
-      twitchVoters: 0,
+      freeVoters: 0,
     });
   }
 
   const [{ data: bountyVotes }, { data: twitchVotes }] = await Promise.all([
     supabaseAdmin
       .from("match_votes")
-      .select("vote")
+      .select("vote" )
       .eq("match_id", String(match_id)),
     supabaseAdmin
       .from("twitch_votes")
-      .select("vote")
+      .select("vote, bet_amount")
       .eq("match_id", String(match_id)),
   ]);
 
@@ -29,6 +29,8 @@ export async function GET(req: Request) {
   let bountyB = 0;
   let twitchA = 0;
   let twitchB = 0;
+  let freeVoters = 0;
+  let paidTwitchVoters = 0;
 
   for (const v of bountyVotes || []) {
     if (v.vote === "A") bountyA++;
@@ -38,6 +40,12 @@ export async function GET(req: Request) {
   for (const v of twitchVotes || []) {
     if (v.vote === "A") twitchA++;
     if (v.vote === "B") twitchB++;
+
+    if (Number(v.bet_amount ?? 0) > 0) {
+      paidTwitchVoters++;
+    } else {
+      freeVoters++;
+    }
   }
 
   return Response.json({
@@ -47,7 +55,8 @@ export async function GET(req: Request) {
     bountyB,
     twitchA,
     twitchB,
-    bountyVoters: (bountyVotes || []).length,
-    twitchVoters: (twitchVotes || []).length,
+    // Website votes use bounty, and paid Twitch votes also use bounty.
+    bountyVoters: (bountyVotes || []).length + paidTwitchVoters,
+    freeVoters,
   });
 }
